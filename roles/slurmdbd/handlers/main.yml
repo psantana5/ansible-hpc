@@ -1,0 +1,20 @@
+---
+- name: restart mariadb
+  service:
+    name: mariadb
+    state: restarted
+
+- name: restart slurmdbd
+  service:
+    name: slurmdbd
+    state: restarted
+
+- name: reload firewall
+  service:
+    name: firewalld
+    state: reloaded
+
+- name: restart munge
+  service:
+    name: munge
+    state: restarted

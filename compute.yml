@@ -1,0 +1,7 @@
+---
+- name: Deploy SLURM Compute Nodes
+  hosts: compute
+  become: true
+  roles:
+    - epel
+    - compute

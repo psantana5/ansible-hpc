@@ -1,0 +1,23 @@
+---
+- name: restart prometheus
+  service:
+    name: prometheus
+    state: restarted
+
+- name: restart grafana
+  service:
+    name: grafana-server
+    state: restarted
+
+- name: reload systemd
+  command: systemctl daemon-reload
+
+- name: restart slurm-exporter
+  service:
+    name: slurm-exporter
+    state: restarted
+
+- name: restart docker-compose
+  community.docker.docker_compose:
+    project_src: /opt/monitoring
+    restarted: yes

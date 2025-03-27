@@ -1,0 +1,20 @@
+[mysqld]
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+log-error=/var/log/mariadb/mariadb.log
+pid-file=/run/mariadb/mariadb.pid
+
+# Security settings
+bind-address = 127.0.0.1
+skip-networking = false
+
+# Performance settings - updated for SLURM
+innodb_buffer_pool_size = {{ mariadb_buffer_pool_size | default('1G') }}
+innodb_lock_wait_timeout = 900
+max_connections = {{ mariadb_max_connections | default(100) }}
+
+[client]
+port = 3306
+socket = /var/lib/mysql/mysql.sock
+user = root
+password = 1SAfe-password

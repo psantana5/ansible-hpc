@@ -1,0 +1,15 @@
+---
+- name: restart slurmctld
+  service:
+    name: slurmctld
+    state: restarted
+
+- name: reload firewall
+  service:
+    name: firewalld
+    state: reloaded
+
+- name: restart munge
+  service:
+    name: munge
+    state: restarted

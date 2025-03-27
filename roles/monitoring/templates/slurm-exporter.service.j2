@@ -1,0 +1,14 @@
+[Unit]
+Description=Prometheus SLURM Exporter
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/usr/local/go/bin:/root/go/bin"
+ExecStart=/root/go/bin/prometheus-slurm-exporter -slurm.cli-fallback -web.listen-address=:9092
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

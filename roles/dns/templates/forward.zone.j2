@@ -1,0 +1,27 @@
+$TTL 86400
+@ IN SOA {{ ansible_hostname }}.{{ cluster_domain }}. root.{{ cluster_domain }}. (
+    {{ ansible_date_time.epoch }} ; Serial
+    3600        ; Refresh
+    1800        ; Retry
+    604800      ; Expire
+    86400 )     ; Minimum TTL
+
+@ IN NS {{ ansible_hostname }}.{{ cluster_domain }}.
+
+; A records for cluster nodes
+{{ ansible_hostname }} IN A {{ ansible_default_ipv4.address }}
+
+; SLURM Controller
+{% for host in groups['slurmctld'] %}
+{{ host }} IN A {{ hostvars[host]['ansible_default_ipv4']['address'] }}
+{% endfor %}
+
+; SLURM Database
+{% for host in groups['slurmdbd'] %}
+{{ host }} IN A {{ hostvars[host]['ansible_default_ipv4']['address'] }}
+{% endfor %}
+
+; Compute Nodes
+{% for host in groups['compute'] %}
+{{ host }} IN A {{ hostvars[host]['ansible_default_ipv4']['address'] }}
+{% endfor %}

@@ -1,0 +1,11 @@
+---
+# Existing playbook content
+# ...
+
+- name: Deploy monitoring
+  hosts: slurmctld[0]  # Deploy on the controller node
+  become: yes
+  vars:
+    grafana_admin_password: "admin"  # Change this
+  roles:
+    - monitoring

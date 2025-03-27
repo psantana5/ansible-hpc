@@ -1,0 +1,32 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - alert_rules.yml
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets:
+          - localhost:9100
+          {% for host in groups['all'] %}
+          {% if host != 'services01' and host != inventory_hostname %}
+          - {{ hostvars[host]['ansible_host'] | default(host) }}:9100
+          {% endif %}
+          {% endfor %}
+
+{% if 'slurmctld' in groups %}
+  - job_name: 'slurm_exporter'
+    scrape_interval: 30s
+    scrape_timeout: 30s
+    static_configs:
+      - targets:
+          {% for host in groups['slurmctld'] %}
+          - {{ hostvars[host]['ansible_host'] | default(host) }}:9092
+          {% endfor %}
+{% endif %}

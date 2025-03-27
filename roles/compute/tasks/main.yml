@@ -1,0 +1,129 @@
+---
+# Add SSH key checks at the beginning
+- name: Check for existing SSH keys locally
+  local_action: stat path=~/.ssh/id_rsa
+  register: ssh_key_exists
+  become: no
+
+- name: Generate SSH key if it doesn't exist
+  local_action: command ssh-keygen -t rsa -f ~/.ssh/id_rsa -N ""
+  when: not ssh_key_exists.stat.exists
+  become: no
+
+- name: Check if SSH key is already authorized on remote host
+  shell: ssh -o BatchMode=yes -o ConnectTimeout=5 {{ inventory_hostname }} exit
+  register: ssh_key_check
+  ignore_errors: true
+  become: no
+  delegate_to: localhost
+
+- name: Copy SSH key to remote host
+  local_action: command ssh-copy-id -i ~/.ssh/id_rsa.pub {{ ansible_user | default(lookup('env', 'USER')) }}@{{ ansible_host | default(inventory_hostname) }}
+  when: ssh_key_check is failed
+  become: no
+
+# Move the hosts update task to the beginning
+- name: Update /etc/hosts with all cluster nodes
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ hostvars[item]['ansible_host'] }} {{ item }}"
+    regexp: "^{{ hostvars[item]['ansible_host'] }}\\s+{{ item }}$"
+    state: present
+  with_items: "{{ groups['slurm'] }}"
+
+- name: Install required packages
+  package:
+    name:
+      - munge
+      - slurm-slurmd
+    state: present
+
+# Add slurm user check and creation
+- name: Check if slurm user exists
+  getent:
+    database: passwd
+    key: slurm
+  register: slurm_user_exists
+  ignore_errors: yes
+
+- name: Create slurm user if it doesn't exist
+  user:
+    name: slurm
+    state: present
+    system: yes
+  when: slurm_user_exists.failed is defined and slurm_user_exists.failed
+
+- name: Create munge key directory
+  file:
+    path: /etc/munge
+    state: directory
+    mode: "0700"
+    owner: munge
+    group: munge
+
+# Make sure these tasks exist and are properly configured
+- name: Fetch munge key from slurmdbd
+  fetch:
+    src: /etc/munge/munge.key
+    dest: /tmp/munge.key
+    flat: yes
+  delegate_to: "{{ groups['slurmdbd'][0] }}"
+
+- name: Copy munge key to compute node
+  copy:
+    src: /tmp/munge.key
+    dest: /etc/munge/munge.key
+    mode: "0400"
+    owner: munge
+    group: munge
+  notify: restart munge
+
+- name: Create SLURM directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: slurm
+    group: slurm
+  with_items:
+    - /etc/slurm
+    - /var/log/slurm
+    - /var/spool/slurm
+
+# Replace the template task with a fetch and copy task
+- name: Fetch slurm.conf from controller
+  fetch:
+    src: /etc/slurm/slurm.conf
+    dest: /tmp/slurm.conf
+    flat: yes
+  delegate_to: "{{ groups['slurmctld'][0] }}"
+
+- name: Copy slurm.conf to compute node
+  copy:
+    src: /tmp/slurm.conf
+    dest: /etc/slurm/slurm.conf
+    mode: "0644"
+    owner: slurm
+    group: slurm
+  notify: restart slurmd
+
+- name: Start and enable munge
+  service:
+    name: munge
+    state: started
+    enabled: yes
+
+- name: Start and enable slurmd
+  service:
+    name: slurmd
+    state: started
+    enabled: yes
+
+- name: Configure firewall for SLURM
+  firewalld:
+    port: "{{ item }}/tcp"
+    permanent: yes
+    state: enabled
+  with_items:
+    - "6817-6819"  # Puertos de SLURM
+  notify: reload firewall

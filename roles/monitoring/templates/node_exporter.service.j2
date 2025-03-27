@@ -1,0 +1,13 @@
+[Unit]
+Description=Node Exporter
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/opt/node_exporter/node_exporter
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

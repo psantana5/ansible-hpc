@@ -1,0 +1,60 @@
+---
+- name: Install BIND DNS server
+  package:
+    name: bind
+    state: present
+
+- name: Create named configuration directory
+  file:
+    path: /etc/named
+    state: directory
+    owner: named
+    group: named
+    mode: "0750"
+
+- name: Configure named.conf
+  template:
+    src: named.conf.j2
+    dest: /etc/named.conf
+    owner: named
+    group: named
+    mode: "0640"
+  notify: restart named
+
+- name: Configure forward zone
+  template:
+    src: forward.zone.j2
+    dest: /etc/named/forward.zone
+    owner: named
+    group: named
+    mode: "0640"
+  notify: restart named
+
+- name: Configure reverse zone
+  template:
+    src: reverse.zone.j2
+    dest: /etc/named/reverse.zone
+    owner: named
+    group: named
+    mode: "0640"
+  notify: restart named
+
+- name: Start and enable named service
+  service:
+    name: named
+    state: started
+    enabled: yes
+
+- name: Configure firewall for DNS
+  firewalld:
+    port: 53/tcp
+    permanent: yes
+    state: enabled
+  notify: reload firewall
+
+- name: Configure firewall for DNS UDP
+  firewalld:
+    port: 53/udp
+    permanent: yes
+    state: enabled
+  notify: reload firewall

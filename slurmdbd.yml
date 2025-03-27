@@ -1,0 +1,17 @@
+---
+- name: Deploy SLURM Database Server
+  hosts: slurmdbd
+  become: true
+  vars:
+    slurm_db_name: "slurm_acct_db"
+    slurm_db_user: "slurm"
+    slurm_db_password: "slurm_password"
+    slurmdbd_port: 6819
+    ansible_python_interpreter: /root/.ansible-venv/bin/python3
+    # Add MySQL connection parameters
+    ansible_mysql_user: root
+    ansible_mysql_password: ""
+    ansible_mysql_host: localhost
+  roles:
+    - epel
+    - slurmdbd

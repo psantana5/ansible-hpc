@@ -1,0 +1,182 @@
+---
+# Check for SSH keys and set them up if needed
+- name: Check for existing SSH keys locally
+  local_action: stat path=~/.ssh/id_rsa
+  register: ssh_key_exists
+  become: no
+
+- name: Generate SSH key if it doesn't exist
+  local_action: command ssh-keygen -t rsa -f ~/.ssh/id_rsa -N ""
+  when: not ssh_key_exists.stat.exists
+  become: no
+
+- name: Check if SSH key is already authorized on remote host
+  shell: ssh -o BatchMode=yes -o ConnectTimeout=5 {{ inventory_hostname }} exit
+  register: ssh_key_check
+  ignore_errors: true
+  become: no
+  delegate_to: localhost
+
+- name: Copy SSH key to remote host
+  local_action: command ssh-copy-id -i ~/.ssh/id_rsa.pub {{ ansible_user | default(lookup('env', 'USER')) }}@{{ ansible_host | default(inventory_hostname) }}
+  when: ssh_key_check is failed
+  become: no
+
+- name: Install required packages
+  package:
+    name:
+      - munge
+      - slurm-slurmctld
+    state: present
+
+# Check if slurm user exists and create if needed
+- name: Check if slurm user exists
+  getent:
+    database: passwd
+    key: slurm
+  register: slurm_user_exists
+  ignore_errors: yes
+
+- name: Create slurm user if it doesn't exist
+  user:
+    name: slurm
+    state: present
+    system: yes
+  when: slurm_user_exists.failed is defined and slurm_user_exists.failed
+
+- name: Create munge key directory
+  file:
+    path: /etc/munge
+    state: directory
+    mode: "0700"
+    owner: munge
+    group: munge
+
+# Replace the existing munge key check with this:
+- name: Check if munge key exists on slurmdbd
+  stat:
+    path: /etc/munge/munge.key
+  register: munge_key_stat
+  delegate_to: "{{ groups['slurmdbd'][0] }}"
+  ignore_errors: yes
+
+- name: Display warning if munge key doesn't exist
+  debug:
+    msg: "Warning: Munge key does not exist on slurmdbd. Please create it first."
+  when: not munge_key_stat.stat.exists
+  
+- name: End play if munge key doesn't exist
+  meta: end_play
+  when: not munge_key_stat.stat.exists
+
+# Replace the existing munge key tasks with these
+- name: Fetch munge key from slurmdbd
+  fetch:
+    src: /etc/munge/munge.key
+    dest: /tmp/munge.key
+    flat: yes
+  delegate_to: "{{ groups['slurmdbd'][0] }}"
+
+- name: Configure munge options
+  template:
+    src: munge.j2
+    dest: /etc/sysconfig/munge
+    mode: "0644"
+  notify: restart munge
+
+- name: Copy munge key to slurmctld
+  copy:
+    src: /tmp/munge.key
+    dest: /etc/munge/munge.key
+    mode: "0400"
+    owner: munge
+    group: munge
+  notify: restart munge
+
+- name: Create SLURM directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: slurm
+    group: slurm
+  with_items:
+    - /etc/slurm
+    - /var/log/slurm
+    - /var/spool/slurm/ctld
+
+# Add this task after the "Create SLURM directories" task
+- name: Ensure correct permissions on state save location
+  file:
+    path: /var/spool/slurm/ctld
+    state: directory
+    mode: "0755"
+    owner: slurm
+    group: slurm
+    recurse: yes
+
+# Add hosts file entries for all cluster nodes
+- name: Update /etc/hosts with all cluster nodes
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ hostvars[item]['ansible_host'] }} {{ item }}"
+    regexp: "^{{ hostvars[item]['ansible_host'] }}\\s+{{ item }}$"
+    state: present
+  with_items: "{{ groups['slurm'] }}"
+
+- name: Check if slurm.conf template exists
+  local_action: stat path="{{ role_path }}/templates/slurm.conf.j2"
+  register: slurm_conf_template
+  become: no
+
+- name: Display warning if slurm.conf template doesn't exist
+  debug:
+    msg: "Warning: slurm.conf.j2 template does not exist. Please create it first."
+  when: not slurm_conf_template.stat.exists
+
+- name: End play if slurm.conf template doesn't exist
+  meta: end_play
+  when: not slurm_conf_template.stat.exists
+
+- name: Configure slurmctld
+  template:
+    src: slurm.conf.j2
+    dest: /etc/slurm/slurm.conf
+    mode: "0644"
+    owner: slurm
+    group: slurm
+  notify: restart slurmctld
+
+- name: Start and enable munge
+  service:
+    name: munge
+    state: started
+    enabled: yes
+
+- name: Start and enable slurmctld
+  service:
+    name: slurmctld
+    state: started
+    enabled: yes
+
+- name: Configure firewall for SLURM
+  firewalld:
+    port: "{{ slurmctld_port | default(6817) }}/tcp"
+    permanent: yes
+    state: enabled
+  notify: reload firewall
+
+- name: Find munge socket path
+  shell: find /var/run/munge -name "munge.socket*" | head -1
+  register: munge_socket_path
+  changed_when: false
+  ignore_errors: true
+
+- name: Add munge socket path to slurm.conf
+  lineinfile:
+    path: /etc/slurm/slurm.conf
+    line: "AuthAltTypes=auth/munge MungeSocketPath={{ munge_socket_path.stdout }}"
+    insertafter: "^AuthType=auth/munge"
+    state: present
+  when: munge_socket_path.stdout != ""
+

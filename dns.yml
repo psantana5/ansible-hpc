@@ -1,0 +1,7 @@
+---
+- name: Deploy DNS Server
+  hosts: dns
+  become: true
+  roles:
+    - epel
+    - dns

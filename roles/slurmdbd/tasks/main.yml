@@ -1,0 +1,225 @@
+---
+- name: Check for existing SSH keys locally
+  local_action: stat path=~/.ssh/id_rsa
+  register: ssh_key_exists
+  become: no
+
+- name: Generate SSH key if it doesn't exist
+  local_action: command ssh-keygen -t rsa -f ~/.ssh/id_rsa -N ""
+  when: not ssh_key_exists.stat.exists
+  become: no
+
+- name: Check if SSH key is already authorized on remote host
+  shell: ssh -o BatchMode=yes -o ConnectTimeout=5 {{ inventory_hostname }} exit
+  register: ssh_key_check
+  ignore_errors: true
+  become: no
+  delegate_to: localhost
+
+- name: Copy SSH key to remote host
+  local_action: command ssh-copy-id -i ~/.ssh/id_rsa.pub {{ ansible_user | default(lookup('env', 'USER')) }}@{{ ansible_host | default(inventory_hostname) }}
+  when: ssh_key_check is failed
+  become: no
+
+- name: Install required packages
+  package:
+    name:
+      - mariadb-server
+      - munge
+      - slurm-slurmdbd
+      - python3-PyMySQL  # Add this package
+    state: present
+
+# Add this task to ensure pip is installed
+- name: Install pip
+  package:
+    name: python3-pip
+    state: present
+
+# Add this task to install PyMySQL using pip
+- name: Install PyMySQL using pip
+  pip:
+    name: PyMySQL
+    state: present
+
+- name: Check if slurm user exists
+  getent:
+    database: passwd
+    key: slurm
+  register: slurm_user_exists
+  ignore_errors: yes
+
+- name: Create slurm user if it doesn't exist
+  user:
+    name: slurm
+    state: present
+    system: yes
+  when: slurm_user_exists.failed is defined and slurm_user_exists.failed
+
+# After the "Check if slurm user exists" task, add this task to ensure consistent UID
+- name: Create slurm user with specific UID
+  user:
+    name: slurm
+    state: present
+    system: yes
+    uid: 990  # Use a specific UID that will be the same across all nodes
+  when: slurm_user_exists.failed is defined and slurm_user_exists.failed
+
+# Add this task to check the slurm user UID
+- name: Get slurm user UID
+  shell: id -u slurm
+  register: slurm_uid
+  changed_when: false
+
+# Add this task to ensure slurmdbd.conf has correct permissions
+- name: Ensure slurmdbd.conf has correct permissions
+  file:
+    path: /etc/slurm/slurmdbd.conf
+    owner: slurm
+    group: slurm
+    mode: '0600'
+  notify: restart slurmdbd
+
+# Add this task to ensure the slurm user can access the database
+- name: Grant additional database privileges to slurm user
+  mysql_user:
+    name: "{{ slurm_db_user }}"
+    password: "{{ slurm_db_password }}"
+    priv: "{{ slurm_db_name }}.*:ALL/mysql.tres:ALL"
+    host: localhost
+    state: present
+    login_user: root
+    login_password: "1SAfe-password"
+
+- name: Create munge key directory
+  file:
+    path: /etc/munge
+    state: directory
+    mode: "0700"
+    owner: munge
+    group: munge
+
+- name: Generate munge key
+  command: /usr/sbin/create-munge-key
+  args:
+    creates: /etc/munge/munge.key
+
+- name: Configure MariaDB
+  template:
+    src: mariadb.conf.j2
+    dest: /etc/my.cnf.d/mariadb-server.cnf
+    mode: "0644"
+  notify: restart mariadb
+
+- name: Start and enable MariaDB
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+
+# Add this task to secure the MariaDB installation
+- name: Secure MariaDB installation
+  shell: |
+    mysql -e "UPDATE mysql.user SET Password=PASSWORD('1SAfe-password') WHERE User='root';"
+    mysql -e "DELETE FROM mysql.user WHERE User='';"
+    mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+    mysql -e "DROP DATABASE IF EXISTS test;"
+    mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
+    mysql -e "FLUSH PRIVILEGES;"
+  ignore_errors: yes
+  changed_when: false
+  args:
+    warn: false
+
+- name: Create SLURM database
+  mysql_db:
+    name: "{{ slurm_db_name }}"
+    state: present
+    login_user: root
+    login_password: "1SAfe-password"
+
+- name: Create SLURM database user
+  mysql_user:
+    name: "{{ slurm_db_user }}"
+    password: "{{ slurm_db_password }}"
+    priv: "{{ slurm_db_name }}.*:ALL"
+    host: localhost
+    state: present
+    login_user: root
+    login_password: "1SAfe-password"
+
+- name: Configure slurmdbd
+  template:
+    src: slurmdbd.conf.j2
+    dest: /etc/slurm/slurmdbd.conf
+    mode: "0600"
+    owner: slurm
+    group: slurm
+  notify: restart slurmdbd
+
+- name: Start and enable munge
+  service:
+    name: munge
+    state: started
+    enabled: yes
+
+- name: Start and enable slurmdbd
+  service:
+    name: slurmdbd
+    state: started
+    enabled: yes
+
+# Replace the firewall task with these commands
+- name: Check if firewalld is installed
+  command: which firewall-cmd
+  register: firewalld_check
+  ignore_errors: yes
+  changed_when: false
+
+- name: Configure firewall for SLURM using firewall-cmd
+  shell: |
+    firewall-cmd --permanent --add-port={{ slurmdbd_port }}/tcp
+    firewall-cmd --reload
+  when: firewalld_check.rc == 0
+  changed_when: true
+
+# Add this task after the "Create slurm user if it doesn't exist" task
+- name: Update /etc/hosts with all cluster nodes
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ hostvars[item]['ansible_host'] }} {{ item }}"
+    regexp: "^{{ hostvars[item]['ansible_host'] }}\\s+{{ item }}$"
+    state: present
+  with_items: "{{ groups['slurm'] }}"
+
+# Add these tasks after the "Create SLURM directories" task
+- name: Ensure correct permissions on SLURM log directory
+  file:
+    path: /var/log/slurm
+    state: directory
+    mode: "0755"
+    owner: slurm
+    group: slurm
+    recurse: yes
+
+- name: Configure munge to use more threads
+  lineinfile:
+    path: /etc/sysconfig/munge
+    regexp: '^OPTIONS='
+    line: 'OPTIONS="--num-threads=10"'
+    create: yes
+  notify: restart munge
+
+- name: Find munge socket path
+  shell: find /var/run/munge -name "munge.socket*" | head -1
+  register: munge_socket_path
+  changed_when: false
+  ignore_errors: true
+
+- name: Add munge socket path to slurmdbd.conf
+  lineinfile:
+    path: /etc/slurm/slurmdbd.conf
+    line: "AuthInfo={{ munge_socket_path.stdout }}"
+    regexp: "^AuthInfo="
+    state: present
+  when: munge_socket_path.stdout != ""

@@ -1,0 +1,35 @@
+---
+- name: Install required packages
+  package:
+    name:
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+    state: present
+
+- name: Add Docker repository
+  get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: "0644"
+
+- name: Install Docker requisi
+  package:
+    name: docker-ce
+    state: present
+
+- name: Create docker group
+  group:
+    name: docker
+    state: present
+
+- name: Start and enable Docker service
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Install python3-docker package
+  package:
+    name: python3-docker
+    state: present

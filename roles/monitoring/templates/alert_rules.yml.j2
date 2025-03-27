@@ -1,0 +1,20 @@
+groups:
+- name: slurm_alerts
+  rules:
+  - alert: NodeDown
+    expr: up{job="node_exporter"} == 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Node {% raw %}{{ $labels.instance }}{% endraw %} is down"
+      description: "Node has been down for more than 5 minutes."
+
+  - alert: HighCpuLoad
+    expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU load on {% raw %}{{ $labels.instance }}{% endraw %}"
+      description: "CPU load is above 90% for more than 15 minutes."

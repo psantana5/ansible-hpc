@@ -1,0 +1,923 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[spanish,es-noquoting,es-noshorthands]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{arrows.meta}
+\usepackage{tcolorbox}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{geometry}
+
+% Configuración de geometría de página
+\geometry{
+  a4paper,
+  top=2.5cm,
+  bottom=2.5cm,
+  left=2.5cm,
+  right=2.5cm,
+  headheight=15pt  % Aumentar el headheight para evitar advertencias
+}
+
+% Configuración de encabezado y pie de página
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Despliegue de SLURM con Ansible}
+\fancyhead[R]{\thepage}
+\fancyfoot[C]{LinkiaFP - \today}
+
+% Colores para el código
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{commentcolor}{rgb}{0.25,0.5,0.37}
+\definecolor{keywordcolor}{rgb}{0.73,0.27,0.27}
+\definecolor{stringcolor}{rgb}{0.25,0.44,0.63}
+
+% Estilo mejorado para el código
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{commentcolor}\itshape,
+    keywordstyle=\color{keywordcolor}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{stringcolor},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    frame=single,
+    framesep=5pt,
+    framerule=0.4pt,
+    rulecolor=\color{codegray},
+    xleftmargin=15pt,
+    xrightmargin=5pt
+}
+
+% Definición de lenguajes personalizados
+\lstdefinelanguage{ansible}{
+  keywords={name, hosts, become, tasks, roles, vars, handlers, template, copy, file, service, package, command, shell, when, with_items, register, notify, include_tasks, delegate_to, ignore_errors, changed_when, failed},
+  sensitive=true,
+  comment=[l]{\#},
+  string=[s]{"}{"},
+  string=[s]{'}{'},
+  morestring=[s]{:}{,},
+  morestring=[s]{:}{ },
+  morestring=[s]{:}{$},
+}
+
+\lstdefinelanguage{slurm}{
+  keywords={ClusterName, SlurmctldHost, AuthType, CryptoType, AccountingStorageType, AccountingStorageHost, AccountingStoragePort, NodeName, PartitionName, Default, State, MaxTime, CPUs, ProctrackType, TaskPlugin, JobAcctGatherType, ConstrainCores, ConstrainRAMSpace, ConstrainSwapSpace, ConstrainDevices, TaskAffinity},
+  sensitive=true,
+  comment=[l]{\#},
+  string=[s]{"}{"},
+  string=[s]{'}{'},
+}
+
+\lstset{style=mystyle}
+
+% Configuración de cajas para información destacada
+\tcbuselibrary{skins,breakable}
+\newtcolorbox{infobox}[1][]{
+  enhanced,
+  breakable,
+  colback=blue!5!white,
+  colframe=blue!75!black,
+  title=#1,
+  fonttitle=\bfseries
+}
+
+\newtcolorbox{warningbox}[1][]{
+  enhanced,
+  breakable,
+  colback=orange!5!white,
+  colframe=orange!75!black,
+  title=#1,
+  fonttitle=\bfseries
+}
+
+\title{\Huge\bfseries Despliegue de un Clúster SLURM con Ansible}
+\author{\Large Pau Santana}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\noindent Este documento describe en detalle el despliegue automatizado de un clúster SLURM utilizando Ansible. Se explica la arquitectura del clúster, los componentes principales (slurmctld, slurmdbd y slurmd), la estructura de directorios y el flujo de trabajo para la implementación. El objetivo es proporcionar una guía completa y didáctica para entender cómo funciona cada daemon, cómo se configura el clúster y cómo interactúan los diferentes componentes entre sí para formar un sistema de gestión de recursos distribuido.
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Introducción}
+\newpage
+
+SLURM (Simple Linux Utility for Resource Management) es un sistema de gestión de recursos y programación de trabajos de código abierto diseñado para clústeres Linux. Es ampliamente utilizado en entornos de computación de alto rendimiento (HPC) debido a su escalabilidad, tolerancia a fallos y flexibilidad.
+
+\begin{infobox}[¿Por qué SLURM?]
+SLURM es uno de los gestores de recursos más populares en el ámbito de HPC por varias razones:
+\begin{itemize}
+    \item Es de código abierto y gratuito
+    \item Altamente escalable (desde pequeños clústeres hasta supercomputadoras)
+    \item Tolerante a fallos
+    \item Extensible mediante plugins
+    \item Ampliamente adoptado en centros de investigación y universidades
+\end{itemize}
+\end{infobox}
+
+Este documento explica cómo se despliega un clúster SLURM utilizando Ansible, centrándose en los tres componentes principales:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{slurmctld}: El controlador central que gestiona los trabajos y recursos.
+    \item \textbf{slurmdbd}: El daemon de la base de datos que almacena información de contabilidad.
+    \item \textbf{slurmd}: El daemon que se ejecuta en cada nodo de cómputo.
+\end{itemize}
+
+\section{Arquitectura del Clúster}
+\newpage
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[node distance=2cm, auto]
+    % Nodos
+    \node[draw, rectangle, rounded corners, fill=blue!20, minimum width=3cm, minimum height=1cm] (controller) {Nodo Controlador (slurm01)};
+    \node[draw, rectangle, rounded corners, fill=green!20, minimum width=3cm, minimum height=1cm, below left=of controller] (db) {Nodo DB (slurmdb01)};
+    \node[draw, rectangle, rounded corners, fill=orange!20, minimum width=3cm, minimum height=1cm, below right=of controller] (compute) {Nodos de Cómputo (bsc01)};
+    
+    % Daemons
+    \node[draw, ellipse, fill=blue!10, below=0.5cm of controller] (slurmctld) {slurmctld};
+    \node[draw, ellipse, fill=green!10, below=0.5cm of db] (slurmdbd) {slurmdbd};
+    \node[draw, ellipse, fill=orange!10, below=0.5cm of compute] (slurmd) {slurmd};
+    
+    % Conexiones
+    \draw[->, thick] (controller) -- (db) node[midway, above, sloped] {Contabilidad};
+    \draw[->, thick] (controller) -- (compute) node[midway, above, sloped] {Asignación};
+    \draw[->, thick] (slurmctld) -- (slurmdbd);
+    \draw[->, thick] (slurmctld) -- (slurmd);
+\end{tikzpicture}
+\caption{Arquitectura básica del clúster SLURM}
+\end{figure}
+
+Nuestro clúster SLURM consta de tres tipos de nodos:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Nodo Controlador (slurm01)}: Ejecuta el daemon slurmctld, que es el cerebro del clúster. Este nodo toma decisiones sobre la asignación de recursos y la programación de trabajos.
+    
+    \item \textbf{Nodo de Base de Datos (slurmdb01)}: Ejecuta el daemon slurmdbd y MariaDB. Este nodo almacena toda la información de contabilidad, usuarios, trabajos y uso de recursos.
+    
+    \item \textbf{Nodos de Cómputo (bsc01, etc.)}: Ejecutan el daemon slurmd. Estos nodos son donde realmente se ejecutan los trabajos de los usuarios.
+\end{itemize}
+
+\begin{warningbox}[Consideraciones de Alta Disponibilidad]
+En un entorno de producción, es recomendable configurar nodos de respaldo para el controlador y la base de datos para garantizar la alta disponibilidad. SLURM permite configurar múltiples nodos slurmctld y slurmdbd para evitar puntos únicos de fallo.
+\end{warningbox}
+
+\section{Estructura de Directorios del Proyecto Ansible}
+\newpage
+
+La estructura de directorios del proyecto Ansible está organizada siguiendo las mejores prácticas para facilitar el mantenimiento y la escalabilidad:
+
+\begin{lstlisting}[language=bash, caption=Estructura de directorios del proyecto]
+/home/psantana/playbooks-ansible/
+|-- inventory/
+|   `-- hosts                 # Definición de los nodos del clúster
+|-- roles/
+|   |-- slurmctld/            # Rol para configurar el controlador
+|   |   |-- tasks/
+|   |   |   `-- main.yml      # Tareas para instalar y configurar slurmctld
+|   |   |-- templates/
+|   |   |   |-- slurm.conf.j2 # Plantilla de configuración de SLURM
+|   |   |   `-- cgroup.conf.j2 # Configuración de cgroups
+|   |   `-- handlers/
+|   |       `-- main.yml      # Manejadores para reiniciar servicios
+|   |-- slurmdbd/             # Rol para configurar la base de datos
+|   |   |-- tasks/
+|   |   |   `-- main.yml      # Tareas para instalar y configurar slurmdbd
+|   |   |-- templates/
+|   |   |   |-- slurmdbd.conf.j2 # Configuración de slurmdbd
+|   |   |   `-- mariadb.conf.j2  # Configuración de MariaDB
+|   |   `-- handlers/
+|   |       `-- main.yml      # Manejadores para reiniciar servicios
+|   `-- compute/              # Rol para configurar nodos de cómputo
+|       |-- tasks/
+|       |   `-- main.yml      # Tareas para instalar y configurar slurmd
+|       `-- handlers/
+|           `-- main.yml      # Manejadores para reiniciar servicios
+`-- site.yml                  # Playbook principal
+\end{lstlisting}
+
+Esta estructura sigue el patrón de roles de Ansible, donde cada componente del clúster tiene su propio rol con tareas, plantillas y manejadores específicos. Esto permite una clara separación de responsabilidades y facilita la reutilización de código.
+
+\section{Despliegue del Daemon slurmctld}
+\newpage
+
+\subsection{Función del slurmctld}
+
+El daemon slurmctld es el controlador central de SLURM, también conocido como el "cerebro" del clúster. Sus principales responsabilidades son:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Gestión de trabajos}: Aceptar, validar y programar las solicitudes de trabajo de los usuarios.
+    \item \textbf{Asignación de recursos}: Decidir qué nodos y recursos se asignan a cada trabajo.
+    \item \textbf{Monitoreo del clúster}: Mantener información actualizada sobre el estado de todos los nodos.
+    \item \textbf{Contabilidad}: Comunicarse con slurmdbd para registrar información de contabilidad.
+    \item \textbf{Políticas de programación}: Aplicar políticas de prioridad y límites de recursos.
+\end{itemize}
+
+\subsection{Instalación y Configuración}
+
+El proceso de instalación y configuración del slurmctld se realiza mediante Ansible de manera automatizada:
+
+\begin{lstlisting}[language=ansible, caption=Tareas principales para slurmctld]
+- name: Install required packages
+  package:
+    name:
+      - munge
+      - slurm-slurmctld
+    state: present
+
+- name: Create SLURM directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: slurm
+    group: slurm
+  with_items:
+    - /etc/slurm
+    - /var/log/slurm
+    - /var/spool/slurm/ctld
+
+- name: Configure slurm.conf
+  template:
+    src: slurm.conf.j2
+    dest: /etc/slurm/slurm.conf
+    mode: "0644"
+    owner: slurm
+    group: slurm
+  notify: restart slurmctld
+
+- name: Configure cgroup.conf
+  template:
+    src: cgroup.conf.j2
+    dest: /etc/slurm/cgroup.conf
+    mode: "0644"
+    owner: slurm
+    group: slurm
+  notify: restart slurmctld
+
+- name: Start and enable slurmctld
+  service:
+    name: slurmctld
+    state: started
+    enabled: yes
+\end{lstlisting}
+
+\subsection{Archivos de Configuración Importantes}
+
+\subsubsection{slurm.conf}
+
+El archivo \texttt{slurm.conf} es el archivo de configuración principal para SLURM. Define todos los aspectos del funcionamiento del clúster:
+
+\begin{lstlisting}[language=slurm, caption=Extracto de slurm.conf]
+# Configuración básica del clúster
+ClusterName=slurm_cluster
+SlurmctldHost=slurm01
+
+# Configuración de autenticación
+AuthType=auth/munge
+CryptoType=crypto/munge
+
+# Configuración de contabilidad
+AccountingStorageType=accounting_storage/slurmdbd
+AccountingStorageHost=slurmdb01
+AccountingStoragePort=6819
+AccountingStorageUser=slurm
+AccountingStorageTRES=gres/gpu,cpu,mem,node
+
+# Configuración de nodos y particiones
+NodeName=bsc01 CPUs=1 State=UNKNOWN
+PartitionName=debug Nodes=bsc01 Default=YES MaxTime=INFINITE State=UP
+\end{lstlisting}
+
+\begin{infobox}[Parámetros importantes de slurm.conf]
+\begin{itemize}
+    \item \textbf{ClusterName}: Nombre único del clúster
+    \item \textbf{SlurmctldHost}: Nombre del host donde se ejecuta slurmctld
+    \item \textbf{AuthType}: Método de autenticación (generalmente munge)
+    \item \textbf{AccountingStorageType}: Tipo de almacenamiento para contabilidad
+    \item \textbf{NodeName}: Definición de los nodos de cómputo
+    \item \textbf{PartitionName}: Definición de las particiones (colas de trabajos)
+\end{itemize}
+\end{infobox}
+
+\subsubsection{cgroup.conf}
+
+El archivo \texttt{cgroup.conf} configura cómo SLURM utiliza los cgroups de Linux para controlar los recursos asignados a los trabajos:
+
+\begin{lstlisting}[language=slurm, caption=Configuración de cgroups]
+# Configuración básica de cgroups
+CgroupAutomount=yes
+CgroupMountpoint=/sys/fs/cgroup
+
+# Plugins que utilizan cgroups
+ProctrackType=proctrack/cgroup
+TaskPlugin=task/cgroup,task/affinity
+JobAcctGatherType=jobacct_gather/cgroup
+
+# Restricciones de recursos
+ConstrainCores=yes
+ConstrainRAMSpace=yes
+ConstrainSwapSpace=yes
+ConstrainDevices=yes
+
+# Afinidad de tareas
+TaskAffinity=yes
+\end{lstlisting}
+
+Los cgroups (Control Groups) son una característica del kernel de Linux que permite limitar, contabilizar y aislar el uso de recursos (CPU, memoria, E/S de disco, etc.) de un conjunto de procesos. SLURM utiliza cgroups para garantizar que los trabajos solo utilicen los recursos que se les han asignado.
+
+\subsection{Directorios Importantes}
+
+\begin{itemize}[leftmargin=*]
+    \item \texttt{/etc/slurm/}: Contiene los archivos de configuración como slurm.conf y cgroup.conf.
+    \item \texttt{/var/log/slurm/}: Contiene los archivos de registro (logs) de slurmctld.
+    \item \texttt{/var/spool/slurm/ctld/}: Almacena el estado del controlador, incluyendo información sobre trabajos en ejecución y estado del clúster. Este directorio es crucial para la recuperación en caso de reinicio.
+\end{itemize}
+
+\section{Despliegue del Daemon slurmdbd}
+\newpage
+
+\subsection{Función del slurmdbd}
+
+El daemon slurmdbd (SLURM Database Daemon) actúa como intermediario entre SLURM y una base de datos relacional (generalmente MySQL/MariaDB). Sus principales responsabilidades son:
+
+\begin{itemize}[leftmargin=*]    \item \textbf{Almacenamiento de contabilidad}: Guardar información detallada sobre todos los trabajos ejecutados.
+    \item \textbf{Gestión de usuarios y cuentas}: Mantener información sobre usuarios, cuentas y asociaciones.
+    \item \textbf{Registro de uso de recursos}: Almacenar datos sobre el uso de CPU, memoria y otros recursos.
+    \item \textbf{Histórico}: Proporcionar acceso a datos históricos para análisis y facturación.
+    \item \textbf{Límites de recursos}: Ayudar a aplicar límites de recursos basados en usuarios o cuentas.
+\end{itemize}
+
+\subsection{Instalación y Configuración}
+
+\begin{lstlisting}[language=ansible, caption=Tareas principales para slurmdbd]
+- name: Install required packages
+  package:
+    name:
+      - mariadb-server
+      - munge
+      - slurm-slurmdbd
+      - python3-PyMySQL
+    state: present
+
+- name: Configure MariaDB
+  template:
+    src: mariadb.conf.j2
+    dest: /etc/my.cnf.d/mariadb-server.cnf
+    mode: "0644"
+  notify: restart mariadb
+
+- name: Start and enable MariaDB
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Secure MariaDB installation
+  shell: |
+    mysql -e "UPDATE mysql.user SET Password=PASSWORD('{{ mysql_root_password }}') WHERE User='root';"
+    mysql -e "DELETE FROM mysql.user WHERE User='';"
+    mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+    mysql -e "DROP DATABASE IF EXISTS test;"
+    mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
+    mysql -e "FLUSH PRIVILEGES;"
+  ignore_errors: yes
+  changed_when: false
+
+- name: Create SLURM database
+  mysql_db:
+    name: "{{ slurm_db_name }}"
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+- name: Create SLURM database user
+  mysql_user:
+    name: "{{ slurm_db_user }}"
+    password: "{{ slurm_db_password }}"
+    priv: "{{ slurm_db_name }}.*:ALL"
+    host: localhost
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+- name: Configure slurmdbd
+  template:
+    src: slurmdbd.conf.j2
+    dest: /etc/slurm/slurmdbd.conf
+    mode: "0600"
+    owner: slurm
+    group: slurm
+  notify: restart slurmdbd
+
+- name: Start and enable slurmdbd
+  service:
+    name: slurmdbd
+    state: started
+    enabled: yes
+\end{lstlisting}
+
+\subsection{Archivos de Configuración Importantes}
+
+\subsubsection{slurmdbd.conf}
+
+El archivo \texttt{slurmdbd.conf} configura el daemon de la base de datos:
+
+\begin{lstlisting}[language=slurm, caption=Configuración de slurmdbd]
+# Configuración de autenticación
+AuthInfo=/var/run/munge/munge.socket
+AuthType=auth/munge
+
+# Configuración del daemon
+DbdHost=slurmdb01
+DbdAddr=slurmdb01
+DbdPort=6819
+SlurmUser=slurm
+DebugLevel=debug3
+LogFile=/var/log/slurm/slurmdbd.log
+PidFile=/var/run/slurmdbd.pid
+
+# Configuración de archivado
+ArchiveEvents=yes
+ArchiveJobs=yes
+ArchiveResvs=yes
+ArchiveSteps=no
+ArchiveSuspend=no
+ArchiveTXN=no
+ArchiveUsage=no
+PurgeEventAfter=1month
+PurgeJobAfter=12month
+PurgeResvAfter=1month
+PurgeStepAfter=1month
+PurgeSuspendAfter=1month
+PurgeTXNAfter=12month
+PurgeUsageAfter=24month
+
+# Configuración de la base de datos
+StorageType=accounting_storage/mysql
+StorageHost=localhost
+StorageUser=slurm
+StoragePass=slurm_password
+StorageLoc=slurm_acct_db
+\end{lstlisting}
+
+\begin{infobox}[Seguridad de slurmdbd.conf]
+El archivo slurmdbd.conf contiene credenciales de la base de datos, por lo que es crucial mantener permisos restrictivos (0600) y asegurarse de que solo el usuario slurm pueda leerlo.
+\end{infobox}
+
+\subsection{Base de Datos}
+
+slurmdbd utiliza MariaDB para almacenar datos de contabilidad. La base de datos contiene numeras tablas que almacenan información detallada sobre:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Usuarios y cuentas}: Información sobre usuarios, sus cuentas y asociaciones.
+    \item \textbf{Clústeres}: Información sobre los clústeres registrados.
+    \item \textbf{Trabajos}: Detalles de todos los trabajos ejecutados, incluyendo tiempo de inicio, finalización, recursos solicitados y utilizados.
+    \item \textbf{Pasos de trabajo}: Información detallada sobre cada paso de un trabajo.
+    \item \textbf{Recursos}: Información sobre los recursos disponibles y su uso.
+    \item \textbf{Reservas}: Detalles de las reservas de recursos.
+\end{itemize}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[node distance=4cm]
+    % Nodos con mucho más espacio
+    \node[draw, rectangle, rounded corners, fill=blue!20] (user) {Usuario};
+    \node[draw, rectangle, rounded corners, fill=blue!20, below=4cm of user] (slurmctld) {slurmctld};
+    \node[draw, rectangle, rounded corners, fill=green!20, below left=4cm and 4cm of slurmctld] (slurmdbd) {slurmdbd};
+    \node[draw, rectangle, rounded corners, fill=orange!20, below right=4cm and 4cm of slurmctld] (slurmd) {slurmd};
+    
+    % Flechas con etiquetas muy cortas
+    \draw[->, thick] (user) -- node[right] {1. Envío} (slurmctld);
+    \draw[->, thick] (slurmctld) -- node[above, sloped] {2. Consulta} (slurmdbd);
+    \draw[->, thick] (slurmdbd) -- node[below, sloped] {3. Respuesta} (slurmctld);
+    \draw[->, thick] (slurmctld) -- node[above, sloped] {4. Asignación} (slurmd);
+    \draw[->, thick] (slurmd) -- node[below, sloped] {5. Estado} (slurmctld);
+    \draw[->, thick] (slurmctld) -- node[below, sloped] {6. Registro} (slurmdbd);
+    \draw[->, thick] (slurmctld) -- node[left] {7. Notificación} (user);
+\end{tikzpicture}
+\caption{Flujo de un trabajo en el clúster SLURM}
+\end{figure}
+
+\section{Despliegue del Daemon slurmd}
+
+\subsection{Función del slurmd}
+
+El daemon slurmd se ejecuta en cada nodo de cómputo y es responsable de la ejecución real de los trabajos. Sus principales funciones son:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Ejecución de trabajos}: Lanzar y gestionar los procesos de los trabajos asignados.
+    \item \textbf{Monitoreo de recursos}: Supervisar el uso de recursos locales (CPU, memoria, etc.).
+    \item \textbf{Informes de estado}: Enviar información periódica sobre el estado del nodo al controlador.
+    \item \textbf{Control de recursos}: Aplicar límites de recursos a los trabajos mediante cgroups.
+    \item \textbf{Limpieza}: Terminar procesos huérfanos y limpiar recursos cuando los trabajos finalizan.
+\end{itemize}
+
+\subsection{Instalación y Configuración}
+
+\begin{lstlisting}[language=ansible, caption=Tareas principales para slurmd]
+- name: Install required packages
+  package:
+    name:
+      - munge
+      - slurm-slurmd
+    state: present
+
+- name: Fetch munge key from slurmdbd
+  fetch:
+    src: /etc/munge/munge.key
+    dest: /tmp/munge.key
+    flat: yes
+  delegate_to: "{{ groups['slurmdbd'][0] }}"
+
+- name: Copy munge key to compute node
+  copy:
+    src: /tmp/munge.key
+    dest: /etc/munge/munge.key
+    mode: "0400"
+    owner: munge
+    group: munge
+  notify: restart munge
+
+- name: Fetch slurm.conf from controller
+  fetch:
+    src: /etc/slurm/slurm.conf
+    dest: /tmp/slurm.conf
+    flat: yes
+  delegate_to: "{{ groups['slurmctld'][0] }}"
+
+- name: Copy slurm.conf to compute node
+  copy:
+    src: /tmp/slurm.conf
+    dest: /etc/slurm/slurm.conf
+    mode: "0644"
+    owner: slurm
+    group: slurm
+  notify: restart slurmd
+
+- name: Fetch cgroup.conf from controller
+  fetch:
+    src: /etc/slurm/cgroup.conf
+    dest: /tmp/cgroup.conf
+    flat: yes
+  delegate_to: "{{ groups['slurmctld'][0] }}"
+
+- name: Copy cgroup.conf to compute node
+  copy:
+    src: /tmp/cgroup.conf
+    dest: /etc/slurm/cgroup.conf
+    mode: "0644"
+    owner: slurm
+    group: slurm
+  notify: restart slurmd
+
+- name: Start and enable munge
+  service:
+    name: munge
+    state: started
+    enabled: yes
+
+- name: Start and enable slurmd
+  service:
+    name: slurmd
+    state: started
+    enabled: yes
+\end{lstlisting}
+
+\subsection{Compartición de Configuración}
+
+Una característica importante de nuestra implementación es que los nodos de cómputo obtienen su configuración directamente del controlador, en lugar de generarla localmente. Esto garantiza la consistencia en todo el clúster y facilita la administración.
+
+\begin{warningbox}[Ventajas de copiar vs. generar configuración]
+Copiar los archivos de configuración desde el controlador tiene varias ventajas:
+\begin{itemize}
+    \item Garantiza que todos los nodos tengan exactamente la misma configuración
+    \item Simplifica la actualización de la configuración (solo hay que actualizar el controlador)
+    \item Reduce el riesgo de inconsistencias que podrían causar problemas en el clúster
+    \item Facilita la adición de nuevos nodos al clúster
+\end{itemize}
+\end{warningbox}
+
+\section{Autenticación con Munge}
+
+\subsection{¿Qué es Munge?}
+
+Munge (MUNGE Uid 'N' Gid Emporium) es un servicio de autenticación utilizado por SLURM para verificar la identidad de los mensajes entre daemons. Es una pieza fundamental para la seguridad del clúster.
+
+\begin{infobox}[Características de Munge]
+\begin{itemize}
+    \item Autenticación basada en clave compartida
+    \item Cifrado de mensajes
+    \item Verificación de integridad
+    \item Protección contra ataques de repetición
+    \item Validación de UID/GID entre nodos
+\end{itemize}
+\end{infobox}
+
+\subsection{Configuración de Munge}
+
+Para que Munge funcione correctamente, todos los nodos del clúster deben compartir exactamente la misma clave de autenticación. En nuestra implementación, generamos la clave en el nodo de base de datos y luego la distribuimos a los demás nodos:
+
+\begin{lstlisting}[language=ansible, caption=Configuración de Munge en el clúster]
+- name: Generate munge key
+  command: /usr/sbin/create-munge-key
+  args:
+    creates: /etc/munge/munge.key
+  delegate_to: "{{ groups['slurmdbd'][0] }}"
+
+- name: Fetch munge key from database node
+  fetch:
+    src: /etc/munge/munge.key
+    dest: /tmp/munge.key
+    flat: yes
+  delegate_to: "{{ groups['slurmdbd'][0] }}"
+
+- name: Copy munge key to node
+  copy:
+    src: /tmp/munge.key
+    dest: /etc/munge/munge.key
+    mode: "0400"
+    owner: munge
+    group: munge
+  notify: restart munge
+\end{lstlisting}
+
+\begin{warningbox}[Seguridad de la clave Munge]
+La clave de Munge es crítica para la seguridad del clúster. Si un atacante obtiene esta clave, podría falsificar mensajes y potencialmente ejecutar código arbitrario en los nodos. Por lo tanto:
+\begin{itemize}
+    \item La clave debe tener permisos restrictivos (0400)
+    \item Solo el usuario munge debe poder leerla
+    \item La transferencia de la clave entre nodos debe hacerse de forma segura
+\end{itemize}
+\end{warningbox}
+
+\section{Flujo de Trabajo del Clúster}
+
+\subsection{Inicio del Clúster}
+
+El orden de inicio de los servicios es importante para el correcto funcionamiento del clúster:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Iniciar munge en todos los nodos}: Munge debe estar funcionando antes que cualquier servicio de SLURM.
+    \item \textbf{Iniciar MariaDB en el nodo de base de datos}: La base de datos debe estar disponible antes de iniciar slurmdbd.
+    \item \textbf{Iniciar slurmdbd en el nodo de base de datos}: El daemon de la base de datos debe estar funcionando antes de iniciar slurmctld.
+    \item \textbf{Iniciar slurmctld en el nodo controlador}: El controlador necesita comunicarse con slurmdbd para registrar el clúster y los recursos.
+    \item \textbf{Iniciar slurmd en los nodos de cómputo}: Los daemons de los nodos de cómputo se registran con el controlador.
+\end{enumerate}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[node distance=1.5cm, auto]
+    % Timeline
+    \draw[->, thick] (0,0) -- (10,0) node[right] {Tiempo};
+    
+    % Services
+    \draw[fill=blue!20] (0,1) rectangle (10,1.5) node[midway] {munge};
+    \draw[fill=green!20] (1,2) rectangle (10,2.5) node[midway] {MariaDB};
+    \draw[fill=green!20] (2,3) rectangle (10,3.5) node[midway] {slurmdbd};
+    \draw[fill=blue!20] (3,4) rectangle (10,4.5) node[midway] {slurmctld};
+    \draw[fill=orange!20] (4,5) rectangle (10,5.5) node[midway] {slurmd};
+    
+    % Labels
+    \node[left] at (0,1.25) {Todos los nodos};
+    \node[left] at (0,2.25) {Nodo DB};
+    \node[left] at (0,3.25) {Nodo DB};
+    \node[left] at (0,4.25) {Nodo Controlador};
+    \node[left] at (0,5.25) {Nodos de Cómputo};
+    
+    % Time markers
+    \foreach \x/\t in {0/0, 1/1, 2/2, 3/3, 4/4, 5/5, 6/6, 7/7, 8/8, 9/9, 10/10} {
+        \draw (\x,0) -- (\x,-0.1) node[below] {\t};
+    }
+\end{tikzpicture}
+\caption{Secuencia de inicio de servicios en el clúster SLURM}
+\end{figure}
+
+\subsection{Flujo de un Trabajo}
+
+Cuando un usuario envía un trabajo al clúster, se desencadena una serie de eventos que involucran a todos los componentes del sistema:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Envío del trabajo}: El usuario envía un trabajo usando comandos como \texttt{sbatch}, \texttt{srun} o \texttt{salloc}.
+    
+    \item \textbf{Recepción y validación}: slurmctld recibe la solicitud, verifica que el usuario tenga permisos y que los recursos solicitados sean válidos.
+    
+    \item \textbf{Asignación de recursos}: slurmctld consulta su base de datos interna de recursos disponibles y selecciona los nodos adecuados según la política de programación configurada.
+    
+    \item \textbf{Envío de instrucciones}: slurmctld envía instrucciones a los slurmd en los nodos seleccionados.
+    
+    \item \textbf{Ejecución del trabajo}: slurmd en los nodos de cómputo crea los entornos necesarios (cgroups, directorios de trabajo, etc.) y ejecuta el trabajo.
+    
+    \item \textbf{Monitoreo}: Durante la ejecución, slurmd monitorea el uso de recursos y el estado del trabajo, enviando actualizaciones periódicas a slurmctld.
+    
+    \item \textbf{Finalización}: Cuando el trabajo termina (ya sea normalmente o por error), slurmd limpia los recursos y notifica a slurmctld.
+    
+    \item \textbf{Contabilidad}: slurmctld registra la información de contabilidad (tiempo de ejecución, recursos utilizados, etc.) con slurmdbd.
+    
+    \item \textbf{Almacenamiento}: slurmdbd almacena los datos en la base de datos para su posterior análisis y facturación.
+\end{enumerate}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[node distance=2cm, auto]
+    % Nodos
+    \node[draw, rectangle, rounded corners, fill=blue!20] (user) {Usuario};
+    \node[draw, rectangle, rounded corners, fill=blue!20, below=of user] (slurmctld) {slurmctld};
+    \node[draw, rectangle, rounded corners, fill=green!20, below left=of slurmctld] (slurmdbd) {slurmdbd};
+    \node[draw, rectangle, rounded corners, fill=orange!20, below right=of slurmctld] (slurmd) {slurmd};
+    
+    % Arrows - Corregido para evitar saltos de línea en medio de comandos
+    \draw[->, thick] (user) -- node[right] {1. Envía trabajo} (slurmctld);
+    \draw[->, thick] (slurmctld) -- node[left] {2. Consulta} (slurmdbd);
+    \draw[->, thick] (slurmdbd) -- node[right] {3. Responde} (slurmctld);
+    \draw[->, thick] (slurmctld) -- node[left] {4. Asigna trabajo} (slurmd);
+    \draw[->, thick] (slurmd) -- node[right] {5. Informa estado} (slurmctld);
+    \draw[->, thick] (slurmctld) -- node[left] {6. Registra contabilidad} (slurmdbd);
+    \draw[->, thick] (slurmctld) -- node[right] {7. Notifica finalización} (user);
+\end{tikzpicture}
+\caption{Flujo de un trabajo en el clúster SLURM}
+\end{figure}
+
+\section{Comandos Útiles para Administrar el Clúster}
+
+Una vez que el clúster está en funcionamiento, hay varios comandos útiles para administrarlo y monitorearlo:
+
+\begin{lstlisting}[language=bash, caption=Comandos administrativos de SLURM]
+# Ver el estado de los nodos
+sinfo
+
+# Ver los trabajos en ejecución
+squeue
+
+# Ver información detallada de un nodo
+scontrol show node <nombre_nodo>
+
+# Ver información detallada de un trabajo
+scontrol show job <id_trabajo>
+
+# Poner un nodo en mantenimiento
+scontrol update NodeName=<nombre_nodo> State=DRAIN Reason="Mantenimiento"
+
+# Reanudar un nodo después del mantenimiento
+scontrol update NodeName=<nombre_nodo> State=RESUME
+
+# Ver estadísticas de uso
+sacct -a
+
+# Crear una nueva cuenta
+sacctmgr add account <nombre_cuenta> Description="Descripción"
+
+# Añadir un usuario a una cuenta
+sacctmgr add user <nombre_usuario> Account=<nombre_cuenta>
+\end{lstlisting}
+
+\begin{infobox}[Herramientas de monitoreo adicionales]
+Además de los comandos integrados de SLURM, existen herramientas de terceros que pueden facilitar el monitoreo y la administración del clúster:
+\begin{itemize}
+    \item \textbf{Grafana + Prometheus}: Para visualizar métricas de rendimiento
+    \item \textbf{SLURM-web}: Interfaz web para administrar el clúster
+    \item \textbf{XDMoD}: Para análisis detallado del uso de recursos
+\end{itemize}
+\end{infobox}
+
+\section{Solución de Problemas Comunes}
+
+Durante la operación del clúster, pueden surgir diversos problemas. Aquí se presentan algunos de los más comunes y cómo solucionarlos:
+
+\subsection{Problemas de Autenticación}
+
+Si los nodos no pueden comunicarse entre sí debido a problemas de autenticación:
+
+\begin{lstlisting}[language=bash, caption=Solución de problemas de autenticación]
+# Verificar que munge esté funcionando en todos los nodos
+systemctl status munge
+
+# Verificar que la clave de munge sea la misma en todos los nodos
+md5sum /etc/munge/munge.key
+
+# Reiniciar munge si es necesario
+systemctl restart munge
+
+# Verificar los permisos de la clave
+ls -l /etc/munge/munge.key
+# Debería mostrar: -r-------- 1 munge munge
+\end{lstlisting}
+
+\subsection{Problemas con la Base de Datos}
+
+Si slurmdbd no puede conectarse a la base de datos:
+
+\begin{lstlisting}[language=bash, caption=Solución de problemas de base de datos]
+# Verificar que MariaDB esté funcionando
+systemctl status mariadb
+
+# Verificar la conectividad a la base de datos
+mysql -u slurm -p -e "SHOW DATABASES;"
+
+# Verificar los permisos de la base de datos
+mysql -u root -p -e "SHOW GRANTS FOR 'slurm'@'localhost';"
+
+# Reiniciar slurmdbd
+systemctl restart slurmdbd
+\end{lstlisting}
+
+\subsection{Problemas con los Nodos de Cómputo}
+
+Si los nodos de cómputo aparecen como DOWN o UNKNOWN:
+
+\begin{lstlisting}[language=bash, caption=Solución de problemas de nodos]
+# Verificar el estado de slurmd
+systemctl status slurmd
+
+# Verificar los logs de slurmd
+tail -f /var/log/slurm/slurmd.log
+
+# Verificar la conectividad con el controlador
+ping <hostname_controlador>
+
+# Reiniciar slurmd
+systemctl restart slurmd
+
+# Actualizar el estado del nodo desde el controlador
+scontrol update NodeName=<nombre_nodo> State=RESUME
+\end{lstlisting}
+
+\section{Mejores Prácticas y Optimizaciones}
+
+Para obtener el mejor rendimiento y fiabilidad del clúster SLURM, se recomiendan las siguientes prácticas:
+
+\subsection{Configuración de Hardware}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Red dedicada}: Utilizar una red dedicada de alta velocidad para la comunicación entre nodos.
+    \item \textbf{Almacenamiento compartido}: Implementar un sistema de archivos compartido (como NFS, Lustre o BeeGFS) para que los usuarios puedan acceder a sus datos desde cualquier nodo.
+    \item \textbf{Hardware homogéneo}: Mantener hardware similar en los nodos de cómputo facilita la programación y el balanceo de carga.
+\end{itemize}
+
+\subsection{Configuración de Software}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Límites de recursos}: Configurar límites adecuados para evitar que un solo trabajo consuma todos los recursos.
+    \item \textbf{Políticas de prioridad}: Implementar políticas de prioridad que reflejen las necesidades de la organización.
+    \item \textbf{Particiones}: Crear particiones específicas para diferentes tipos de trabajos (cortos, largos, GPU, etc.).
+    \item \textbf{Reservas}: Utilizar reservas para garantizar recursos para tareas críticas o mantenimiento.
+\end{itemize}
+
+\subsection{Seguridad}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Actualizaciones regulares}: Mantener SLURM y todas las dependencias actualizadas.
+    \item \textbf{Firewall}: Configurar reglas de firewall para permitir solo el tráfico necesario entre nodos.
+    \item \textbf{Monitoreo}: Implementar sistemas de monitoreo para detectar comportamientos anómalos.
+    \item \textbf{Auditoría}: Habilitar la auditoría de trabajos para rastrear el uso y detectar abusos.
+\end{itemize}
+
+\section{Conclusión}
+
+El despliegue automatizado de un clúster SLURM con Ansible proporciona una forma eficiente y reproducible de configurar un sistema de gestión de recursos para computación de alto rendimiento. Los tres componentes principales (slurmctld, slurmdbd y slurmd) trabajan juntos para proporcionar:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Programación eficiente de trabajos}: Asignación óptima de recursos según las políticas configuradas.
+    \item \textbf{Gestión de recursos}: Control preciso sobre cómo se utilizan los recursos del clúster.
+    \item \textbf{Contabilidad detallada}: Registro completo del uso de recursos para análisis y facturación.
+    \item \textbf{Alta disponibilidad}: Capacidad para recuperarse de fallos y mantener el servicio.
+\end{itemize}
+
+Esta implementación facilita la administración del clúster y permite a los usuarios aprovechar al máximo los recursos disponibles. La automatización con Ansible garantiza que la configuración sea consistente en todos los nodos y facilita la expansión del clúster cuando sea necesario.
+
+\begin{infobox}[Recursos adicionales]
+Para profundizar en el conocimiento de SLURM, se recomiendan los siguientes recursos:
+\begin{itemize}
+    \item Documentación oficial de SLURM: \url{https://slurm.schedmd.com/documentation.html}
+    \item Foro de usuarios de SLURM: \url{https://groups.google.com/g/slurm-users}
+    \item Repositorio de Ansible para SLURM: \url{https://github.com/galaxyproject/ansible-slurm}
+\end{itemize}
+\end{infobox}
+
+\end{document}

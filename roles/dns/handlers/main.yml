@@ -1,0 +1,10 @@
+---
+- name: restart named
+  service:
+    name: named
+    state: restarted
+
+- name: reload firewall
+  service:
+    name: firewalld
+    state: reloaded

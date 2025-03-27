@@ -1,0 +1,41 @@
+---
+- name: Add Grafana repository
+  copy:
+    content: |
+      [grafana]
+      name=grafana
+      baseurl=https://packages.grafana.com/oss/rpm
+      repo_gpgcheck=1
+      enabled=1
+      gpgcheck=1
+      gpgkey=https://packages.grafana.com/gpg.key
+      sslverify=1
+      sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+    dest: /etc/yum.repos.d/grafana.repo
+    mode: "0644"
+
+- name: Install Grafana
+  package:
+    name: grafana
+    state: present
+
+- name: Configure Grafana
+  template:
+    src: grafana.ini.j2
+    dest: /etc/grafana/grafana.ini
+    mode: "0644"
+  notify: restart grafana
+
+- name: Copy Grafana dashboards
+  copy:
+    src: dashboards/
+    dest: /var/lib/grafana/dashboards/
+    mode: "0644"
+  notify: restart grafana
+
+- name: Start and enable Grafana service
+  systemd:
+    name: grafana-server
+    state: started
+    enabled: yes
+    daemon_reload: yes

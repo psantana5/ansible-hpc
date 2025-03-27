@@ -1,0 +1,3 @@
+---
+# Handlers for EPEL role
+# Currently empty as EPEL installation doesn't require any service restarts

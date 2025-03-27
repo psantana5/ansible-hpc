@@ -1,0 +1,31 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+rule_files:
+  # - "first_rules.yml"
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "node_exporter"
+    static_configs:
+      - targets:
+{% for host in groups['slurm'] %}
+        - "{{ hostvars[host]['ansible_host'] }}:9100"
+{% endfor %}
+
+  - job_name: "slurm_exporter"
+    static_configs:
+      - targets:
+{% for host in groups['slurmctld'] %}
+        - "{{ hostvars[host]['ansible_host'] }}:9102"
+{% endfor %}
