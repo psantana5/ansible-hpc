@@ -166,17 +166,3 @@
     state: enabled
   notify: reload firewall
 
-- name: Find munge socket path
-  shell: find /var/run/munge -name "munge.socket*" | head -1
-  register: munge_socket_path
-  changed_when: false
-  ignore_errors: true
-
-- name: Add munge socket path to slurm.conf
-  lineinfile:
-    path: /etc/slurm/slurm.conf
-    line: "AuthAltTypes=auth/munge MungeSocketPath={{ munge_socket_path.stdout }}"
-    insertafter: "^AuthType=auth/munge"
-    state: present
-  when: munge_socket_path.stdout != ""
-
