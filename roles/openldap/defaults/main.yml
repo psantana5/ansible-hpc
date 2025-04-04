@@ -15,3 +15,5 @@ ldap_indexes:
   - memberUid
   - uniqueMember
   - mail
+ldap_start_service: false
+ldap_enable_service: false
