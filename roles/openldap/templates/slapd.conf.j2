@@ -7,9 +7,13 @@ pidfile         /var/run/openldap/slapd.pid
 argsfile        /var/run/openldap/slapd.args
 
 modulepath      /usr/lib64/openldap
-moduleload      back_bdb
+moduleload      back_mdb.la
+# comment it out if using a different backend
+# moduleload back_bdb.la
 
-database        bdb
+# And update your database section to use mdb instead of bdb:
+database mdb
+# instead of: database bdb
 suffix          "{{ ldap_base_dn }}"
 rootdn          "{{ ldap_root_dn }}"
 rootpw          "{SSHA}changeme"  # This will be replaced by the actual password hash
@@ -36,4 +40,4 @@ access to *
 # Remove default database configuration
 database config
 rootdn "cn=admin,cn=config"
-rootpw {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj 
+rootpw {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
