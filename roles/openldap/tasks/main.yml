@@ -43,15 +43,19 @@
 
 - name: Check if slapd service file exists
   ansible.builtin.stat:
-    path: /usr/lib/systemd/system/slapd.service
+    path: /usr/lib/systemd/system/slapd.service  # Verify this path matches your OS
+    get_checksum: no
   register: slapd_service_file
 
 - name: Create slapd systemd service file
   ansible.builtin.template:
     src: slapd.service.j2
     dest: /usr/lib/systemd/system/slapd.service
+    mode: '0644'
   when: not slapd_service_file.stat.exists
-  notify: daemon-reload
+  notify:
+    - daemon-reload
+    - restart slapd
 
 - name: Start and enable slapd service
   ansible.builtin.systemd:
