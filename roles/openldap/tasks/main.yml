@@ -8,6 +8,24 @@
       - openldap-devel
     state: present
 
+- name: Create LDAP system group
+  ansible.builtin.group:
+    name: ldap
+    state: present
+    system: yes
+    gid: 55
+
+- name: Create LDAP system user
+  ansible.builtin.user:
+    name: ldap
+    state: present
+    system: yes
+    uid: 55
+    group: ldap
+    home: /var/lib/ldap
+    create_home: no
+    shell: /sbin/nologin
+
 - name: Create OpenLDAP data directory
   file:
     path: /var/lib/ldap
