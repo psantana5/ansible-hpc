@@ -143,8 +143,17 @@
     group: ldap
     mode: '0640'
 
+- name: Generate slapd configuration from slapd.conf
+  command: slaptest -f /etc/openldap/slapd.conf -F /etc/openldap/slapd.d
+  become: yes
+  become_user: ldap
+  environment:
+    HOME: /var/lib/ldap
+  args:
+    creates: /etc/openldap/slapd.d/cn=config.ldif
+
 - name: Initialize OpenLDAP database
-  command: slapadd -F /etc/openldap/slapd.d -l /etc/openldap/initial.ldif
+  command: slapadd -F /etc/openldap/slapd.d -b "{{ ldap_base_dn }}" -l /etc/openldap/initial.ldif
   become: yes
   become_user: ldap
   environment:
