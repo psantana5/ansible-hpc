@@ -43,7 +43,7 @@
 
 - name: Start and enable slapd service
   service:
-    name: slapd.service
+    name: slapd
     state: started
     enabled: yes
 
@@ -54,7 +54,7 @@
 
 - name: Stop slapd service before database initialization
   service:
-    name: slapd.service
+    name: slapd
     state: stopped
 
 - name: Remove existing database files
@@ -99,7 +99,7 @@
 
 - name: Start slapd service
   service:
-    name: slapd.service
+    name: slapd
     state: started
 
 - name: Create admin password hash
