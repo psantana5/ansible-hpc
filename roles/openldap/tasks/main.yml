@@ -52,8 +52,26 @@
     port: 389
     timeout: 30
 
+- name: Stop slapd service before database initialization
+  service:
+    name: slapd
+    state: stopped
+
+- name: Remove existing database files
+  file:
+    path: /var/lib/ldap
+    state: absent
+
+- name: Create new database directory
+  file:
+    path: /var/lib/ldap
+    state: directory
+    owner: ldap
+    group: ldap
+    mode: '0750'
+
 - name: Initialize OpenLDAP database
-  command: slapadd -l /etc/openldap/initial.ldif
+  command: slapadd -b "{{ ldap_base_dn }}" -l /etc/openldap/initial.ldif
   become: yes
   become_user: ldap
   args:
@@ -67,6 +85,11 @@
     owner: ldap
     group: ldap
     recurse: yes
+
+- name: Start slapd service
+  service:
+    name: slapd
+    state: started
 
 - name: Create admin password hash
   command: slappasswd -s "{{ ldap_admin_password }}"

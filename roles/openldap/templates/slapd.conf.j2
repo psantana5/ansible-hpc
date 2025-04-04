@@ -31,4 +31,9 @@ access to dn.base="" by * read
 
 access to *
         by dn="{{ ldap_root_dn }}" write
-        by * read 
+        by * read
+
+# Remove default database configuration
+database config
+rootdn "cn=admin,cn=config"
+rootpw {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj 
