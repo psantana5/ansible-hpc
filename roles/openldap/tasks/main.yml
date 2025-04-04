@@ -22,13 +22,13 @@
 
 - name: Check if virtual environment exists
   ansible.builtin.stat:
-    path: "{{ ansible_env.HOME }}/.venv/bin/pip"
+    path: "/home/psantana/.venv/bin/pip"
   register: venv_pip
   become: no
-  ignore_errors: yes  # Add this to prevent failure
+  ignore_errors: yes
 
 - name: Create Python virtual environment if it doesn't exist
-  ansible.builtin.command: python3 -m venv {{ ansible_env.HOME }}/.venv
+  ansible.builtin.command: python3 -m venv /home/psantana/.venv
   become: no
   when: venv_pip is failed or (venv_pip.stat is defined and not venv_pip.stat.exists)
 
@@ -37,7 +37,7 @@
     name:
       - python-ldap
       - pyldap
-    executable: "{{ ansible_env.HOME }}/.venv/bin/pip"
+    executable: "/home/psantana/.venv/bin/pip"
   become: no
   ignore_errors: yes
   when: ldap_install_python_packages | default(true) | bool
