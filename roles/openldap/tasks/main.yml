@@ -37,8 +37,8 @@
   template:
     src: initial.ldif.j2
     dest: /etc/openldap/initial.ldif
-    owner: root
-    group: root
+    owner: ldap
+    group: ldap
     mode: '0640'
 
 - name: Start and enable slapd service
@@ -58,6 +58,8 @@
   become_user: ldap
   args:
     creates: /var/lib/ldap/DB_CONFIG
+  environment:
+    HOME: /var/lib/ldap
 
 - name: Set proper permissions on database files
   file:
@@ -78,4 +80,17 @@
     objectClass: simpleSecurityObject
     cn: admin
     userPassword: "{{ admin_password_hash.stdout }}"
-  become: yes 
+  become: yes
+
+- name: Copy users and groups LDIF template
+  template:
+    src: users_groups.ldif.j2
+    dest: /etc/openldap/users_groups.ldif
+    owner: ldap
+    group: ldap
+    mode: '0640'
+
+- name: Import users and groups
+  command: ldapadd -x -D "{{ ldap_root_dn }}" -w "{{ ldap_admin_password }}" -f /etc/openldap/users_groups.ldif
+  become: yes
+  no_log: true 
