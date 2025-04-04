@@ -7,8 +7,8 @@ Requires=network-online.target
 Type=forking
 User=ldap
 Group=ldap
-EnvironmentFile=/etc/sysconfig/slapd
-ExecStart=/usr/libexec/openldap/slapd -u ldap -g ldap -h ldap:/// $SLAPD_OPTIONS
+EnvironmentFile=-/etc/sysconfig/slapd
+ExecStart=/usr/sbin/slapd -u ldap -g ldap -h ldap:/// $SLAPD_OPTIONS
 ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]
