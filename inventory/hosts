@@ -13,4 +13,4 @@ slurmctld
 compute
 
 [services]
-services01 ansible_host=192.168.1.141
+services01 ansible_host=192.168.1.141 ansible_python_interpreter=/home/psantana/.venv/bin/python
