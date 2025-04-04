@@ -2,12 +2,16 @@
 - name: Update dnf cache
   ansible.builtin.dnf:
     update_cache: yes
-    # Removed unsupported parameter: cache_only
+
+- name: Install Development Tools group
+  ansible.builtin.dnf:
+    name: "@Development Tools"
+    state: present
 
 - name: Install OpenLDAP packages
   ansible.builtin.dnf:
     name:
-      - openldap-servers  # Contains slapd binary
+      - openldap-servers # Contains slapd binary
       - openldap
       - openldap-clients
       - openldap-devel
@@ -37,7 +41,7 @@
     state: directory
     owner: ldap
     group: ldap
-    mode: '0750'
+    mode: "0750"
 
 - name: Create OpenLDAP config directory
   file:
@@ -45,13 +49,13 @@
     state: directory
     owner: ldap
     group: ldap
-    mode: '0750'
+    mode: "0750"
 
 - name: Create slapd environment directory
   ansible.builtin.file:
     path: /etc/sysconfig
     state: directory
-    mode: '0755'
+    mode: "0755"
 
 - name: Create slapd environment configuration
   ansible.builtin.copy:
@@ -60,7 +64,7 @@
       SLAPD_OPTIONS="-F /etc/openldap/slapd.d"
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   notify: daemon-reload
 
 # Fix the slapd.conf permissions first
@@ -68,9 +72,9 @@
   template:
     src: slapd.conf.j2
     dest: /etc/openldap/slapd.conf
-    owner: ldap  # Changed from root to ldap
-    group: ldap  # Changed from root to ldap
-    mode: '0640'
+    owner: ldap # Changed from root to ldap
+    group: ldap # Changed from root to ldap
+    mode: "0640"
   notify: restart slapd
 
 - name: Copy LDIF template for initial setup
@@ -79,11 +83,11 @@
     dest: /etc/openldap/initial.ldif
     owner: ldap
     group: ldap
-    mode: '0640'
+    mode: "0640"
 
 - name: Check if slapd service file exists
   ansible.builtin.stat:
-    path: /usr/lib/systemd/system/slapd.service  # Verify this path matches your OS
+    path: /usr/lib/systemd/system/slapd.service # Verify this path matches your OS
     get_checksum: no
   register: slapd_service_file
 
@@ -91,7 +95,7 @@
   ansible.builtin.template:
     src: slapd.service.j2
     dest: /usr/lib/systemd/system/slapd.service
-    mode: '0644'
+    mode: "0644"
   when: not slapd_service_file.stat.exists
   notify:
     - daemon-reload
@@ -129,7 +133,7 @@
     state: directory
     owner: ldap
     group: ldap
-    mode: '0750'
+    mode: "0750"
 
 - name: Create DB_CONFIG file
   copy:
@@ -142,7 +146,7 @@
     dest: /var/lib/ldap/DB_CONFIG
     owner: ldap
     group: ldap
-    mode: '0640'
+    mode: "0640"
 
 - name: Generate slapd configuration from slapd.conf
   command: slaptest -f /etc/openldap/slapd.conf -F /etc/openldap/slapd.d
@@ -169,7 +173,7 @@
     path: "{{ item }}"
     owner: ldap
     group: ldap
-    mode: '0750'
+    mode: "0750"
     recurse: yes
   loop:
     - /var/lib/ldap
@@ -202,7 +206,7 @@
     dest: /etc/openldap/users_groups.ldif
     owner: ldap
     group: ldap
-    mode: '0640'
+    mode: "0640"
 
 - name: Import users and groups
   command: ldapadd -x -D "{{ ldap_root_dn }}" -w "{{ ldap_admin_password }}" -f /etc/openldap/users_groups.ldif
