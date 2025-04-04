@@ -1,0 +1,81 @@
+---
+- name: Install OpenLDAP packages
+  dnf:
+    name:
+      - openldap
+      - openldap-servers
+      - openldap-clients
+      - openldap-devel
+    state: present
+
+- name: Create OpenLDAP data directory
+  file:
+    path: /var/lib/ldap
+    state: directory
+    owner: ldap
+    group: ldap
+    mode: '0750'
+
+- name: Create OpenLDAP config directory
+  file:
+    path: /etc/openldap/slapd.d
+    state: directory
+    owner: ldap
+    group: ldap
+    mode: '0750'
+
+- name: Copy slapd.conf template
+  template:
+    src: slapd.conf.j2
+    dest: /etc/openldap/slapd.conf
+    owner: root
+    group: root
+    mode: '0640'
+  notify: restart slapd
+
+- name: Copy LDIF template for initial setup
+  template:
+    src: initial.ldif.j2
+    dest: /etc/openldap/initial.ldif
+    owner: root
+    group: root
+    mode: '0640'
+
+- name: Start and enable slapd service
+  service:
+    name: slapd
+    state: started
+    enabled: yes
+
+- name: Wait for slapd to be ready
+  wait_for:
+    port: 389
+    timeout: 30
+
+- name: Initialize OpenLDAP database
+  command: slapadd -l /etc/openldap/initial.ldif
+  become: yes
+  become_user: ldap
+  args:
+    creates: /var/lib/ldap/DB_CONFIG
+
+- name: Set proper permissions on database files
+  file:
+    path: /var/lib/ldap
+    owner: ldap
+    group: ldap
+    recurse: yes
+
+- name: Create admin password hash
+  command: slappasswd -s "{{ ldap_admin_password }}"
+  register: admin_password_hash
+  no_log: true
+
+- name: Configure admin password
+  ldap_entry:
+    dn: "{{ ldap_root_dn }}"
+    objectClass: organizationalRole
+    objectClass: simpleSecurityObject
+    cn: admin
+    userPassword: "{{ admin_password_hash.stdout }}"
+  become: yes 

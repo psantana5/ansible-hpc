@@ -1,0 +1,34 @@
+include         /etc/openldap/schema/core.schema
+include         /etc/openldap/schema/cosine.schema
+include         /etc/openldap/schema/nis.schema
+include         /etc/openldap/schema/inetorgperson.schema
+
+pidfile         /var/run/openldap/slapd.pid
+argsfile        /var/run/openldap/slapd.args
+
+modulepath      /usr/lib64/openldap
+moduleload      back_bdb
+
+database        bdb
+suffix          "{{ ldap_base_dn }}"
+rootdn          "{{ ldap_root_dn }}"
+rootpw          "{SSHA}changeme"  # This will be replaced by the actual password hash
+
+directory       /var/lib/ldap
+
+index objectClass                       eq,pres
+{% for index in ldap_indexes %}
+index {{ index }}                      eq,pres,sub
+{% endfor %}
+
+access to attrs=userPassword,shadowLastChange
+        by dn="{{ ldap_root_dn }}" write
+        by anonymous auth
+        by self write
+        by * none
+
+access to dn.base="" by * read
+
+access to *
+        by dn="{{ ldap_root_dn }}" write
+        by * read 

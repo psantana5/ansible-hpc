@@ -1,0 +1,20 @@
+dn: {{ ldap_base_dn }}
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+o: {{ ldap_organization }}
+dc: {{ ldap_domain.split('.')[0] }}
+
+dn: {{ ldap_root_dn }}
+objectClass: organizationalRole
+objectClass: simpleSecurityObject
+cn: admin
+userPassword: {SSHA}changeme  # This will be replaced by the actual password hash
+
+dn: ou=People,{{ ldap_base_dn }}
+objectClass: organizationalUnit
+ou: People
+
+dn: ou=Groups,{{ ldap_base_dn }}
+objectClass: organizationalUnit
+ou: Groups 
