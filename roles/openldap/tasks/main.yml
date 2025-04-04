@@ -152,8 +152,8 @@
   args:
     creates: /etc/openldap/slapd.d/cn=config.ldif
 
-- name: Initialize OpenLDAP database
-  command: slapadd -F /etc/openldap/slapd.d -b "{{ ldap_base_dn }}" -l /etc/openldap/initial.ldif
+- name: Initialize OpenLDAP database with default configuration
+  command: slapadd -F /etc/openldap/slapd.d -n 0 -l /etc/openldap/initial.ldif
   become: yes
   become_user: ldap
   environment:
