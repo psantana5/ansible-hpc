@@ -186,9 +186,6 @@
   args:
     creates: /etc/openldap/slapd.d/cn=config.ldif
 
-# Remove the temporary service start tasks
-
-# Fix the database initialization
 - name: Initialize database directly with slapadd
   command: slapadd -f /etc/openldap/slapd.conf -l /etc/openldap/initial.ldif
   become: yes
