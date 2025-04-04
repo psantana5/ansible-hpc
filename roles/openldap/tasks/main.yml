@@ -32,11 +32,15 @@
   become: no
   when: venv_pip is failed or (venv_pip.stat is defined and not venv_pip.stat.exists)
 
+- name: Install Python LDAP packages with system pip
+  ansible.builtin.pip:
+    name: python-ldap
+    state: present
+  become: yes
+
 - name: Install Python LDAP packages with venv pip
   ansible.builtin.pip:
-    name:
-      - python-ldap
-      - pyldap
+    name: pyldap
     executable: "/home/psantana/.venv/bin/pip"
   become: no
   ignore_errors: yes
