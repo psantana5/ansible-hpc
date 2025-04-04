@@ -152,27 +152,15 @@
   args:
     creates: /etc/openldap/slapd.d/cn=config.ldif
 
-- name: Start slapd service temporarily to create database
-  service:
-    name: slapd
-    state: started
+# Remove the temporary service start tasks
 
-- name: Wait for slapd to be ready
-  wait_for:
-    host: "{{ ansible_default_ipv4.address | default('0.0.0.0') }}"
-    port: 389
-    timeout: 30
-    state: started
-
-- name: Import initial LDIF with ldapadd
-  command: ldapadd -x -D "cn=Manager,{{ ldap_base_dn }}" -w "{{ ldap_admin_password }}" -f /etc/openldap/initial.ldif
+- name: Initialize database directly with slapadd
+  command: slapadd -f /etc/openldap/slapd.conf -l /etc/openldap/initial.ldif
   become: yes
+  become_user: ldap
+  environment:
+    HOME: /var/lib/ldap
   ignore_errors: yes
-
-- name: Stop slapd service after database creation
-  service:
-    name: slapd
-    state: stopped
 
 - name: Set permissions on slapd directories
   file:
