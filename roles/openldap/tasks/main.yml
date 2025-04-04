@@ -144,7 +144,7 @@
     mode: '0640'
 
 - name: Initialize OpenLDAP database
-  command: slapadd -F /etc/openldap/slapd.d -n 0 -l /etc/openldap/initial.ldif
+  command: slapadd -F /etc/openldap/slapd.d -l /etc/openldap/initial.ldif
   become: yes
   become_user: ldap
   environment:
