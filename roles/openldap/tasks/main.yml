@@ -42,6 +42,16 @@
     group: ldap
     mode: '0750'
 
+- name: Create slapd environment file
+  ansible.builtin.copy:
+    dest: /etc/sysconfig/slapd
+    content: |
+      SLAPD_OPTIONS="-F /etc/openldap/slapd.d"
+    owner: ldap
+    group: ldap
+    mode: '0640'
+  notify: restart slapd
+
 - name: Copy slapd.conf template
   template:
     src: slapd.conf.j2
