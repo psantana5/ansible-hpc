@@ -1,5 +1,10 @@
 ---
+- name: daemon-reload
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
 - name: restart slapd
-  service:
+  ansible.builtin.systemd:
     name: slapd
     state: restarted
+    enabled: yes

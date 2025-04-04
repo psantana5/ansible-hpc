@@ -1,0 +1,14 @@
+[Unit]
+Description=OpenLDAP Server
+After=network.target munge.service
+
+[Service]
+Type=forking
+User=ldap
+Group=ldap
+EnvironmentFile=/etc/sysconfig/slapd
+ExecStart=/usr/sbin/slapd -u ldap -g ldap -h ldap:/// $SLAPD_OPTIONS
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target

@@ -41,11 +41,24 @@
     group: ldap
     mode: '0640'
 
+- name: Check if slapd service file exists
+  ansible.builtin.stat:
+    path: /usr/lib/systemd/system/slapd.service
+  register: slapd_service_file
+
+- name: Create slapd systemd service file
+  ansible.builtin.template:
+    src: slapd.service.j2
+    dest: /usr/lib/systemd/system/slapd.service
+  when: not slapd_service_file.stat.exists
+  notify: daemon-reload
+
 - name: Start and enable slapd service
-  service:
+  ansible.builtin.systemd:
     name: slapd
     state: started
     enabled: yes
+  notify: restart slapd
 
 - name: Wait for slapd to be ready
   wait_for:
@@ -90,12 +103,16 @@
   environment:
     HOME: /var/lib/ldap
 
-- name: Set proper permissions on database files
+- name: Set permissions on slapd directories
   file:
-    path: /var/lib/ldap
+    path: "{{ item }}"
     owner: ldap
     group: ldap
+    mode: '0750'
     recurse: yes
+  loop:
+    - /var/lib/ldap
+    - /etc/openldap/slapd.d
 
 - name: Start slapd service
   service:
@@ -127,4 +144,4 @@
 - name: Import users and groups
   command: ldapadd -x -D "{{ ldap_root_dn }}" -w "{{ ldap_admin_password }}" -f /etc/openldap/users_groups.ldif
   become: yes
-  no_log: true 
+  no_log: true
