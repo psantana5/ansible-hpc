@@ -12,11 +12,11 @@ moduleload      back_mdb.la
 # moduleload back_bdb.la
 
 # And update your database section to use mdb instead of bdb:
-database mdb
+database        mdb
 # instead of: database bdb
 suffix          "{{ ldap_base_dn }}"
 rootdn          "{{ ldap_root_dn }}"
-rootpw          "{SSHA}changeme"  # This will be replaced by the actual password hash
+rootpw          "{SSHA}gho9oHk0HGcUKZzSbYOgMP3AlpXkxd8+"
 
 directory       /var/lib/ldap
 
@@ -40,4 +40,4 @@ access to *
 # Remove default database configuration
 database config
 rootdn "cn=admin,cn=config"
-rootpw {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
+rootpw {SSHA}gho9oHk0HGcUKZzSbYOgMP3AlpXkxd8+
