@@ -63,12 +63,13 @@
     mode: '0644'
   notify: daemon-reload
 
+# Fix the slapd.conf permissions first
 - name: Copy slapd.conf template
   template:
     src: slapd.conf.j2
     dest: /etc/openldap/slapd.conf
-    owner: root
-    group: root
+    owner: ldap  # Changed from root to ldap
+    group: ldap  # Changed from root to ldap
     mode: '0640'
   notify: restart slapd
 
@@ -154,6 +155,7 @@
 
 # Remove the temporary service start tasks
 
+# Fix the database initialization
 - name: Initialize database directly with slapadd
   command: slapadd -f /etc/openldap/slapd.conf -l /etc/openldap/initial.ldif
   become: yes
@@ -184,13 +186,14 @@
   register: admin_password_hash
   no_log: true
 
+# Fix the ldap_entry module parameters
 - name: Configure admin password
   ldap_entry:
     dn: "{{ ldap_root_dn }}"
-    objectClass: organizationalRole
-    objectClass: simpleSecurityObject
-    cn: admin
-    userPassword: "{{ admin_password_hash.stdout }}"
+    objectClass: ["organizationalRole", "simpleSecurityObject"]
+    attributes:
+      cn: admin
+      userPassword: "{{ admin_password_hash.stdout }}"
   become: yes
 
 - name: Copy users and groups LDIF template
