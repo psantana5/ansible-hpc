@@ -20,13 +20,25 @@
       - cyrus-sasl-devel  # Add this for SASL support
     state: present
 
+- name: Check if virtual environment exists
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/.venv/bin/pip"
+  register: venv_pip
+  become: no
+
+- name: Create Python virtual environment if it doesn't exist
+  ansible.builtin.command: python3 -m venv {{ ansible_env.HOME }}/.venv
+  become: no
+  when: not venv_pip.stat.exists
+
 - name: Install Python LDAP packages with venv pip
   ansible.builtin.pip:
     name:
       - python-ldap
       - pyldap
-    executable: ~/.venv/bin/pip
-  become: no  # Run as the ansible user, not root
+    executable: "{{ ansible_env.HOME }}/.venv/bin/pip"
+  become: no
+  when: ldap_install_python_packages | default(true) | bool
 
 - name: Create LDAP system group
   ansible.builtin.group:
