@@ -1,9 +1,15 @@
 ---
+- name: Update dnf cache
+  ansible.builtin.dnf:
+    update_cache: yes
+    cache_only: no
+    lock_timeout: 900
+
 - name: Install OpenLDAP packages
-  dnf:
+  ansible.builtin.dnf:
     name:
+      - openldap-servers  # Contains slapd binary
       - openldap
-      - openldap-servers
       - openldap-clients
       - openldap-devel
     state: present
@@ -95,7 +101,8 @@
   ansible.builtin.systemd:
     name: slapd
     state: started
-    enabled: yes
+    enabled: "{{ ldap_enable_service | default(true) }}"
+  when: ldap_start_service | default(true) | bool
   notify: restart slapd
 
 - name: Wait for slapd to be ready
@@ -156,6 +163,7 @@
   service:
     name: slapd
     state: started
+  when: ldap_start_service | default(true) | bool
 
 - name: Create admin password hash
   command: slappasswd -s "{{ ldap_admin_password }}"
