@@ -8,14 +8,25 @@
     name: "@Development Tools"
     state: present
 
-- name: Install OpenLDAP packages
+- name: Install OpenLDAP packages and development dependencies
   ansible.builtin.dnf:
     name:
       - openldap-servers # Contains slapd binary
       - openldap
       - openldap-clients
       - openldap-devel
+      - python3-devel
+      - gcc
+      - cyrus-sasl-devel  # Add this for SASL support
     state: present
+
+- name: Install Python LDAP packages with venv pip
+  ansible.builtin.pip:
+    name:
+      - python-ldap
+      - pyldap
+    executable: ~/.venv/bin/pip
+  become: no  # Run as the ansible user, not root
 
 - name: Create LDAP system group
   ansible.builtin.group:
