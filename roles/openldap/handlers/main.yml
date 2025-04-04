@@ -1,5 +1,5 @@
 ---
 - name: restart slapd
   service:
-    name: slapd
+    name: slapd.service
     state: restarted
