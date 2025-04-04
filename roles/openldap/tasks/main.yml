@@ -70,12 +70,23 @@
     group: ldap
     mode: '0750'
 
+- name: Create DB_CONFIG file
+  copy:
+    content: |
+      set_cachesize 0 2097152 0
+      set_lk_max_objects 1500
+      set_lk_max_locks 1500
+      set_lk_max_lockers 1500
+      set_flags DB_LOG_AUTOREMOVE
+    dest: /var/lib/ldap/DB_CONFIG
+    owner: ldap
+    group: ldap
+    mode: '0640'
+
 - name: Initialize OpenLDAP database
-  command: slapadd -b "{{ ldap_base_dn }}" -l /etc/openldap/initial.ldif
+  command: slapadd -F /etc/openldap/slapd.d -n 0 -l /etc/openldap/initial.ldif
   become: yes
   become_user: ldap
-  args:
-    creates: /var/lib/ldap/DB_CONFIG
   environment:
     HOME: /var/lib/ldap
 
