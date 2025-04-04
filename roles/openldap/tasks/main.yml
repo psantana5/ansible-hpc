@@ -17,7 +17,7 @@
       - openldap-devel
       - python3-devel
       - gcc
-      - cyrus-sasl-devel  # Add this for SASL support
+      - cyrus-sasl-devel # Add this for SASL support
     state: present
 
 - name: Check if virtual environment exists
@@ -212,7 +212,15 @@
   service:
     name: slapd
     state: started
-  when: ldap_start_service | default(true) | bool
+  # Remove the conditional to ensure it always starts
+  notify: restart slapd
+
+# Add a wait for LDAP to be ready
+- name: Wait for LDAP to be ready
+  wait_for:
+    port: 389
+    timeout: 30
+    state: started
 
 - name: Create admin password hash
   command: slappasswd -s "{{ ldap_admin_password }}"
