@@ -250,10 +250,9 @@
 - name: Verify anonymous bind
   community.general.ldap_search:
     server_uri: "ldap://localhost"
-    base: "dc=linkiafp,dc=es"
+    dn: "dc=linkiafp,dc=es"
     scope: "onelevel"
     filter: "(objectClass=*)"
-    dn: ""
   register: ldap_anon_result
   changed_when: false
   ignore_errors: yes
@@ -263,11 +262,10 @@
     server_uri: "ldap://localhost"
     bind_dn: "cn=admin,dc=linkiafp,dc=es"
     bind_pw: "{{ ldap_admin_password }}"
-    base: "dc=linkiafp,dc=es"
+    dn: "dc=linkiafp,dc=es"
     scope: "onelevel"
     filter: "(objectClass=*)"
     validate_certs: false
-    dn: "cn=admin,dc=linkiafp,dc=es"
   register: ldap_admin_result
   changed_when: false
 
