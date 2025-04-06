@@ -253,6 +253,7 @@
     base: "dc=linkiafp,dc=es"
     scope: sub
     filter: "(objectClass=*)"
+    dn: ""
   register: ldap_anon_result
   changed_when: false
   ignore_errors: yes
@@ -266,6 +267,7 @@
     scope: sub
     filter: "(objectClass=*)"
     validate_certs: false
+    dn: "cn=admin,dc=linkiafp,dc=es"
   register: ldap_admin_result
   changed_when: false
 
