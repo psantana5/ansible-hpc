@@ -222,9 +222,14 @@
   environment:
     HOME: /var/lib/ldap
     ANSIBLE_REMOTE_TEMP: /var/lib/ldap/.ansible/tmp
+  register: slaptest_result
+  failed_when: false
   changed_when: false
-  args:
-    creates: /etc/openldap/slapd.d/cn=config.ldif
+
+- name: Display slaptest errors for debugging
+  debug:
+    var: slaptest_result.stderr_lines
+  when: slaptest_result.rc != 0
 
 - name: Initialize database directly with slapadd
   command: slapadd -b "dc=linkiafp,dc=es" -f /etc/openldap/slapd.conf -l /etc/openldap/initial.ldif
