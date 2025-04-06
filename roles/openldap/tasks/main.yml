@@ -248,6 +248,7 @@
     bind_pw: ""
     server_uri: "ldap://localhost"
     base: "dc=linkiafp,dc=es"
+    scope: sub
     filter: "(objectClass=*)"
   register: ldap_anon_result
   changed_when: false
@@ -259,6 +260,7 @@
     bind_pw: "{{ ldap_admin_password }}"
     server_uri: "ldap://localhost"
     base: "dc=linkiafp,dc=es"
+    scope: sub
     filter: "(objectClass=*)"
   register: ldap_admin_result
   changed_when: false
