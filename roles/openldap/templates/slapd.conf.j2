@@ -24,8 +24,7 @@ directory       /var/lib/ldap
 # Nivel de logs
 loglevel        256
 
-# Índices seguros
-{% set no_sub_attrs = ['objectClass', 'uidNumber', 'gidNumber', 'loginShell', 'homeDirectory'] %}
+{% set no_sub_attrs = ['objectClass', 'uidNumber', 'gidNumber', 'loginShell', 'homeDirectory', 'uniqueMember'] %}
 
 {% for index in ldap_indexes | default(['uid', 'cn', 'mail', 'sn', 'givenName']) | unique %}
 {% if index in no_sub_attrs %}
@@ -34,8 +33,6 @@ index {{ index }} eq,pres
 index {{ index }} eq,pres,sub
 {% endif %}
 {% endfor %}
-
-
 
 # ACLs
 access to attrs=userPassword,shadowLastChange
