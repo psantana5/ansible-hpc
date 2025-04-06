@@ -333,4 +333,4 @@
 - name: Verify People OU exists
   ansible.builtin.fail:
     msg: "People organizational unit missing"
-  when: "'ou=People,dc=linkiafp,dc=es' not in ldap_admin_result.results|map(attribute='dn')|list
+  when: "'ou=People,dc=linkiafp,dc=es' not in ldap_admin_result.results|map(attribute='dn')|list"
