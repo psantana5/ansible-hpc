@@ -25,7 +25,9 @@ loglevel        256
 
 index objectClass eq,pres
 {% for index in ldap_indexes | default(['uid', 'cn', 'mail', 'sn', 'givenName']) %}
+{% if index != 'objectClass' %}
 index {{ index }} eq,pres,sub
+{% endif %}
 {% endfor %}
 
 access to attrs=userPassword,shadowLastChange
