@@ -151,10 +151,13 @@
     name: slapd
     state: stopped
 
+- name: Remove existing slapd configuration files
+  ansible.builtin.command: rm -rf /etc/openldap/slapd.d/*
+  become: yes
+
 - name: Remove existing database files
-  file:
-    path: /var/lib/ldap
-    state: absent
+  ansible.builtin.command: rm -rf /var/lib/ldap/*
+  become: yes
 
 - name: Create new database directory
   file:
@@ -164,18 +167,11 @@
     group: ldap
     mode: "0750"
 
-- name: Create DB_CONFIG file
-  copy:
-    content: |
-      set_cachesize 0 2097152 0
-      set_lk_max_objects 1500
-      set_lk_max_locks 1500
-      set_lk_max_lockers 1500
-      set_flags DB_LOG_AUTOREMOVE
-    dest: /var/lib/ldap/DB_CONFIG
-    owner: ldap
-    group: ldap
-    mode: "0640"
+- name: Set SELinux context for LDAP directories
+  ansible.builtin.command: "restorecon -Rv /var/lib/ldap"
+  become: yes
+  ignore_errors: yes
+  when: ansible_selinux.status == "enabled"
 
 - name: Generate slapd configuration from slapd.conf
   command: slaptest -f /etc/openldap/slapd.conf -F /etc/openldap/slapd.d
@@ -193,12 +189,6 @@
   environment:
     HOME: /var/lib/ldap
   ignore_errors: yes
-
-- name: Set SELinux context for LDAP directories
-  ansible.builtin.command: "restorecon -Rv /var/lib/ldap /etc/openldap/slapd.d"
-  become: yes
-  ignore_errors: yes
-  when: ansible_selinux.status == "enabled"
 
 - name: Ensure LDAP directories have correct permissions
   ansible.builtin.file:
@@ -245,22 +235,44 @@
 
 - name: Create base DN
   ldap_entry:
-    dn: "{{ ldap_base_dn }}"
+    dn: "dc=linkiafp,dc=es"
     objectClass: ["dcObject", "organization"]
     attributes:
-      o: "{{ ldap_organization }}"
-      dc: "{{ ldap_domain.split('.')[0] }}"
+      o: "Linkiafp"
+      dc: "linkiafp"
   become: yes
-  ignore_errors: yes
 
-# Fix the ldap_entry module parameters
 - name: Configure admin password
   ldap_entry:
-    dn: "{{ ldap_root_dn }}"
+    dn: "cn=admin,dc=linkiafp,dc=es"
     objectClass: ["organizationalRole", "simpleSecurityObject"]
     attributes:
       cn: admin
       userPassword: "{{ admin_password_hash.stdout }}"
+  become: yes
+
+- name: Create People organizational unit
+  ldap_entry:
+    dn: "ou=People,dc=linkiafp,dc=es"
+    objectClass: ["organizationalUnit"]
+    attributes:
+      ou: People
+  become: yes
+
+- name: Create Groups organizational unit
+  ldap_entry:
+    dn: "ou=Groups,dc=linkiafp,dc=es"
+    objectClass: ["organizationalUnit"]
+    attributes:
+      ou: Groups
+  become: yes
+
+- name: Create Services organizational unit
+  ldap_entry:
+    dn: "ou=Services,dc=linkiafp,dc=es"
+    objectClass: ["organizationalUnit"]
+    attributes:
+      ou: Services
   become: yes
 
 - name: Copy users and groups LDIF template
