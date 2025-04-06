@@ -253,6 +253,8 @@
     dn: "dc=linkiafp,dc=es"
     scope: "onelevel"
     filter: "(objectClass=*)"
+    bind_dn: ""
+    bind_pw: ""
   register: ldap_anon_result
   changed_when: false
   ignore_errors: yes
@@ -260,9 +262,9 @@
 - name: Verify admin credentials
   community.general.ldap_search:
     server_uri: "ldap://localhost"
-    bind_dn: "cn=admin,dc=linkiafp,dc=es"
+    bind_dn: "{{ ldap_root_dn }}"
     bind_pw: "{{ ldap_admin_password }}"
-    dn: "dc=linkiafp,dc=es"
+    dn: "{{ ldap_base_dn }}"
     scope: "onelevel"
     filter: "(objectClass=*)"
     validate_certs: false
