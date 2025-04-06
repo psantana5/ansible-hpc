@@ -3,8 +3,8 @@
   hosts: ldap01
   become: yes
   roles:
-    - openldap
     - epel
+    - openldap
   vars:
     ldap_domain: "linkiafp.es"
     ldap_organization: "Linkiafp"
