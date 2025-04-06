@@ -276,4 +276,3 @@
 - name: Import users and groups
   command: ldapadd -x -D "{{ ldap_root_dn }}" -w "{{ ldap_admin_password }}" -f /etc/openldap/users_groups.ldif
   become: yes
-  no_log: true
