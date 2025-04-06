@@ -175,6 +175,14 @@
     group: ldap
     mode: "0750"
 
+- name: Recreate slapd config directory
+  ansible.builtin.file:
+    path: /etc/openldap/slapd.d
+    state: directory
+    owner: ldap
+    group: ldap
+    mode: "0750"
+
 - name: Set SELinux context for LDAP directories
   ansible.builtin.command: "restorecon -Rv /var/lib/ldap"
   become: yes
@@ -187,6 +195,7 @@
   become_user: ldap
   environment:
     HOME: /var/lib/ldap
+  changed_when: false  # Add this to make task idempotent
   args:
     creates: /etc/openldap/slapd.d/cn=config.ldif
 
