@@ -1,0 +1,5 @@
+dn: {{ ldap_base_dn }}
+objectClass: dcObject
+objectClass: organization
+o: {{ ldap_organization }}
+dc: {{ ldap_domain.split('.')[0] }}
