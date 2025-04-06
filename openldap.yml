@@ -5,8 +5,8 @@
   roles:
     - openldap
   vars:
-    ldap_domain: "linkiafp.es" # Change this to your domain
+    ldap_domain: "linkiafp.es"
     ldap_organization: "Linkiafp"
-    ldap_root_dn: "cn=admin,dc=linkiafp,dc=es" # Change this to match your domain
-    ldap_base_dn: "dc=linkiafp,dc=es" # Change this to match your domain
-    ldap_admin_password: "Linkiafp@2024" # Change this to your desired secure password
+    ldap_root_dn: "cn=admin,dc=linkiafp,dc=es"
+    ldap_base_dn: "dc=linkiafp,dc=es"
+    ldap_admin_password: "Linkiafp@2024"
