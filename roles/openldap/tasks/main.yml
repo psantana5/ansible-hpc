@@ -247,16 +247,39 @@
     enabled: yes
   changed_when: false
 
-- name: Verify anonymous bind
+- name: Verify anonymous bind with base scope
   community.general.ldap_search:
     server_uri: "ldap://localhost"
-    dn: "dc=linkiafp,dc=es"
-    scope: "onelevel"
+    dn: "{{ ldap_base_dn }}"
+    scope: "base"
     filter: "(objectClass=*)"
     bind_dn: ""
     bind_pw: ""
   register: ldap_anon_result
   changed_when: false
+  ignore_errors: yes
+
+- name: Display anonymous bind results
+  debug:
+    var: ldap_anon_result
+  ignore_errors: yes
+
+- name: Verify admin credentials
+  community.general.ldap_search:
+    server_uri: "ldap://localhost"
+    bind_dn: "{{ ldap_root_dn }}"
+    bind_pw: "{{ ldap_admin_password }}"
+    dn: "{{ ldap_base_dn }}"
+    scope: "base"
+    filter: "(objectClass=*)"
+    validate_certs: false
+  register: ldap_admin_result
+  changed_when: false
+  ignore_errors: yes
+
+- name: Display admin bind results
+  debug:
+    var: ldap_admin_result
   ignore_errors: yes
 
 - name: Verify admin credentials
