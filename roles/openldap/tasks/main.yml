@@ -194,16 +194,24 @@
     HOME: /var/lib/ldap
   ignore_errors: yes
 
-- name: Set permissions on slapd directories
-  file:
+- name: Set SELinux context for LDAP directories
+  ansible.builtin.command: "restorecon -Rv /var/lib/ldap /etc/openldap/slapd.d"
+  become: yes
+  ignore_errors: yes
+  when: ansible_selinux.status == "enabled"
+
+- name: Ensure LDAP directories have correct permissions
+  ansible.builtin.file:
     path: "{{ item }}"
     owner: ldap
     group: ldap
     mode: "0750"
     recurse: yes
+    setype: "slapd_db_t"
   loop:
     - /var/lib/ldap
     - /etc/openldap/slapd.d
+  when: ansible_selinux.status == "enabled"
 
 - name: Start slapd service
   service:
