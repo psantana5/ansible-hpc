@@ -13,4 +13,5 @@ slurmctld
 compute
 
 [services]
-services01 ansible_host=192.168.1.141 ansible_python_interpreter=/usr/bin/python3
+services01 ansible_host=192.168.1.152 ansible_python_interpreter=/usr/bin/python3
+ldap01 ansible_host=192.168.1.141
