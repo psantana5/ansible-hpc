@@ -152,12 +152,16 @@
     state: stopped
 
 - name: Remove existing slapd configuration files
-  ansible.builtin.command: rm -rf /etc/openldap/slapd.d/*
+  ansible.builtin.command:
+    cmd: rm -rf /etc/openldap/slapd.d/*
   become: yes
+  ignore_errors: yes
 
 - name: Remove existing database files
-  ansible.builtin.command: rm -rf /var/lib/ldap/*
+  ansible.builtin.command:
+    cmd: rm -rf /var/lib/ldap/*
   become: yes
+  ignore_errors: yes
 
 - name: Create new database directory
   file:
