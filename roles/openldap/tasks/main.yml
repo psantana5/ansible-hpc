@@ -189,13 +189,23 @@
   ignore_errors: yes
   when: ansible_selinux.status == "enabled"
 
+- name: Create Ansible temporary directory for ldap user
+  ansible.builtin.file:
+    path: /var/lib/ldap/.ansible/tmp
+    state: directory
+    owner: ldap
+    group: ldap
+    mode: "0755"
+  become: yes
+
 - name: Generate slapd configuration from slapd.conf
-  command: slaptest -f /etc/openldap/slapd.conf -F /etc/openldap/slapd.d
+  command: slaptest -u -f /etc/openldap/slapd.conf -F /etc/openldap/slapd.d
   become: yes
   become_user: ldap
   environment:
     HOME: /var/lib/ldap
-  changed_when: false  # Add this to make task idempotent
+    ANSIBLE_REMOTE_TEMP: /var/lib/ldap/.ansible/tmp
+  changed_when: false
   args:
     creates: /etc/openldap/slapd.d/cn=config.ldif
 
