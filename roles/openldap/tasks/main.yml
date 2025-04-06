@@ -217,3 +217,45 @@
     HOME: /var/lib/ldap
   args:
     removes: /var/lib/ldap/data.mdb  # Ensure clean slate
+
+- name: Wait for LDAP to be ready
+  wait_for:
+    port: 389
+    timeout: 30
+    state: started
+
+- name: Verify anonymous bind
+  community.general.ldap_search:
+    bind_dn: ""
+    bind_pw: ""
+    server_uri: "ldap://localhost"
+    base: "dc=linkiafp,dc=es"
+    filter: "(objectClass=*)"
+  register: ldap_anon_result
+  changed_when: false
+  ignore_errors: yes
+
+- name: Verify admin credentials
+  community.general.ldap_search:
+    bind_dn: "cn=admin,dc=linkiafp,dc=es"
+    bind_pw: "{{ ldap_admin_password }}"
+    server_uri: "ldap://localhost"
+    base: "dc=linkiafp,dc=es"
+    filter: "(objectClass=*)"
+  register: ldap_admin_result
+  changed_when: false
+
+- name: Create admin password hash
+  command: slappasswd -s "{{ ldap_admin_password }}" -h "{SSHA}"
+  register: admin_password_hash
+  changed_when: false
+
+- name: Check base DN exists
+  ansible.builtin.fail:
+    msg: "Base DN dc=linkiafp,dc=es not found"
+  when: "'dc=linkiafp,dc=es' not in ldap_admin_result.results|map(attribute='dn')|list"
+
+- name: Verify People OU exists
+  ansible.builtin.fail:
+    msg: "People organizational unit missing"
+  when: "'ou=People,dc=linkiafp,dc=es' not in ldap_admin_result.results|map(attribute='dn')|list"
