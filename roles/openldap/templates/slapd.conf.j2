@@ -1,48 +1,56 @@
+# Archivos de esquema
 include         /etc/openldap/schema/core.schema
 include         /etc/openldap/schema/cosine.schema
 include         /etc/openldap/schema/nis.schema
 include         /etc/openldap/schema/inetorgperson.schema
 
+# Archivos PID y argumentos
 pidfile         /var/run/openldap/slapd.pid
 argsfile        /var/run/openldap/slapd.args
 
+# Módulos
 modulepath      /usr/lib64/openldap
 moduleload      back_mdb.la
-# comment it out if using a different backend
-# moduleload back_bdb.la
 
-# And update your database section to use mdb instead of bdb:
+# Base de datos
 database        mdb
-# instead of: database bdb
 suffix          "{{ ldap_base_dn }}"
 rootdn          "{{ ldap_root_dn }}"
-rootpw          "{SSHA}gho9oHk0HGcUKZzSbYOgMP3AlpXkxd8+"
+rootpw          "{{ ldap_root_pw | default('{SSHA}gho9oHk0HGcUKZzSbYOgMP3AlpXkxd8+') }}"
 
+# Directorio donde se almacena la base de datos
 directory       /var/lib/ldap
 
-# Fix the logging directive
+# Nivel de logs
 loglevel        256
 
+# Índices seguros
 index objectClass eq,pres
+
+{% set no_sub_attrs = ['objectClass', 'uidNumber', 'gidNumber', 'loginShell', 'homeDirectory'] %}
 {% for index in ldap_indexes | default(['uid', 'cn', 'mail', 'sn', 'givenName']) %}
-{% if index != 'objectClass' %}
+{% if index in no_sub_attrs %}
+index {{ index }} eq,pres
+{% else %}
 index {{ index }} eq,pres,sub
 {% endif %}
 {% endfor %}
 
+# ACLs
 access to attrs=userPassword,shadowLastChange
         by dn="{{ ldap_root_dn }}" write
         by anonymous auth
         by self write
         by * none
 
-access to dn.base="" by * read
+access to dn.base=""
+        by * read
 
 access to *
         by dn="{{ ldap_root_dn }}" write
         by * read
 
-# Remove default database configuration
+# Config DB
 database config
 rootdn "cn=admin,cn=config"
 rootpw {SSHA}gho9oHk0HGcUKZzSbYOgMP3AlpXkxd8+
