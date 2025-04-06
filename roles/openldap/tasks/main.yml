@@ -232,6 +232,17 @@
   register: admin_password_hash
   no_log: true
 
+# Add a task to create the base DN first
+- name: Create base DN
+  ldap_entry:
+    dn: "{{ ldap_base_dn }}"
+    objectClass: ["dcObject", "organization"]
+    attributes:
+      o: "{{ ldap_organization }}"
+      dc: "{{ ldap_domain.split('.')[0] }}"
+  become: yes
+  ignore_errors: yes
+
 # Fix the ldap_entry module parameters
 - name: Configure admin password
   ldap_entry:
