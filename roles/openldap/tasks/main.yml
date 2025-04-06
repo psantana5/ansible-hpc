@@ -251,7 +251,7 @@
   community.general.ldap_search:
     server_uri: "ldap://localhost"
     base: "dc=linkiafp,dc=es"
-    scope: sub
+    scope: "onelevel"
     filter: "(objectClass=*)"
     dn: ""
   register: ldap_anon_result
@@ -264,7 +264,7 @@
     bind_dn: "cn=admin,dc=linkiafp,dc=es"
     bind_pw: "{{ ldap_admin_password }}"
     base: "dc=linkiafp,dc=es"
-    scope: sub
+    scope: "onelevel"
     filter: "(objectClass=*)"
     validate_certs: false
     dn: "cn=admin,dc=linkiafp,dc=es"
