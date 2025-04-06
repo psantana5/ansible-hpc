@@ -227,13 +227,13 @@
     creates: /etc/openldap/slapd.d/cn=config.ldif
 
 - name: Initialize database directly with slapadd
-  command: slapadd -f /etc/openldap/slapd.conf -l /etc/openldap/initial.ldif
+  command: slapadd -b "dc=linkiafp,dc=es" -f /etc/openldap/slapd.conf -l /etc/openldap/initial.ldif
   become: yes
   become_user: ldap
   environment:
     HOME: /var/lib/ldap
   args:
-    removes: /var/lib/ldap/data.mdb # Ensure clean slate
+    removes: /var/lib/ldap/data.mdb
 
 - name: Start slapd service with clean configuration
   ansible.builtin.systemd:
@@ -262,6 +262,7 @@
     base: "dc=linkiafp,dc=es"
     scope: sub
     filter: "(objectClass=*)"
+    validate_certs: false
   register: ldap_admin_result
   changed_when: false
 
