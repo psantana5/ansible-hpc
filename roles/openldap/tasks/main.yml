@@ -249,8 +249,6 @@
 
 - name: Verify anonymous bind
   community.general.ldap_search:
-    bind_dn: ""
-    bind_pw: ""
     server_uri: "ldap://localhost"
     base: "dc=linkiafp,dc=es"
     scope: sub
@@ -261,9 +259,9 @@
 
 - name: Verify admin credentials
   community.general.ldap_search:
+    server_uri: "ldap://localhost"
     bind_dn: "cn=admin,dc=linkiafp,dc=es"
     bind_pw: "{{ ldap_admin_password }}"
-    server_uri: "ldap://localhost"
     base: "dc=linkiafp,dc=es"
     scope: sub
     filter: "(objectClass=*)"
