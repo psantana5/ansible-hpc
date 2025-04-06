@@ -1,9 +1,10 @@
 ---
 - name: Deploy OpenLDAP Server
-  hosts: services # Using the existing services group from inventory
+  hosts: ldap01
   become: yes
   roles:
     - openldap
+    - epel
   vars:
     ldap_domain: "linkiafp.es"
     ldap_organization: "Linkiafp"
