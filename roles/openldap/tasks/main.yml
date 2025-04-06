@@ -230,7 +230,6 @@
 - name: Create admin password hash
   command: slappasswd -s "{{ ldap_admin_password }}"
   register: admin_password_hash
-  no_log: true
 
 - name: Copy root DN LDIF template
   template:
@@ -243,7 +242,6 @@
 - name: Create root DN entry
   command: ldapadd -x -D "{{ ldap_root_dn }}" -w "{{ ldap_admin_password }}" -f /etc/openldap/root_dn.ldif
   become: yes
-  no_log: true
 
 - name: Create base DN
   ldap_entry:
