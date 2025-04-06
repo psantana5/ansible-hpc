@@ -4,7 +4,7 @@ ldap_domain: "linkiafp.es"
 ldap_organization: "Linkiafp"
 ldap_root_dn: "cn=admin,dc=linkiafp,dc=es"
 ldap_base_dn: "dc=linkiafp,dc=es"
-ldap_admin_password: "1SAfe-password"
+ldap_admin_password: "Linkiafp@2024"  # Only keep one definition
 ldap_log_level: 256
 ldap_indexes:
   - objectClass
