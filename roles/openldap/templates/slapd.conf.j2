@@ -20,10 +20,10 @@ rootpw          "{SSHA}gho9oHk0HGcUKZzSbYOgMP3AlpXkxd8+"
 
 directory       /var/lib/ldap
 
-# Fix the objectClass index - it can't use substr
-index objectClass                       eq,pres
-{% for index in ldap_indexes %}
-index {{ index }}                      eq,pres,sub
+# Fix the objectClass index - remove substr indexing
+index objectClass eq,pres
+{% for index in ldap_indexes | default(['uid', 'cn', 'mail', 'sn', 'givenName']) %}
+index {{ index }} eq,pres,sub
 {% endfor %}
 
 access to attrs=userPassword,shadowLastChange
