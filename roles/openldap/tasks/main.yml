@@ -150,21 +150,25 @@
   service:
     name: slapd
     state: stopped
+  register: slapd_stopped
+  until: slapd_stopped is succeeded
+  retries: 3
+  delay: 5
 
-- name: Remove existing slapd configuration files
-  ansible.builtin.command:
-    cmd: rm -rf /etc/openldap/slapd.d/*
+- name: Force remove slapd config directory
+  ansible.builtin.file:
+    path: /etc/openldap/slapd.d
+    state: absent
   become: yes
-  ignore_errors: yes
 
-- name: Remove existing database files
-  ansible.builtin.command:
-    cmd: rm -rf /var/lib/ldap/*
+- name: Force remove LDAP database directory
+  ansible.builtin.file:
+    path: /var/lib/ldap
+    state: absent
   become: yes
-  ignore_errors: yes
 
-- name: Create new database directory
-  file:
+- name: Create fresh database directory
+  ansible.builtin.file:
     path: /var/lib/ldap
     state: directory
     owner: ldap
@@ -192,99 +196,5 @@
   become_user: ldap
   environment:
     HOME: /var/lib/ldap
-  ignore_errors: yes
-
-- name: Ensure LDAP directories have correct permissions
-  ansible.builtin.file:
-    path: "{{ item }}"
-    owner: ldap
-    group: ldap
-    mode: "0750"
-    recurse: yes
-    setype: "slapd_db_t"
-  loop:
-    - /var/lib/ldap
-    - /etc/openldap/slapd.d
-  when: ansible_selinux.status == "enabled"
-
-- name: Start slapd service
-  service:
-    name: slapd
-    state: started
-  notify: restart slapd
-
-- name: Wait for LDAP to be ready
-  wait_for:
-    port: 389
-    timeout: 30
-    state: started
-
-- name: Create admin password hash
-  command: slappasswd -s "{{ ldap_admin_password }}"
-  register: admin_password_hash
-
-- name: Copy root DN LDIF template
-  template:
-    src: root_dn.ldif.j2
-    dest: /etc/openldap/root_dn.ldif
-    owner: ldap
-    group: ldap
-    mode: "0640"
-
-- name: Create root DN entry
-  command: ldapadd -x -D "{{ ldap_root_dn }}" -w "{{ ldap_admin_password }}" -f /etc/openldap/root_dn.ldif
-  become: yes
-
-- name: Create base DN
-  ldap_entry:
-    dn: "dc=linkiafp,dc=es"
-    objectClass: ["dcObject", "organization"]
-    attributes:
-      o: "Linkiafp"
-      dc: "linkiafp"
-  become: yes
-
-- name: Configure admin password
-  ldap_entry:
-    dn: "cn=admin,dc=linkiafp,dc=es"
-    objectClass: ["organizationalRole", "simpleSecurityObject"]
-    attributes:
-      cn: admin
-      userPassword: "{{ admin_password_hash.stdout }}"
-  become: yes
-
-- name: Create People organizational unit
-  ldap_entry:
-    dn: "ou=People,dc=linkiafp,dc=es"
-    objectClass: ["organizationalUnit"]
-    attributes:
-      ou: People
-  become: yes
-
-- name: Create Groups organizational unit
-  ldap_entry:
-    dn: "ou=Groups,dc=linkiafp,dc=es"
-    objectClass: ["organizationalUnit"]
-    attributes:
-      ou: Groups
-  become: yes
-
-- name: Create Services organizational unit
-  ldap_entry:
-    dn: "ou=Services,dc=linkiafp,dc=es"
-    objectClass: ["organizationalUnit"]
-    attributes:
-      ou: Services
-  become: yes
-
-- name: Copy users and groups LDIF template
-  template:
-    src: users_groups.ldif.j2
-    dest: /etc/openldap/users_groups.ldif
-    owner: ldap
-    group: ldap
-    mode: "0640"
-
-- name: Import users and groups
-  command: ldapadd -x -D "{{ ldap_root_dn }}" -w "{{ ldap_admin_password }}" -f /etc/openldap/users_groups.ldif
-  become: yes
+  args:
+    removes: /var/lib/ldap/data.mdb  # Ensure clean slate
