@@ -264,6 +264,32 @@
     var: ldap_anon_result
   ignore_errors: yes
 
+# Add a task to create an LDIF file for anonymous access configuration
+- name: Create anonymous access configuration LDIF
+  copy:
+    dest: /tmp/anonymous_access.ldif
+    content: |
+      dn: olcDatabase={1}mdb,cn=config
+      changetype: modify
+      replace: olcAccess
+      olcAccess: {0}to * by * read write
+    owner: ldap
+    group: ldap
+    mode: "0640"
+
+# Apply the anonymous access configuration
+- name: Apply anonymous access configuration
+  command: ldapmodify -Y EXTERNAL -H ldapi:/// -f /tmp/anonymous_access.ldif
+  become: yes
+  ignore_errors: yes
+
+# Restart slapd to apply changes
+- name: Restart slapd after anonymous access configuration
+  systemd:
+    name: slapd
+    state: restarted
+  changed_when: false
+
 - name: Verify admin credentials
   community.general.ldap_search:
     server_uri: "ldap://localhost"
@@ -307,4 +333,4 @@
 - name: Verify People OU exists
   ansible.builtin.fail:
     msg: "People organizational unit missing"
-  when: "'ou=People,dc=linkiafp,dc=es' not in ldap_admin_result.results|map(attribute='dn')|list"
+  when: "'ou=People,dc=linkiafp,dc=es' not in ldap_admin_result.results|map(attribute='dn')|list
