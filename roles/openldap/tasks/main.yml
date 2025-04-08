@@ -29,8 +29,11 @@
       - openldap-servers
       - openldap-clients
       - cyrus-sasl-devel
-      - python3-ldap # Needed for Ansible ldap modules
+      - python3-ldap
       - firewalld
+      - sssd
+      - sssd-ldap
+      - oddjob-mkhomedir
     state: present
 
 - name: Ensure firewalld service is running and enabled

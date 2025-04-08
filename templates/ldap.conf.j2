@@ -1,0 +1,7 @@
+# LDAP Client Configuration
+# Managed by Ansible
+
+URI ldap://{{ ldap_server }}/
+BASE {{ ldap_base_dn }}
+TLS_CACERT /etc/openldap/certs/ldapserver.crt
+TLS_REQCERT {{ ldap_tls_reqcert }}
