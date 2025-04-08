@@ -2,12 +2,14 @@
 - name: Deploy OpenLDAP Server
   hosts: ldap01
   become: yes
+  vars_files:
+    - openldap/vars/secrets.yml
   roles:
     - epel
     - openldap
   vars:
+    # Define non-secret variables here
     ldap_domain: "linkiafp.es"
     ldap_organization: "Linkiafp"
     ldap_root_dn: "cn=admin,dc=linkiafp,dc=es"
     ldap_base_dn: "dc=linkiafp,dc=es"
-    ldap_admin_password: "Linkiafp@2024"

@@ -1,0 +1,57 @@
+---
+# OpenLDAP configuration
+ldap_domain_components: "{{ ldap_domain.split('.') }}" # ['linkiafp', 'es']
+ldap_dc_string: "{{ ldap_domain_components | map('regex_replace', '^(.*)$', 'dc=\\1') | join(',') }}" # dc=linkiafp,dc=es
+ldap_domain: "linkiafp.es"
+ldap_organization: "Linkiafp"
+ldap_root_user: "admin" # Just the username part
+ldap_root_dn: "cn={{ ldap_root_user }},{{ ldap_dc_string }}" # cn=admin,dc=linkiafp,dc=es
+ldap_base_dn: "{{ ldap_dc_string }}" # dc=linkiafp,dc=es
+ldap_admin_password: "Linkiafp@2024" # <<< --- USE VAULT FOR THIS!
+ldap_log_level: 256
+
+# Indexes - List of attribute names for slapd.conf.j2
+ldap_indexes:
+  - objectClass
+  - cn
+  - uid
+  - uidNumber
+  - gidNumber
+  - member # Changed from memberUid/uniqueMember to match groupOfNames typically
+  - mail
+  - givenName
+  - sn # Added surname index
+
+ldap_start_service: true
+ldap_enable_service: true
+
+# TLS Settings
+ldap_tls_cert_path: "/etc/pki/tls/certs/ldapserver.crt"
+ldap_tls_key_path: "/etc/pki/tls/private/ldapserver.key"
+ldap_tls_key_owner: "ldap"
+ldap_tls_key_group: "ldap"
+ldap_tls_key_mode: "0640" # Restrict key permissions
+ldap_tls_cert_owner: "root"
+ldap_tls_cert_group: "root"
+ldap_tls_cert_mode: "0644"
+
+# Paths and User/Group
+ldap_user: ldap
+ldap_group: ldap
+ldap_uid: 55
+ldap_gid: 55
+ldap_home: /var/lib/ldap
+ldap_config_dir: /etc/openldap
+ldap_data_dir: "{{ ldap_home }}"
+ldap_slapd_d_dir: "{{ ldap_config_dir }}/slapd.d"
+ldap_pid_file: /run/openldap/slapd.pid
+ldap_args_file: /run/openldap/slapd.args
+ldap_sysconfig_path: /etc/sysconfig/slapd # Path for environment file
+
+# Flag to control the destructive re-initialization (use with caution)
+ldap_force_reinit: false # Set to true ONLY if you want to wipe config/data on change
+
+# Flag to control import of users/groups LDIF
+ldap_import_users_groups: true
+ldap_users_groups_ldif_src: "users.groups.ldif.j2" # Source template file name
+ldap_users_groups_ldif_dest: "/tmp/ldap_users_groups.ldif" # Temp location on target

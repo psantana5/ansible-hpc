@@ -1,4 +1,11 @@
-# HPC-admins group
+# Ansible Managed: {{ ansible_managed }}
+#
+# Users and Groups Data
+
+# --- Groups ---
+# Note: Using groupOfNames requires 'member' attribute.
+# If using posixGroup, use 'memberUid' attribute.
+
 dn: cn=HPC-admins,ou=Groups,{{ ldap_base_dn }}
 objectClass: groupOfNames
 objectClass: top
@@ -8,7 +15,6 @@ member: uid=psantana,ou=People,{{ ldap_base_dn }}
 member: uid=jsmith,ou=People,{{ ldap_base_dn }}
 member: uid=rjohnson,ou=People,{{ ldap_base_dn }}
 
-# cfes group
 dn: cn=cfes,ou=Groups,{{ ldap_base_dn }}
 objectClass: groupOfNames
 objectClass: top
@@ -19,7 +25,6 @@ member: uid=dwilliams,ou=People,{{ ldap_base_dn }}
 member: uid=lbrown,ou=People,{{ ldap_base_dn }}
 member: uid=tlee,ou=People,{{ ldap_base_dn }}
 
-# quantum-physics group
 dn: cn=quantum-physics,ou=Groups,{{ ldap_base_dn }}
 objectClass: groupOfNames
 objectClass: top
@@ -30,7 +35,6 @@ member: uid=sbohr,ou=People,{{ ldap_base_dn }}
 member: uid=hheisenberg,ou=People,{{ ldap_base_dn }}
 member: uid=ddirac,ou=People,{{ ldap_base_dn }}
 
-# particle-physics group
 dn: cn=particle-physics,ou=Groups,{{ ldap_base_dn }}
 objectClass: groupOfNames
 objectClass: top
@@ -41,7 +45,6 @@ member: uid=mplanck,ou=People,{{ ldap_base_dn }}
 member: uid=aeinstein,ou=People,{{ ldap_base_dn }}
 member: uid=cyang,ou=People,{{ ldap_base_dn }}
 
-# astrophysics group
 dn: cn=astrophysics,ou=Groups,{{ ldap_base_dn }}
 objectClass: groupOfNames
 objectClass: top
@@ -52,7 +55,6 @@ member: uid=ntyson,ou=People,{{ ldap_base_dn }}
 member: uid=csagan,ou=People,{{ ldap_base_dn }}
 member: uid=jkaku,ou=People,{{ ldap_base_dn }}
 
-# condensed-matter group
 dn: cn=condensed-matter,ou=Groups,{{ ldap_base_dn }}
 objectClass: groupOfNames
 objectClass: top
@@ -63,17 +65,23 @@ member: uid=bcooper,ou=People,{{ ldap_base_dn }}
 member: uid=jbardeen,ou=People,{{ ldap_base_dn }}
 member: uid=rfeynman,ou=People,{{ ldap_base_dn }}
 
-# User entries
+# --- Users ---
+# IMPORTANT: Passwords below are hardcoded example hashes.
+# For production, generate unique hashes per user OR
+# enforce password change on first login.
+
 dn: uid=psantana,ou=People,{{ ldap_base_dn }}
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: top
 cn: Pedro Santana
 sn: Santana
+givenName: Pedro
 uid: psantana
 uidNumber: 1001
-gidNumber: 1001
+gidNumber: 1001 # Should match a primary group GID if using posixGroup
 homeDirectory: /home/psantana
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=jsmith,ou=People,{{ ldap_base_dn }}
@@ -82,10 +90,12 @@ objectClass: posixAccount
 objectClass: top
 cn: John Smith
 sn: Smith
+givenName: John
 uid: jsmith
 uidNumber: 1002
 gidNumber: 1002
 homeDirectory: /home/jsmith
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=rjohnson,ou=People,{{ ldap_base_dn }}
@@ -94,10 +104,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Robert Johnson
 sn: Johnson
+givenName: Robert
 uid: rjohnson
 uidNumber: 1003
 gidNumber: 1003
 homeDirectory: /home/rjohnson
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=mgarcia,ou=People,{{ ldap_base_dn }}
@@ -106,10 +118,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Maria Garcia
 sn: Garcia
+givenName: Maria
 uid: mgarcia
 uidNumber: 1004
 gidNumber: 1004
 homeDirectory: /home/mgarcia
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=dwilliams,ou=People,{{ ldap_base_dn }}
@@ -118,10 +132,12 @@ objectClass: posixAccount
 objectClass: top
 cn: David Williams
 sn: Williams
+givenName: David
 uid: dwilliams
 uidNumber: 1005
 gidNumber: 1005
 homeDirectory: /home/dwilliams
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=lbrown,ou=People,{{ ldap_base_dn }}
@@ -130,10 +146,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Lisa Brown
 sn: Brown
+givenName: Lisa
 uid: lbrown
 uidNumber: 1006
 gidNumber: 1006
 homeDirectory: /home/lbrown
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=tlee,ou=People,{{ ldap_base_dn }}
@@ -142,10 +160,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Thomas Lee
 sn: Lee
+givenName: Thomas
 uid: tlee
 uidNumber: 1007
 gidNumber: 1007
 homeDirectory: /home/tlee
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=kfeynman,ou=People,{{ ldap_base_dn }}
@@ -154,10 +174,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Kevin Feynman
 sn: Feynman
+givenName: Kevin
 uid: kfeynman
 uidNumber: 1008
 gidNumber: 1008
 homeDirectory: /home/kfeynman
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=sbohr,ou=People,{{ ldap_base_dn }}
@@ -166,10 +188,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Sarah Bohr
 sn: Bohr
+givenName: Sarah
 uid: sbohr
 uidNumber: 1009
 gidNumber: 1009
 homeDirectory: /home/sbohr
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=hheisenberg,ou=People,{{ ldap_base_dn }}
@@ -178,10 +202,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Hans Heisenberg
 sn: Heisenberg
+givenName: Hans
 uid: hheisenberg
 uidNumber: 1010
 gidNumber: 1010
 homeDirectory: /home/hheisenberg
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=ddirac,ou=People,{{ ldap_base_dn }}
@@ -190,10 +216,12 @@ objectClass: posixAccount
 objectClass: top
 cn: David Dirac
 sn: Dirac
+givenName: David
 uid: ddirac
 uidNumber: 1011
 gidNumber: 1011
 homeDirectory: /home/ddirac
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=ehiggs,ou=People,{{ ldap_base_dn }}
@@ -202,10 +230,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Emma Higgs
 sn: Higgs
+givenName: Emma
 uid: ehiggs
 uidNumber: 1012
 gidNumber: 1012
 homeDirectory: /home/ehiggs
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=mplanck,ou=People,{{ ldap_base_dn }}
@@ -214,10 +244,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Max Planck
 sn: Planck
+givenName: Max
 uid: mplanck
 uidNumber: 1013
 gidNumber: 1013
 homeDirectory: /home/mplanck
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=aeinstein,ou=People,{{ ldap_base_dn }}
@@ -226,10 +258,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Albert Einstein
 sn: Einstein
+givenName: Albert
 uid: aeinstein
 uidNumber: 1014
 gidNumber: 1014
 homeDirectory: /home/aeinstein
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=cyang,ou=People,{{ ldap_base_dn }}
@@ -238,10 +272,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Chen Yang
 sn: Yang
+givenName: Chen
 uid: cyang
 uidNumber: 1015
 gidNumber: 1015
 homeDirectory: /home/cyang
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=shawking,ou=People,{{ ldap_base_dn }}
@@ -250,10 +286,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Stephen Hawking
 sn: Hawking
+givenName: Stephen
 uid: shawking
 uidNumber: 1016
 gidNumber: 1016
 homeDirectory: /home/shawking
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=ntyson,ou=People,{{ ldap_base_dn }}
@@ -262,10 +300,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Neil Tyson
 sn: Tyson
+givenName: Neil
 uid: ntyson
 uidNumber: 1017
 gidNumber: 1017
 homeDirectory: /home/ntyson
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=csagan,ou=People,{{ ldap_base_dn }}
@@ -274,10 +314,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Carl Sagan
 sn: Sagan
+givenName: Carl
 uid: csagan
 uidNumber: 1018
 gidNumber: 1018
 homeDirectory: /home/csagan
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=jkaku,ou=People,{{ ldap_base_dn }}
@@ -286,10 +328,12 @@ objectClass: posixAccount
 objectClass: top
 cn: John Kaku
 sn: Kaku
+givenName: John
 uid: jkaku
 uidNumber: 1019
 gidNumber: 1019
 homeDirectory: /home/jkaku
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=landerson,ou=People,{{ ldap_base_dn }}
@@ -298,10 +342,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Lisa Anderson
 sn: Anderson
+givenName: Lisa
 uid: landerson
 uidNumber: 1020
 gidNumber: 1020
 homeDirectory: /home/landerson
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=bcooper,ou=People,{{ ldap_base_dn }}
@@ -310,10 +356,12 @@ objectClass: posixAccount
 objectClass: top
 cn: Brian Cooper
 sn: Cooper
+givenName: Brian
 uid: bcooper
 uidNumber: 1021
 gidNumber: 1021
 homeDirectory: /home/bcooper
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=jbardeen,ou=People,{{ ldap_base_dn }}
@@ -322,10 +370,12 @@ objectClass: posixAccount
 objectClass: top
 cn: John Bardeen
 sn: Bardeen
+givenName: John
 uid: jbardeen
 uidNumber: 1022
 gidNumber: 1022
 homeDirectory: /home/jbardeen
+loginShell: /bin/bash
 userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
 
 dn: uid=rfeynman,ou=People,{{ ldap_base_dn }}
@@ -334,8 +384,10 @@ objectClass: posixAccount
 objectClass: top
 cn: Richard Feynman
 sn: Feynman
+givenName: Richard
 uid: rfeynman
 uidNumber: 1023
 gidNumber: 1023
 homeDirectory: /home/rfeynman
-userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj 
+loginShell: /bin/bash
+userPassword: {SSHA}5enpG6pCKP5Qr8vUfXvVZRZzQ2IxYzFj
