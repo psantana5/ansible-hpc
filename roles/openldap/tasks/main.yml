@@ -126,11 +126,10 @@
   notify: restorecon ldap dirs # Refers to a handler defined elsewhere
   when: ansible_selinux.status == "enabled"
 
-- name: Apply SELinux context changes now (triggered by handler)
-  ansible.builtin.command: "restorecon -R -v {{ ldap_data_dir | default('/var/lib/ldap') }} {{ ldap_slapd_d_dir | default('/etc/openldap/slapd.d') }}"
-  changed_when: true # Assume restorecon always changes something if run
+# Run handlers now to apply SELinux context changes before proceeding
+- name: Force handlers to run now (for SELinux context)
+  ansible.builtin.meta: flush_handlers
   when: ansible_selinux.status == "enabled"
-  listen: "restorecon ldap dirs" # Listen for specific handler notification
 
 # ----------------------------------------------------------------------
 # Phase 3: Core Configuration (slapd.conf -> slapd.d Method)
@@ -276,17 +275,6 @@
 # ----------------------------------------------------------------------
 # Phase 5: Service Management
 # ----------------------------------------------------------------------
-# The service is managed by handlers triggered by configuration changes,
-# or by the final 'ensure started/enabled' task.
-# If you needed a custom systemd unit file, you would template it here.
-# - name: Template custom systemd service file if needed
-#   template:
-#     src: slapd.service.j2
-#     dest: /etc/systemd/system/slapd.service # Or /usr/lib/systemd/system/
-#   notify:
-#     - daemon-reload
-#     - restart slapd service
-
 - name: Ensure slapd service is started and enabled as per vars
   ansible.builtin.systemd:
     name: slapd
@@ -330,8 +318,6 @@
   no_log: true
   when: ldap_start_service | default(true) | bool
 
-# Debugging output removed for role context, can be added if needed
-
 - name: Check if Base OUs were found in verification search results
   ansible.builtin.fail:
     msg: "Verification failed: Base OUs (People, Groups) not accessible after setup. Check slapd logs on {{ inventory_hostname }}."
@@ -360,7 +346,7 @@
   failed_when: >
     ldapadd_users_groups_result.rc != 0 and
     'Already exists' not in ldapadd_users_groups_result.stderr and
-    'entryExit' not in ldapadd_users_groups_result.stderr # Another indicator of existing entry in some versions
+    'entryExit' not in ldapadd_users_groups_result.stderr # Another indicator of existing entry
   no_log: true
   when: ldap_import_users_groups | default(true) | bool and ldap_start_service | default(true) | bool
 
