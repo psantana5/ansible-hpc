@@ -15,7 +15,7 @@
     ldap_organization: "Linkiafp"
     ldap_root_dn: "cn=admin,dc=linkiafp,dc=es"
     ldap_base_dn: "dc=linkiafp,dc=es"
-    ldap_admin_password: ldap_admin_password: !vault |
+    ldap_admin_password: !vault |
           $ANSIBLE_VAULT;1.1;AES256
           33626434373830333162363133383734313631363563663631353530383638376133346535656538
           3161303038356230373630323365363836306436643237320a343362393934353261636666373134
