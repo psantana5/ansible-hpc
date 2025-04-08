@@ -3,8 +3,12 @@
   ansible.builtin.systemd:
     daemon_reload: yes
 
-- name: restart slapd
+- name: restart slapd service
   ansible.builtin.systemd:
     name: slapd
     state: restarted
-    enabled: yes
+
+- name: restorecon ldap dirs
+  ansible.builtin.command: "restorecon -R -v {{ ldap_data_dir | default('/var/lib/ldap') }} {{ ldap_slapd_d_dir | default('/etc/openldap/slapd.d') }}"
+  changed_when: true # Mark as changed to ensure chained handlers run if needed
+  when: ansible_selinux.status == "enabled"
