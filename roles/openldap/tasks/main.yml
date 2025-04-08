@@ -114,12 +114,18 @@
 - name: Set SELinux context for LDAP directories
   ansible.builtin.sefcontext:
     target: "{{ item }}(/.*)?"
-    setype: ldap_var_lib_t # Standard context type
+    setype: slapd_db_t  # Changed from ldap_var_lib_t to correct SELinux type
     state: present
   loop:
     - "{{ ldap_data_dir | default('/var/lib/ldap') }}"
     - "{{ ldap_slapd_d_dir | default('/etc/openldap/slapd.d') }}"
-  notify: restorecon ldap dirs # Refers to a handler defined elsewhere
+  notify: restorecon ldap dirs
+  when: ansible_selinux.status == "enabled"
+
+# Immediately apply SELinux context changes
+- name: Apply SELinux context changes now
+  ansible.builtin.command: "restorecon -R -v {{ ldap_data_dir | default('/var/lib/ldap') }} {{ ldap_slapd_d_dir | default('/etc/openldap/slapd.d') }}"
+  changed_when: true
   when: ansible_selinux.status == "enabled"
 
 # Run handlers now to apply SELinux context changes before proceeding
