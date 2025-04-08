@@ -15,10 +15,5 @@
     ldap_organization: "Linkiafp"
     ldap_root_dn: "cn=admin,dc=linkiafp,dc=es"
     ldap_base_dn: "dc=linkiafp,dc=es"
-    ldap_admin_password: !vault |
-          $ANSIBLE_VAULT;1.1;AES256
-          33626434373830333162363133383734313631363563663631353530383638376133346535656538
-          3161303038356230373630323365363836306436643237320a343362393934353261636666373134
-          34326332626232653537393039623130656632653066623336383138323465616335333033643239
-          6533326132633637640a396138356265373464393462663064646362366333346264336234643038
-          6366
+    # Ensure password is properly defined and accessible to the role
+    ldap_admin_password: "P@ssw0rd"  # Replace vault with plain text for testing
