@@ -1,6 +1,14 @@
 ---
+- name: Update dnf cache
+  ansible.builtin.dnf:
+    update_cache: yes
+
+- name: Install Development Tools group
+  ansible.builtin.dnf:
+    name: "@Development Tools"
+    state: present
 - name: Configure OpenLDAP Server on Rocky Linux 9
-  hosts: ldap_servers # Define this in your inventory
+  hosts: services
   become: yes
   vars_files:
     - vars/ldap_vars.yml
