@@ -5,10 +5,9 @@ auth_provider = ldap
 chpass_provider = ldap
 ldap_uri = ldap://{{ ldap_server }}/
 ldap_search_base = {{ ldap_base_dn }}
-ldap_id_use_start_tls = True
-ldap_tls_cacertdir = /etc/openldap/certs
+ldap_id_use_start_tls = False
 cache_credentials = True
-ldap_tls_reqcert = {{ ldap_tls_reqcert }}
+ldap_tls_reqcert = never
 
 [sssd]
 services = nss, pam, autofs
