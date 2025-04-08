@@ -68,3 +68,14 @@
         name: sssd
         state: started
         enabled: yes
+        
+    # Verification tasks
+    - name: Verify LDAP user information is accessible
+      ansible.builtin.command: getent passwd rfeynman
+      register: ldap_user_check
+      changed_when: false
+      failed_when: false
+      
+    - name: Display LDAP authentication status
+      ansible.builtin.debug:
+        msg: "LDAP authentication is {{ 'WORKING' if ldap_user_check.rc == 0 else 'NOT WORKING' }}"
