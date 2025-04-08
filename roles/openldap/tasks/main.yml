@@ -114,7 +114,7 @@
 - name: Set SELinux context for LDAP directories
   ansible.builtin.sefcontext:
     target: "{{ item }}(/.*)?"
-    setype: slapd_db_t  # Changed from ldap_var_lib_t to correct SELinux type
+    setype: slapd_db_t # Changed from ldap_var_lib_t to correct SELinux type
     state: present
   loop:
     - "{{ ldap_data_dir | default('/var/lib/ldap') }}"
@@ -140,8 +140,7 @@
   ansible.builtin.set_fact:
     ldap_admin_password_hash: >-
       {{ ldap_admin_password | password_hash('ssha', community.general.ldap_salt()) }}
-  no_log: true
-  when: ldap_admin_password is defined # Only run if password is provided
+  when: ldap_admin_password is defined
 
 - name: Check if admin password hash was generated
   ansible.builtin.fail:
