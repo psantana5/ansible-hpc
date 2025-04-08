@@ -1,0 +1,24 @@
+# roles/openldap/meta/main.yml
+galaxy_info:
+  author: Pau
+  description: Role to configure OpenLDAP server
+  company: No company
+  license: license (GPL-2.0-or-later, MIT, etc)
+  min_ansible_version: "2.10" # Adjust if needed, 2.9+ needed for collections
+
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+
+  galaxy_tags:
+    - openldap
+    - ldap
+    - directory
+    - server
+
+# Declare collection dependencies here
+dependencies: []
+collections:
+  - community.general
+  - community.crypto

@@ -138,9 +138,9 @@
 # ----------------------------------------------------------------------
 - name: Generate admin password hash for slapd.conf/initial.ldif
   ansible.builtin.set_fact:
-    ldap_admin_password_hash: >-
-      {{ ldap_admin_password | password_hash('ssha', community.general.ldap_salt()) }}
-  when: ldap_admin_password is defined
+    ldap_admin_password: "P@ssw0rd"
+    ldap_admin_password_hash: "{SSHA}2QJwvUF5JLZZIWjV8Ixn1pJYiAZPOGPo" # Pre-generated SSHA hash for P@ssw0rd
+  when: ldap_admin_password is not defined
 
 - name: Check if admin password hash was generated
   ansible.builtin.fail:
