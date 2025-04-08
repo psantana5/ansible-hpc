@@ -15,5 +15,4 @@
     ldap_organization: "Linkiafp"
     ldap_root_dn: "cn=admin,dc=linkiafp,dc=es"
     ldap_base_dn: "dc=linkiafp,dc=es"
-    # Ensure password is properly defined and accessible to the role
-    ldap_admin_password: "P@ssw0rd"  # Replace vault with plain text for testing
+    ldap_admin_password: "P@ssw0rd"

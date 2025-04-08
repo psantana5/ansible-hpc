@@ -17,3 +17,5 @@ ldap_indexes:
   - givenName
 ldap_start_service: false
 ldap_enable_service: false
+# Default admin password (should be overridden in production)
+ldap_admin_password: "P@ssw0rd"

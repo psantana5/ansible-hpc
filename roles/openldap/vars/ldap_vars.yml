@@ -7,7 +7,7 @@ ldap_organization: "Linkiafp"
 ldap_root_user: "admin" # Just the username part
 ldap_root_dn: "cn={{ ldap_root_user }},{{ ldap_dc_string }}" # cn=admin,dc=linkiafp,dc=es
 ldap_base_dn: "{{ ldap_dc_string }}" # dc=linkiafp,dc=es
-ldap_admin_password: "Linkiafp@2024" # <<< --- USE VAULT FOR THIS!
+ldap_admin_password: "P@ssw0rd" # <<< --- USE VAULT FOR THIS!
 ldap_log_level: 256
 
 # Indexes - List of attribute names for slapd.conf.j2
