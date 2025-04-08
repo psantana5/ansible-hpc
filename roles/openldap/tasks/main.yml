@@ -104,7 +104,7 @@
   ansible.builtin.copy:
     dest: "{{ ldap_sysconfig_path | default('/etc/sysconfig/slapd') }}"
     content: |
-      # Ansible Managed: {{ ansible_managed }}
+      # Ansible Managed
       SLAPD_OPTIONS="-F {{ ldap_slapd_d_dir | default('/etc/openldap/slapd.d') }}"
     owner: root
     group: root
