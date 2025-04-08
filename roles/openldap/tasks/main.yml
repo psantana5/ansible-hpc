@@ -1,413 +1,371 @@
+# roles/openldap/tasks/main.yml
 ---
+# Note: Variables like ldap_domain, ldap_admin_password, etc.,
+# are expected to be defined at the playbook level or in role defaults/vars.
+# Handlers (like daemon-reload, restart slapd) are also expected
+# to be defined at the playbook level or in role handlers/.
+
+# ----------------------------------------------------------------------
+# Phase 1: Prerequisites and Package Installation
+# ----------------------------------------------------------------------
+- name: Ensure SELinux is permissive (for setup only)
+  ansible.builtin.selinux:
+    policy: targeted
+    state: permissive
+  when: ansible_selinux.status == "enabled" and ansible_selinux.mode != "permissive"
+  notify: restart slapd service # Refers to a handler defined elsewhere
+
+- name: Enable Rocky Linux 'plus' repository
+  ansible.builtin.command: dnf config-manager --set-enabled plus
+  args:
+    warn: false
+  register: plus_repo_enabled
+  changed_when: "'enabled = 1' in plus_repo_enabled.stdout or plus_repo_enabled.rc == 0"
+  failed_when: plus_repo_enabled.rc != 0 and 'Nothing to do' not in plus_repo_enabled.stderr
+
 - name: Update dnf cache
   ansible.builtin.dnf:
     update_cache: yes
 
-- name: Install Development Tools group
+- name: Install OpenLDAP packages, dependencies, and firewall
   ansible.builtin.dnf:
-    name: "@Development Tools"
+    name:
+      - openldap-servers
+      - openldap-clients
+      - cyrus-sasl-devel
+      - python3-ldap # Needed for Ansible ldap modules
+      - firewalld
     state: present
-- name: Configure OpenLDAP Server on Rocky Linux 9
-  hosts: services
-  become: yes
-  vars_files:
-    - vars/ldap_vars.yml
 
-  collections:
-    - community.general
-    - community.crypto
+- name: Ensure firewalld service is running and enabled
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: yes
 
-  handlers:
-    - name: daemon-reload
-      ansible.builtin.systemd:
-        daemon_reload: yes
+- name: Allow LDAP and LDAPS through firewall
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop:
+    - ldap
+    - ldaps
 
-    - name: restart slapd
-      ansible.builtin.systemd:
-        name: slapd
-        state: restarted
-      listen: "restart slapd service" # More specific listener name
+# ----------------------------------------------------------------------
+# Phase 2: User, Group, and Directory Setup
+# ----------------------------------------------------------------------
+- name: Create LDAP system group
+  ansible.builtin.group:
+    name: "{{ ldap_group | default('ldap') }}"
+    state: present
+    system: yes
+    gid: "{{ ldap_gid | default(55) }}"
 
-    - name: start slapd
-      ansible.builtin.systemd:
-        name: slapd
-        state: started
-      listen: "start slapd service"
+- name: Create LDAP system user
+  ansible.builtin.user:
+    name: "{{ ldap_user | default('ldap') }}"
+    state: present
+    system: yes
+    uid: "{{ ldap_uid | default(55) }}"
+    group: "{{ ldap_group | default('ldap') }}"
+    home: "{{ ldap_home | default('/var/lib/ldap') }}"
+    create_home: no
+    shell: /sbin/nologin
 
-    - name: stop slapd
+- name: Create OpenLDAP data directory
+  ansible.builtin.file:
+    path: "{{ ldap_data_dir | default('/var/lib/ldap') }}"
+    state: directory
+    owner: "{{ ldap_user | default('ldap') }}"
+    group: "{{ ldap_group | default('ldap') }}"
+    mode: "0750"
+
+- name: Create OpenLDAP dynamic config directory (slapd.d)
+  ansible.builtin.file:
+    path: "{{ ldap_slapd_d_dir | default('/etc/openldap/slapd.d') }}"
+    state: directory
+    owner: "{{ ldap_user | default('ldap') }}"
+    group: "{{ ldap_group | default('ldap') }}"
+    mode: "0750"
+
+- name: Create OpenLDAP runtime directory for PID/Args
+  ansible.builtin.file:
+    path: "{{ (ldap_pid_file | default('/run/openldap/slapd.pid')) | dirname }}"
+    state: directory
+    owner: "{{ ldap_user | default('ldap') }}"
+    group: "{{ ldap_group | default('ldap') }}"
+    mode: "0755"
+
+- name: Ensure slapd environment directory exists
+  ansible.builtin.file:
+    path: "{{ (ldap_sysconfig_path | default('/etc/sysconfig/slapd')) | dirname }}" # e.g., /etc/sysconfig
+    state: directory
+    mode: "0755"
+
+- name: Create slapd environment configuration file
+  ansible.builtin.copy:
+    dest: "{{ ldap_sysconfig_path | default('/etc/sysconfig/slapd') }}"
+    content: |
+      # Ansible Managed: {{ ansible_managed }}
+      SLAPD_OPTIONS="-F {{ ldap_slapd_d_dir | default('/etc/openldap/slapd.d') }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart slapd service # Refers to a handler defined elsewhere
+
+- name: Set SELinux context for LDAP directories
+  ansible.builtin.sefcontext:
+    target: "{{ item }}(/.*)?"
+    setype: ldap_var_lib_t # Standard context type
+    state: present
+  loop:
+    - "{{ ldap_data_dir | default('/var/lib/ldap') }}"
+    - "{{ ldap_slapd_d_dir | default('/etc/openldap/slapd.d') }}"
+  notify: restorecon ldap dirs # Refers to a handler defined elsewhere
+  when: ansible_selinux.status == "enabled"
+
+- name: Apply SELinux context changes now (triggered by handler)
+  ansible.builtin.command: "restorecon -R -v {{ ldap_data_dir | default('/var/lib/ldap') }} {{ ldap_slapd_d_dir | default('/etc/openldap/slapd.d') }}"
+  changed_when: true # Assume restorecon always changes something if run
+  when: ansible_selinux.status == "enabled"
+  listen: "restorecon ldap dirs" # Listen for specific handler notification
+
+# ----------------------------------------------------------------------
+# Phase 3: Core Configuration (slapd.conf -> slapd.d Method)
+# ----------------------------------------------------------------------
+- name: Generate admin password hash for slapd.conf/initial.ldif
+  ansible.builtin.set_fact:
+    ldap_admin_password_hash: "{{ ldap_admin_password | community.general.ldap_passwd(scheme='ssha') }}"
+  no_log: true
+  when: ldap_admin_password is defined # Only run if password is provided
+
+- name: Check if admin password hash was generated
+  ansible.builtin.fail:
+    msg: "ldap_admin_password is not defined. Cannot proceed without it."
+  when: ldap_admin_password_hash is not defined
+
+- name: Copy slapd.conf template
+  ansible.builtin.template:
+    src: slapd.conf.j2 # Expects this in role's templates/ dir
+    dest: "{{ ldap_config_dir | default('/etc/openldap') }}/slapd.conf"
+    owner: "{{ ldap_user | default('ldap') }}"
+    group: "{{ ldap_group | default('ldap') }}"
+    mode: "0640"
+  register: slapd_conf_result
+
+- name: Copy LDIF template for initial database content
+  ansible.builtin.template:
+    src: initial.ldif.j2 # Expects this in role's templates/ dir
+    dest: "{{ ldap_config_dir | default('/etc/openldap') }}/initial.ldif"
+    owner: "{{ ldap_user | default('ldap') }}"
+    group: "{{ ldap_group | default('ldap') }}"
+    mode: "0640"
+  register: initial_ldif_result
+
+- name: Block for forcing re-initialization
+  when: ldap_force_reinit | default(false) | bool or slapd_conf_result.changed or initial_ldif_result.changed
+  block:
+    - name: Ensure slapd is stopped before potential cleanup
       ansible.builtin.systemd:
         name: slapd
         state: stopped
-      listen: "stop slapd service"
+      register: slapd_stopped_before_reinit
+      failed_when: false
 
-  tasks:
-    # ----------------------------------------------------------------------
-    # Phase 1: Prerequisites and Package Installation
-    # (Keep this section as it was in the previous version)
-    # ----------------------------------------------------------------------
-    - name: Ensure SELinux is permissive (as per tutorial, for setup only)
-      ansible.builtin.selinux:
-        policy: targeted
-        state: permissive
-      when: ansible_selinux.status == "enabled" and ansible_selinux.mode != "permissive"
-      notify: restart slapd service # Restart needed if SELinux state changed while running
-
-    - name: Enable Rocky Linux 'plus' repository
-      ansible.builtin.command: dnf config-manager --set-enabled plus
-      args:
-        warn: false
-      register: plus_repo_enabled
-      changed_when: "'enabled = 1' in plus_repo_enabled.stdout or plus_repo_enabled.rc == 0"
-      failed_when: plus_repo_enabled.rc != 0 and 'Nothing to do' not in plus_repo_enabled.stderr
-
-    - name: Update dnf cache
-      ansible.builtin.dnf:
-        update_cache: yes
-
-    - name: Install OpenLDAP packages, dependencies, and firewall
-      ansible.builtin.dnf:
-        name:
-          - openldap-servers
-          - openldap-clients
-          - cyrus-sasl-devel
-          - python3-ldap
-          - firewalld
-        state: present
-
-    - name: Ensure firewalld service is running and enabled
-      ansible.builtin.service:
-        name: firewalld
-        state: started
-        enabled: yes
-
-    - name: Allow LDAP and LDAPS through firewall
-      ansible.posix.firewalld:
-        service: "{{ item }}"
-        permanent: yes
-        state: enabled
-        immediate: yes
-      loop:
-        - ldap
-        - ldaps
-
-    # ----------------------------------------------------------------------
-    # Phase 2: User, Group, and Directory Setup
-    # (Keep most of this section as it was)
-    # ----------------------------------------------------------------------
-    - name: Create LDAP system group
-      ansible.builtin.group:
-        name: "{{ ldap_group }}"
-        state: present
-        system: yes
-        gid: "{{ ldap_gid }}"
-
-    - name: Create LDAP system user
-      ansible.builtin.user:
-        name: "{{ ldap_user }}"
-        state: present
-        system: yes
-        uid: "{{ ldap_uid }}"
-        group: "{{ ldap_group }}"
-        home: "{{ ldap_home }}"
-        create_home: no
-        shell: /sbin/nologin
-
-    - name: Create OpenLDAP data directory
+    - name: Force remove slapd config directory (slapd.d)
       ansible.builtin.file:
-        path: "{{ ldap_data_dir }}"
-        state: directory
-        owner: "{{ ldap_user }}"
-        group: "{{ ldap_group }}"
-        mode: "0750"
-
-    - name: Create OpenLDAP dynamic config directory (slapd.d)
-      ansible.builtin.file:
-        path: "{{ ldap_slapd_d_dir }}"
-        state: directory
-        owner: "{{ ldap_user }}"
-        group: "{{ ldap_group }}"
-        mode: "0750"
-
-    - name: Create OpenLDAP runtime directory for PID/Args
-      ansible.builtin.file:
-        path: "{{ ldap_pid_file | dirname }}"
-        state: directory
-        owner: "{{ ldap_user }}"
-        group: "{{ ldap_group }}"
-        mode: "0755"
-
-    # *** ADDED: Create slapd sysconfig file directory ***
-    - name: Ensure slapd environment directory exists
-      ansible.builtin.file:
-        path: "{{ ldap_sysconfig_path | dirname }}" # e.g., /etc/sysconfig
-        state: directory
-        mode: "0755"
-
-    # *** ADDED: Create slapd sysconfig file ***
-    - name: Create slapd environment configuration file
-      ansible.builtin.copy:
-        dest: "{{ ldap_sysconfig_path }}"
-        content: |
-          # Ansible Managed: {{ ansible_managed }}
-          # Additional options for slapd service, read by systemd unit
-          # Example: Specify listening URIs if not using default ldap:///
-          # SLAPD_URLS="ldap:/// ldaps:///"
-          # Options for dynamic config backend (used by default systemd unit)
-          SLAPD_OPTIONS="-F {{ ldap_slapd_d_dir }}"
-        owner: root
-        group: root
-        mode: "0644"
-      notify: restart slapd service # Restart if changed
-
-    - name: Set SELinux context for LDAP directories
-      ansible.builtin.sefcontext:
-        target: "{{ item }}(/.*)?"
-        setype: ldap_var_lib_t # Standard context type
-        state: present
-      loop:
-        - "{{ ldap_data_dir }}"
-        - "{{ ldap_slapd_d_dir }}"
-      notify: restorecon ldap dirs
-      when: ansible_selinux.status == "enabled"
-
-    - name: Handler to apply SELinux context changes
-      meta: flush_handlers # Ensure handler runs if notified
-      listen: "restorecon ldap dirs"
-
-    - name: Apply SELinux context changes now
-      ansible.builtin.command: "restorecon -R -v {{ ldap_data_dir }} {{ ldap_slapd_d_dir }}"
-      changed_when: true
-      when: ansible_selinux.status == "enabled"
-      listen: "restorecon ldap dirs"
-
-    # ----------------------------------------------------------------------
-    # Phase 3: Core Configuration (slapd.conf -> slapd.d Method)
-    # (Keep most of this section as it was, ensure templates are correct)
-    # ----------------------------------------------------------------------
-    - name: Generate admin password hash for slapd.conf/initial.ldif
-      ansible.builtin.set_fact:
-        ldap_admin_password_hash: "{{ ldap_admin_password | community.general.ldap_passwd(scheme='ssha') }}"
-      no_log: true
-
-    - name: Copy slapd.conf template
-      ansible.builtin.template:
-        src: slapd.conf.j2 # Updated source
-        dest: "{{ ldap_config_dir }}/slapd.conf"
-        owner: "{{ ldap_user }}"
-        group: "{{ ldap_group }}"
-        mode: "0640"
-      register: slapd_conf_result
-
-    - name: Copy LDIF template for initial database content
-      ansible.builtin.template:
-        src: initial.ldif.j2 # Updated source
-        dest: "{{ ldap_config_dir }}/initial.ldif"
-        owner: "{{ ldap_user }}"
-        group: "{{ ldap_group }}"
-        mode: "0640"
-      register: initial_ldif_result
-
-    - name: Block for forcing re-initialization
-      when: ldap_force_reinit | bool or slapd_conf_result.changed or initial_ldif_result.changed
-      block:
-        # ... (keep the stop, remove, recreate steps from previous version) ...
-        - name: Ensure slapd is stopped before potential cleanup
-          ansible.builtin.systemd:
-            name: slapd
-            state: stopped
-          register: slapd_stopped_before_reinit
-          failed_when: false
-
-        - name: Force remove slapd config directory (slapd.d)
-          ansible.builtin.file:
-            path: "{{ ldap_slapd_d_dir }}"
-            state: absent
-
-        - name: Force remove LDAP database directory contents
-          ansible.builtin.file:
-            path: "{{ ldap_data_dir }}/"
-            state: absent
-
-        - name: Recreate slapd config directory (slapd.d)
-          ansible.builtin.file:
-            path: "{{ ldap_slapd_d_dir }}"
-            state: directory
-            owner: "{{ ldap_user }}"
-            group: "{{ ldap_group }}"
-            mode: "0750"
-
-        - name: Recreate slapd database directory (if removed fully)
-          ansible.builtin.file:
-            path: "{{ ldap_data_dir }}"
-            state: directory
-            owner: "{{ ldap_user }}"
-            group: "{{ ldap_group }}"
-            mode: "0750"
-
-        - name: Generate slapd.d configuration from slapd.conf using slaptest
-          ansible.builtin.command: "slaptest -f {{ ldap_config_dir }}/slapd.conf -F {{ ldap_slapd_d_dir }}"
-          become_user: "{{ ldap_user }}"
-          register: slaptest_result
-          changed_when: "'config file testing succeeded' in slaptest_result.stdout"
-          failed_when: slaptest_result.rc != 0
-
-        - name: Initialize database using slapadd
-          ansible.builtin.command: "slapadd -l {{ ldap_config_dir }}/initial.ldif -F {{ ldap_slapd_d_dir }}"
-          become_user: "{{ ldap_user }}"
-          register: slapadd_result
-          changed_when: "'<= added' in slapadd_result.stderr"
-          failed_when: slapadd_result.rc != 0
-
-        - name: Notify service restart after re-initialization
-          ansible.builtin.debug:
-            msg: "Notifying slapd restart due to configuration change or forced re-init."
-          changed_when: true
-          notify: restart slapd service
-
-    # ----------------------------------------------------------------------
-    # Phase 4: TLS/SSL Configuration
-    # (Keep this section as it was)
-    # ----------------------------------------------------------------------
-    - name: Create private key directory
-      ansible.builtin.file:
-        path: "{{ ldap_tls_key_path | dirname }}"
-        state: directory
-        mode: "0755"
-
-    - name: Create certificate directory
-      ansible.builtin.file:
-        path: "{{ ldap_tls_cert_path | dirname }}"
-        state: directory
-        mode: "0755"
-
-    - name: Generate OpenLDAP private key
-      community.crypto.openssl_privatekey:
-        path: "{{ ldap_tls_key_path }}"
-        type: RSA
-        size: 2048
-        owner: "{{ ldap_tls_key_owner }}"
-        group: "{{ ldap_tls_key_group }}"
-        mode: "{{ ldap_tls_key_mode }}"
-      notify: restart slapd service
-
-    - name: Generate OpenLDAP self-signed certificate
-      community.crypto.x509_certificate:
-        path: "{{ ldap_tls_cert_path }}"
-        privatekey_path: "{{ ldap_tls_key_path }}"
-        provider: selfsigned
-        subject:
-          commonName: "{{ ansible_fqdn }}"
-        owner: "{{ ldap_tls_cert_owner }}"
-        group: "{{ ldap_tls_cert_group }}"
-        mode: "{{ ldap_tls_cert_mode }}"
-      notify: restart slapd service
-
-    - name: Configure client tools on server to trust CA
-      ansible.builtin.lineinfile:
-        path: /etc/openldap/ldap.conf
-        regexp: "^{{ item.key }}\\s+"
-        line: "{{ item.key }}    {{ item.value }}"
-        create: yes
-        owner: root
-        group: root
-        mode: "0644"
-      loop:
-        - { key: "TLS_CACERT", value: "{{ ldap_tls_cert_path }}" }
-        - { key: "TLS_REQCERT", value: "allow" }
-
-    # ----------------------------------------------------------------------
-    # Phase 5: Service Management
-    # (Keep this section as it was - assumes default service file is okay)
-    # ----------------------------------------------------------------------
-    - name: Ensure slapd service is started and enabled as per vars
-      ansible.builtin.systemd:
-        name: slapd
-        state: "{{ ldap_start_service | bool | ternary('started', 'stopped') }}"
-        enabled: "{{ ldap_enable_service | bool }}"
-
-    # ----------------------------------------------------------------------
-    # Phase 6: Verification and Data Import
-    # (Keep verification, add data import)
-    # ----------------------------------------------------------------------
-    - name: Wait for slapd to be ready on standard port
-      ansible.builtin.wait_for:
-        host: "127.0.0.1"
-        port: 389
-        timeout: 30
-        state: started
-      when: ldap_start_service | bool
-
-    - name: Wait for slapd to be ready on LDAPS port
-      ansible.builtin.wait_for:
-        host: "127.0.0.1"
-        port: 636
-        timeout: 30
-        state: started
-      when: ldap_start_service | bool
-
-    - name: Verify admin credentials via LDAP search (using StartTLS)
-      community.general.ldap_search:
-        server_uri: "ldap://127.0.0.1"
-        bind_dn: "{{ ldap_root_dn }}"
-        bind_pw: "{{ ldap_admin_password }}"
-        dn: "{{ ldap_base_dn }}"
-        scope: "onelevel"
-        filter: "(ou=*)" # Search for OUs
-        validate_certs: no
-        start_tls: yes
-      register: ldap_admin_verify_result
-      until: ldap_admin_verify_result is not failed
-      retries: 3
-      delay: 5
-      changed_when: false
-      no_log: true
-      when: ldap_start_service | bool
-
-    - name: Display admin verification results (DNs found)
-      ansible.builtin.debug:
-        var: ldap_admin_verify_result.results | map(attribute='dn') | list
-      when: ldap_start_service | bool and ldap_admin_verify_result.results is defined
-
-    - name: Check if Base OUs were found in verification search results
-      ansible.builtin.fail:
-        msg: "Verification failed: Base OUs (People, Groups) not accessible after setup."
-      when: >
-        ldap_start_service | bool and
-        (ldap_admin_verify_result is failed or
-         ldap_admin_verify_result.results is not defined or
-         'ou=People,' + ldap_base_dn not in (ldap_admin_verify_result.results | map(attribute='dn') | list) or
-         'ou=Groups,' + ldap_base_dn not in (ldap_admin_verify_result.results | map(attribute='dn') | list))
-
-    # *** ADDED: Import Users and Groups Data ***
-    - name: Template the users and groups LDIF file
-      ansible.builtin.template:
-        src: "{{ ldap_users_groups_ldif_src }}"
-        dest: "{{ ldap_users_groups_ldif_dest }}"
-        owner: root # Temp file, root is fine
-        group: root
-        mode: "0600" # Sensitive data potentially
-      when: ldap_import_users_groups | bool and ldap_start_service | bool
-
-    - name: Import users and groups using ldapadd
-      ansible.builtin.command: >
-        ldapadd -x -D "{{ ldap_root_dn }}" -w "{{ ldap_admin_password }}"
-        -H ldap://127.0.0.1 -f "{{ ldap_users_groups_ldif_dest }}"
-      register: ldapadd_users_groups_result
-      changed_when: "'adding new entry' in ldapadd_users_groups_result.stdout"
-      # Don't fail if entries already exist (makes playbook idempotent)
-      failed_when: >
-        ldapadd_users_groups_result.rc != 0 and
-        'Already exists' not in ldapadd_users_groups_result.stderr
-      no_log: true # Hide command including password
-      when: ldap_import_users_groups | bool and ldap_start_service | bool
-
-    - name: Clean up temporary users/groups LDIF file
-      ansible.builtin.file:
-        path: "{{ ldap_users_groups_ldif_dest }}"
+        path: "{{ ldap_slapd_d_dir | default('/etc/openldap/slapd.d') }}"
         state: absent
-      when: ldap_import_users_groups | bool and ldap_start_service | bool
 
-    - name: LDAP Server Setup Complete Message
+    - name: Force remove LDAP database directory contents
+      ansible.builtin.file:
+        path: "{{ ldap_data_dir | default('/var/lib/ldap') }}/" # Trailing slash
+        state: absent
+
+    - name: Recreate slapd config directory (slapd.d)
+      ansible.builtin.file:
+        path: "{{ ldap_slapd_d_dir | default('/etc/openldap/slapd.d') }}"
+        state: directory
+        owner: "{{ ldap_user | default('ldap') }}"
+        group: "{{ ldap_group | default('ldap') }}"
+        mode: "0750"
+
+    - name: Recreate slapd database directory (if removed fully)
+      ansible.builtin.file:
+        path: "{{ ldap_data_dir | default('/var/lib/ldap') }}"
+        state: directory
+        owner: "{{ ldap_user | default('ldap') }}"
+        group: "{{ ldap_group | default('ldap') }}"
+        mode: "0750"
+
+    - name: Generate slapd.d configuration from slapd.conf using slaptest
+      ansible.builtin.command: "slaptest -f {{ ldap_config_dir | default('/etc/openldap') }}/slapd.conf -F {{ ldap_slapd_d_dir | default('/etc/openldap/slapd.d') }}"
+      become_user: "{{ ldap_user | default('ldap') }}"
+      register: slaptest_result
+      changed_when: "'config file testing succeeded' in slaptest_result.stdout"
+      failed_when: slaptest_result.rc != 0
+
+    - name: Initialize database using slapadd
+      ansible.builtin.command: "slapadd -l {{ ldap_config_dir | default('/etc/openldap') }}/initial.ldif -F {{ ldap_slapd_d_dir | default('/etc/openldap/slapd.d') }}"
+      become_user: "{{ ldap_user | default('ldap') }}"
+      register: slapadd_result
+      changed_when: "'<= added' in slapadd_result.stderr"
+      failed_when: slapadd_result.rc != 0
+
+    - name: Notify service restart after re-initialization
       ansible.builtin.debug:
-        msg: "OpenLDAP server setup appears successful. Admin bind verified. Users/Groups import attempted (check logs if needed)."
-      when: ldap_start_service | bool and ldap_admin_verify_result is not failed
+        msg: "Notifying slapd restart due to configuration change or forced re-init."
+      changed_when: true
+      notify: restart slapd service # Refers to a handler defined elsewhere
+
+# ----------------------------------------------------------------------
+# Phase 4: TLS/SSL Configuration
+# ----------------------------------------------------------------------
+- name: Create private key directory
+  ansible.builtin.file:
+    path: "{{ (ldap_tls_key_path | default('/etc/pki/tls/private/ldapserver.key')) | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: Create certificate directory
+  ansible.builtin.file:
+    path: "{{ (ldap_tls_cert_path | default('/etc/pki/tls/certs/ldapserver.crt')) | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: Generate OpenLDAP private key
+  community.crypto.openssl_privatekey:
+    path: "{{ ldap_tls_key_path | default('/etc/pki/tls/private/ldapserver.key') }}"
+    type: RSA
+    size: 2048
+    owner: "{{ ldap_tls_key_owner | default('ldap') }}"
+    group: "{{ ldap_tls_key_group | default('ldap') }}"
+    mode: "{{ ldap_tls_key_mode | default('0640') }}"
+  notify: restart slapd service # Refers to a handler defined elsewhere
+
+- name: Generate OpenLDAP self-signed certificate
+  community.crypto.x509_certificate:
+    path: "{{ ldap_tls_cert_path | default('/etc/pki/tls/certs/ldapserver.crt') }}"
+    privatekey_path: "{{ ldap_tls_key_path | default('/etc/pki/tls/private/ldapserver.key') }}"
+    provider: selfsigned
+    subject:
+      commonName: "{{ ansible_fqdn }}" # Use FQDN of the target server
+    owner: "{{ ldap_tls_cert_owner | default('root') }}"
+    group: "{{ ldap_tls_cert_group | default('root') }}"
+    mode: "{{ ldap_tls_cert_mode | default('0644') }}"
+  notify: restart slapd service # Refers to a handler defined elsewhere
+
+- name: Configure client tools on server to trust CA
+  ansible.builtin.lineinfile:
+    path: /etc/openldap/ldap.conf
+    regexp: "^{{ item.key }}\\s+"
+    line: "{{ item.key }}    {{ item.value }}"
+    create: yes
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - {
+        key: "TLS_CACERT",
+        value: "{{ ldap_tls_cert_path | default('/etc/pki/tls/certs/ldapserver.crt') }}",
+      }
+    - { key: "TLS_REQCERT", value: "allow" } # Or 'demand' based on policy
+
+# ----------------------------------------------------------------------
+# Phase 5: Service Management
+# ----------------------------------------------------------------------
+# The service is managed by handlers triggered by configuration changes,
+# or by the final 'ensure started/enabled' task.
+# If you needed a custom systemd unit file, you would template it here.
+# - name: Template custom systemd service file if needed
+#   template:
+#     src: slapd.service.j2
+#     dest: /etc/systemd/system/slapd.service # Or /usr/lib/systemd/system/
+#   notify:
+#     - daemon-reload
+#     - restart slapd service
+
+- name: Ensure slapd service is started and enabled as per vars
+  ansible.builtin.systemd:
+    name: slapd
+    state: "{{ 'started' if (ldap_start_service | default(true) | bool) else 'stopped' }}"
+    enabled: "{{ ldap_enable_service | default(true) | bool }}"
+
+# ----------------------------------------------------------------------
+# Phase 6: Verification and Data Import
+# ----------------------------------------------------------------------
+- name: Wait for slapd to be ready on standard port
+  ansible.builtin.wait_for:
+    host: "127.0.0.1"
+    port: 389
+    timeout: 30
+    state: started
+  when: ldap_start_service | default(true) | bool
+
+- name: Wait for slapd to be ready on LDAPS port
+  ansible.builtin.wait_for:
+    host: "127.0.0.1"
+    port: 636
+    timeout: 30
+    state: started
+  when: ldap_start_service | default(true) | bool
+
+- name: Verify admin credentials via LDAP search (using StartTLS)
+  community.general.ldap_search:
+    server_uri: "ldap://127.0.0.1"
+    bind_dn: "{{ ldap_root_dn }}"
+    bind_pw: "{{ ldap_admin_password }}"
+    dn: "{{ ldap_base_dn }}"
+    scope: "onelevel"
+    filter: "(ou=*)" # Search for OUs
+    validate_certs: no
+    start_tls: yes
+  register: ldap_admin_verify_result
+  until: ldap_admin_verify_result is not failed
+  retries: 3
+  delay: 5
+  changed_when: false
+  no_log: true
+  when: ldap_start_service | default(true) | bool
+
+# Debugging output removed for role context, can be added if needed
+
+- name: Check if Base OUs were found in verification search results
+  ansible.builtin.fail:
+    msg: "Verification failed: Base OUs (People, Groups) not accessible after setup. Check slapd logs on {{ inventory_hostname }}."
+  when: >
+    (ldap_start_service | default(true) | bool) and
+    (ldap_admin_verify_result is failed or
+     ldap_admin_verify_result.results is not defined or
+     ('ou=People,' + ldap_base_dn) not in (ldap_admin_verify_result.results | map(attribute='dn') | list) or
+     ('ou=Groups,' + ldap_base_dn) not in (ldap_admin_verify_result.results | map(attribute='dn') | list))
+
+- name: Template the users and groups LDIF file
+  ansible.builtin.template:
+    src: "{{ ldap_users_groups_ldif_src | default('users.groups.ldif.j2') }}" # Expects this in role's templates/ dir
+    dest: "{{ ldap_users_groups_ldif_dest | default('/tmp/ldap_users_groups.ldif') }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: ldap_import_users_groups | default(true) | bool and ldap_start_service | default(true) | bool
+
+- name: Import users and groups using ldapadd
+  ansible.builtin.command: >
+    ldapadd -x -D "{{ ldap_root_dn }}" -w "{{ ldap_admin_password }}"
+    -H ldap://127.0.0.1 -f "{{ ldap_users_groups_ldif_dest | default('/tmp/ldap_users_groups.ldif') }}"
+  register: ldapadd_users_groups_result
+  changed_when: "'adding new entry' in ldapadd_users_groups_result.stdout"
+  failed_when: >
+    ldapadd_users_groups_result.rc != 0 and
+    'Already exists' not in ldapadd_users_groups_result.stderr and
+    'entryExit' not in ldapadd_users_groups_result.stderr # Another indicator of existing entry in some versions
+  no_log: true
+  when: ldap_import_users_groups | default(true) | bool and ldap_start_service | default(true) | bool
+
+- name: Clean up temporary users/groups LDIF file
+  ansible.builtin.file:
+    path: "{{ ldap_users_groups_ldif_dest | default('/tmp/ldap_users_groups.ldif') }}"
+    state: absent
+  when: ldap_import_users_groups | default(true) | bool and ldap_start_service | default(true) | bool

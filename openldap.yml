@@ -5,6 +5,7 @@
 
   vars_files:
     - openldap/vars/secrets.yml
+    - openldap/vars/ldap_vars.yml
   roles:
     - epel
     - openldap
