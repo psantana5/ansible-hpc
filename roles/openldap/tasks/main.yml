@@ -17,6 +17,11 @@
 
 - name: Enable Rocky Linux 'plus' repository
   ansible.builtin.command: dnf config-manager --set-enabled plus
+  register: plus_repo_enabled
+  changed_when: "'Repository 'plus' is enabled' in plus_repo_enabled.stdout or plus_repo_enabled.rc == 0"
+  failed_when: > 
+    plus_repo_enabled.rc != 0 and 
+    'already enabled' not in plus_repo_enabled.stderr
   args:
     warn: false
   register: plus_repo_enabled
