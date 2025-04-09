@@ -1,0 +1,122 @@
+---
+- name: Install Foreman Server
+  hosts: foreman01
+  become: true
+  vars:
+    # --- Customizable Variables ---
+    foreman_hostname: "foreman01"
+    foreman_version: "3.10" # Specify the Foreman version branch (e.g., 3.10, 3.9)
+    puppet_version: "7" # Specify the Puppet version compatible with Foreman
+    # Ports required by Foreman and default Smart Proxy
+    firewall_ports_tcp:
+      - 80 # HTTP
+      - 443 # HTTPS
+      - 5647 # Katello (if installed/enabled via installer later) - good to have open
+      # Add other ports if needed (e.g., 9090 for Smart Proxy TFTP/HTTPBoot, 8443 for Dynflow)
+    # --- End Customizable Variables ---
+
+    # Derived variables (usually no need to change)
+    foreman_repo_url: "https://yum.theforeman.org/releases/{{ foreman_version }}/el{{ ansible_distribution_major_version }}/x86_64/foreman-release.rpm"
+    puppet_repo_url: "https://yum.puppet.com/puppet{{ puppet_version }}-release-el-{{ ansible_distribution_major_version }}.noarch.rpm"
+    epel_repo_package: "epel-release"
+    foreman_installer_package: "foreman-installer"
+    foreman_answers_file: "/etc/foreman-installer/scenarios.d/foreman-answers.yaml" # Used for idempotency check
+
+  pre_tasks:
+    - name: Ensure hostname is set correctly
+      ansible.builtin.hostname:
+        name: "{{ foreman_hostname }}"
+      when: ansible_fqdn != foreman_hostname
+
+    - name: Ensure hostname resolves locally (basic check)
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^{{ ansible_default_ipv4.address }}\s+'
+        line: "{{ ansible_default_ipv4.address }} {{ foreman_hostname }} {{ foreman_hostname.split('.')[0] }}"
+        state: present
+      when: ansible_default_ipv4.address is defined
+
+  tasks:
+    - name: Ensure EPEL repository is installed
+      ansible.builtin.dnf:
+        name: "{{ epel_repo_package }}"
+        state: present
+      register: epel_install
+      retries: 3
+      delay: 5
+      until: epel_install is succeeded
+
+    - name: Ensure Puppet repository is installed
+      ansible.builtin.dnf:
+        name: "{{ puppet_repo_url }}"
+        state: present
+        disable_gpg_check: true # Often needed for initial install, set to false if you import keys manually
+      register: puppet_repo_install
+      retries: 3
+      delay: 5
+      until: puppet_repo_install is succeeded
+
+    - name: Ensure Foreman repository is installed
+      ansible.builtin.dnf:
+        name: "{{ foreman_repo_url }}"
+        state: present
+        disable_gpg_check: true # Often needed for initial install, set to false if you import keys manually
+      register: foreman_repo_install
+      retries: 3
+      delay: 5
+      until: foreman_repo_install is succeeded
+
+    - name: Install Foreman Installer package
+      ansible.builtin.dnf:
+        name: "{{ foreman_installer_package }}"
+        state: present
+      register: installer_pkg_install
+      retries: 3
+      delay: 5
+      until: installer_pkg_install is succeeded
+
+    # Note: Foreman installer handles many system dependencies and configurations (Puppet Agent, PostgreSQL, etc.)
+    - name: Run Foreman Installer (Idempotent Check via answers file)
+      ansible.builtin.command: foreman-installer --verbose
+      args:
+        creates: "{{ foreman_answers_file }}" # Avoid re-running full install if answers file exists
+      register: foreman_install_run
+      changed_when: "'Success!' in foreman_install_run.stdout" # Consider successful if specific output present
+      failed_when: "'Success!' not in foreman_install_run.stdout and foreman_install_run.rc != 0"
+      async: 1800 # Installer can take a long time (30 mins)
+      poll: 15 # Check status every 15 seconds
+
+    # SELinux is often handled by foreman-installer modules, but setting permissive can prevent issues during initial install.
+    # Review Foreman docs and your security policy if you need enforcing mode.
+    - name: Set SELinux to permissive mode
+      ansible.posix.selinux:
+        policy: targeted
+        state: permissive
+      notify: Reboot server if SELinux state changed # Recommended if changing from enforcing
+
+    - name: Configure Firewall (firewalld)
+      ansible.posix.firewalld:
+        port: "{{ item }}/tcp"
+        permanent: true
+        state: enabled
+        immediate: true # Apply changes immediately without needing firewall service restart
+      loop: "{{ firewall_ports_tcp }}"
+      when: ansible_facts.services['firewalld.service'] is defined and ansible_facts.services['firewalld.service'].state == 'running'
+      # Check if firewalld is running before attempting to modify rules
+
+    - name: Ensure firewalld service is enabled and running
+      ansible.builtin.systemd:
+        name: firewalld
+        state: started
+        enabled: true
+      when: ansible_facts.services['firewalld.service'] is defined # Only manage if service exists
+
+  handlers:
+    - name: Reboot server if SELinux state changed
+      ansible.builtin.reboot:
+        msg: "Rebooting server to apply SELinux state change."
+        connect_timeout: 5
+        reboot_timeout: 600
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+        test_command: uptime
