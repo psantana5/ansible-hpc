@@ -1,19 +1,21 @@
 ---
 - name: Install Foreman Server
-  hosts: foreman01
-  become: true
+  hosts: foreman_server # Target host(s) defined in your inventory
+  become: true # Most tasks require root privileges
   vars:
     # --- Customizable Variables ---
-    foreman_hostname: "foreman01"
-    foreman_version: "3.10" # Specify the Foreman version branch (e.g., 3.10, 3.9)
+    # IMPORTANT: Set this to the desired FULLY QUALIFIED domain name (FQDN)
+    # Example: foreman.mydomain.local, foreman.dev.example.com
+    foreman_hostname: "foreman01.example.com" # <<< CHANGE THIS TO YOUR ACTUAL DESIRED FQDN
+    foreman_version: "3.10" # Specify the Foreman version branch
     puppet_version: "7" # Specify the Puppet version compatible with Foreman
     # Ports required by Foreman and default Smart Proxy
     firewall_ports_tcp:
       - 80 # HTTP
       - 443 # HTTPS
-      - 5647 # Puppet CA
-      - 9090 # TFTP/HTTPBoot
+      - 5647 # Katello (if installed/enabled via installer later) - good to have open
       - 8443 # Dynflow
+      - 9090 # Smart Proxy TFTP/HTTPBoot
     # --- End Customizable Variables ---
 
     # Derived variables (usually no need to change)
@@ -22,20 +24,33 @@
     epel_repo_package: "epel-release"
     foreman_installer_package: "foreman-installer"
     foreman_answers_file: "/etc/foreman-installer/scenarios.d/foreman-answers.yaml" # Used for idempotency check
+    foreman_short_hostname: "{{ foreman_hostname.split('.')[0] }}" # Extracts short name (e.g., 'foreman01')
 
   pre_tasks:
-    - name: Ensure hostname is set correctly
+    - name: Fail if foreman_hostname is not an FQDN
+      ansible.builtin.fail:
+        msg: "The 'foreman_hostname' variable ('{{ foreman_hostname }}') must be a Fully Qualified Domain Name (FQDN) containing at least one dot (e.g., foreman.example.com)."
+      when: "'.' not in foreman_hostname"
+
+    - name: Ensure hostname is set correctly to FQDN
       ansible.builtin.hostname:
         name: "{{ foreman_hostname }}"
-      when: ansible_fqdn != foreman_hostname
+      # Only run if the current reported FQDN doesn't match the desired one
+      when: ansible_facts.fqdn | default('') != foreman_hostname
+      notify: Update ansible_facts post hostname change # Refresh facts if hostname changed
 
-    - name: Ensure hostname resolves locally (basic check)
+    - name: Ensure FQDN resolves locally in /etc/hosts
       ansible.builtin.lineinfile:
         path: /etc/hosts
-        regexp: '^{{ ansible_default_ipv4.address }}\s+'
-        line: "{{ ansible_default_ipv4.address }} {{ foreman_hostname }} {{ foreman_hostname.split('.')[0] }}"
+        # Match line starting with the primary IP address
+        regexp: '^{{ ansible_facts.default_ipv4.address }}\s+'
+        # Ensure the line has IP, FQDN, and short name in the correct order
+        line: "{{ ansible_facts.default_ipv4.address }} {{ foreman_hostname }} {{ foreman_short_hostname }}"
         state: present
-      when: ansible_default_ipv4.address is defined
+      when: ansible_facts.default_ipv4.address is defined # Only run if IP fact is available
+
+    - name: Flush handlers to apply hostname changes immediately if needed
+      ansible.builtin.meta: flush_handlers
 
   tasks:
     - name: Ensure EPEL repository is installed
@@ -121,3 +136,9 @@
         pre_reboot_delay: 0
         post_reboot_delay: 30
         test_command: uptime
+
+    - name: Update ansible_facts post hostname change
+      ansible.builtin.setup:
+      # This handler is notified by the hostname task.
+      # It forces Ansible to re-gather facts so subsequent tasks
+      # (like the /etc/hosts one if it ran after) use the new hostname/fqdn facts.
