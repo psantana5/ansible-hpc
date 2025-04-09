@@ -11,8 +11,9 @@
     firewall_ports_tcp:
       - 80 # HTTP
       - 443 # HTTPS
-      - 5647 # Katello (if installed/enabled via installer later) - good to have open
-      # Add other ports if needed (e.g., 9090 for Smart Proxy TFTP/HTTPBoot, 8443 for Dynflow)
+      - 5647 # Puppet CA
+      - 9090 # TFTP/HTTPBoot
+      - 8443 # Dynflow
     # --- End Customizable Variables ---
 
     # Derived variables (usually no need to change)
