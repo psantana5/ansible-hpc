@@ -1,0 +1,43 @@
+---
+# Tasks for signing Puppet certificates on the Foreman server
+# These tasks have the 'foreman_sign_certs' tag
+
+- name: Certs | Pause to allow agents time to submit CSRs
+  ansible.builtin.pause:
+    seconds: "{{ signing_delay_seconds }}"
+    prompt: |
+      Waiting {{ signing_delay_seconds }} seconds for agents to submit CSRs.
+      Press ENTER to continue sooner, or CTRL+C then A to abort.
+  tags: foreman_sign_certs # Apply tag here too for granularity if needed
+
+- name: Certs | Check for pending Puppet certificate requests
+  ansible.builtin.command: /opt/puppetlabs/bin/puppetserver ca list
+  register: list_certs_result
+  changed_when: false
+  failed_when: list_certs_result.rc != 0 and 'No pending certificate requests' not in list_certs_result.stderr
+  tags: foreman_sign_certs
+
+- name: Certs | Display pending requests
+  ansible.builtin.debug:
+    msg: "{{ list_certs_result.stdout_lines }}"
+  when: "'Requested Certificates:' in list_certs_result.stdout"
+  tags: foreman_sign_certs
+
+- name: Certs | Inform if no requests are pending
+  ansible.builtin.debug:
+    msg: "No pending Puppet certificate requests found to sign."
+  when: "'Requested Certificates:' not in list_certs_result.stdout"
+  tags: foreman_sign_certs
+
+- name: Certs | Sign ALL pending Puppet certificate requests
+  ansible.builtin.command: /opt/puppetlabs/bin/puppetserver ca sign --all
+  register: sign_certs_result
+  changed_when: "'Successfully signed' in sign_certs_result.stdout"
+  when: "'Requested Certificates:' in list_certs_result.stdout"
+  tags: foreman_sign_certs
+
+- name: Certs | Display signing results
+  ansible.builtin.debug:
+    msg: "{{ sign_certs_result.stdout_lines }}"
+  when: sign_certs_result.changed
+  tags: foreman_sign_certs

@@ -1,0 +1,17 @@
+---
+# Main task file for the Foreman role
+
+- name: Include Server Installation tasks
+  ansible.builtin.include_tasks: install_server.yml
+  when: "'foreman_server' in group_names"
+
+- name: Include Agent Configuration tasks
+  ansible.builtin.include_tasks: configure_agents.yml
+  when: "'foreman_server' not in group_names" # Run on all hosts NOT in foreman_server group
+
+- name: Include Certificate Signing tasks (Run via tag)
+  ansible.builtin.include_tasks: sign_certs.yml
+  when: "'foreman_server' in group_names" # Only makes sense to run on the server
+  tags:
+    - foreman_sign_certs
+    - never # Prevent running by default unless tagged 'foreman_sign_certs'

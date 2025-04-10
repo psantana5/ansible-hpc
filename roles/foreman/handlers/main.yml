@@ -1,0 +1,28 @@
+---
+# Handlers for the Foreman role
+
+- name: Reboot server if SELinux state changed
+  ansible.builtin.reboot:
+    msg: "Rebooting server {{ inventory_hostname }} to apply SELinux state change."
+    connect_timeout: 5
+    reboot_timeout: 600
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+    test_command: uptime
+  listen: Reboot server if SELinux state changed # Ensure listen matches notify
+
+- name: Update ansible_facts post hostname change
+  ansible.builtin.setup: # Re-gather facts
+  listen: Update ansible_facts post hostname change
+
+- name: Restart puppet agent
+  ansible.builtin.systemd:
+    name: "{{ puppet_service_name }}"
+    state: restarted
+  listen: Restart puppet agent
+
+- name: Restart ntpd service
+  ansible.builtin.systemd:
+    name: "{{ ntp_service_name }}"
+    state: restarted
+  listen: Restart ntpd service

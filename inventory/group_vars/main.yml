@@ -1,0 +1,4 @@
+# inventory/group_vars/all.yml
+---
+foreman_hostname: "foreman01.linkiafp.es"
+# Add other global variables here (puppet_version, ntp_servers, ldap domain, etc.)

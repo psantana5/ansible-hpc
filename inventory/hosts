@@ -1,3 +1,8 @@
+# inventory/hosts
+[foreman_server]
+foreman01 ansible_host=192.168.1.144
+
+# Slurm Cluster Nodes
 [slurmdbd]
 slurmdb01 ansible_host=192.168.1.139
 
@@ -7,12 +12,29 @@ slurm01 ansible_host=192.168.1.137
 [compute]
 bsc01 ansible_host=192.168.1.140
 
+# Group for common Slurm variables (optional, if you use group_vars/slurm.yml)
+# Note: The site.yml targets specific roles to specific groups above.
 [slurm:children]
-slurmdbd01
+slurmdbd
 slurmctld
 compute
 
-[services]
-services01 ansible_host=192.168.1.152 ansible_python_interpreter=/usr/bin/python3
+# Specific Service Hosts (Aligned with site.yml role targeting)
+[ldap_servers]
 ldap01 ansible_host=192.168.1.141
-foreman01 ansible_host=192.168.1.144
+
+[monitoring_servers]
+# Assuming services01 runs the monitoring stack (Prometheus/Grafana)
+services01 ansible_host=192.168.1.152 ansible_python_interpreter=/usr/bin/python3
+
+[dns_servers]
+services01 ansible_host=192.168.1.152 ansible_python_interpreter=/usr/bin/python3
+
+# --- Puppet Agent Notes ---
+# Hosts configured as Puppet Agents (implicitly via 'all:!foreman_server' in foreman role):
+# - slurmdb01
+# - slurm01
+# - bsc01
+# - ldap01
+# - services01 (if it's in monitoring_servers or dns_servers)
+# - any host added to dns_servers

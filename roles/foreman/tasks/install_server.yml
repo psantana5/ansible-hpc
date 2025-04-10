@@ -1,0 +1,101 @@
+---
+# Tasks to install the Foreman server
+
+# Pre-flight checks and setup for the server node
+- name: Pre-flight | Fail if foreman_hostname is not an FQDN
+  ansible.builtin.fail:
+    msg: "The 'foreman_hostname' variable ('{{ foreman_hostname }}') must be a Fully Qualified Domain Name (FQDN) containing at least one dot (e.g., foreman.example.com)."
+  when: "'.' not in foreman_hostname"
+
+- name: Pre-flight | Extract short hostname
+  ansible.builtin.set_fact:
+    foreman_short_hostname: "{{ foreman_hostname.split('.')[0] }}"
+
+- name: Pre-flight | Ensure hostname is set correctly to FQDN
+  ansible.builtin.hostname:
+    name: "{{ foreman_hostname }}"
+  when: ansible_facts.fqdn | default('') != foreman_hostname
+  notify: Update ansible_facts post hostname change
+
+- name: Pre-flight | Ensure FQDN resolves locally in /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^{{ ansible_facts.default_ipv4.address }}\s+'
+    line: "{{ ansible_facts.default_ipv4.address }} {{ foreman_hostname }} {{ foreman_short_hostname }}"
+    state: present
+  when: ansible_facts.default_ipv4.address is defined
+
+- name: Pre-flight | Flush handlers to apply hostname changes immediately if needed
+  ansible.builtin.meta: flush_handlers
+
+# Installation tasks
+- name: Install | Ensure EPEL repository is installed
+  ansible.builtin.dnf:
+    name: "{{ epel_repo_package }}"
+    state: present
+  register: epel_install
+  retries: 3
+  delay: 5
+  until: epel_install is succeeded
+
+- name: Install | Ensure Puppet repository is installed
+  ansible.builtin.dnf:
+    name: "{{ puppet_repo_url }}"
+    state: present
+    disable_gpg_check: true
+  register: puppet_repo_install
+  retries: 3
+  delay: 5
+  until: puppet_repo_install is succeeded
+
+- name: Install | Ensure Foreman repository is installed
+  ansible.builtin.dnf:
+    name: "{{ foreman_repo_url }}"
+    state: present
+    disable_gpg_check: true
+  register: foreman_repo_install
+  retries: 3
+  delay: 5
+  until: foreman_repo_install is succeeded
+
+- name: Install | Ensure Foreman Installer package is present
+  ansible.builtin.dnf:
+    name: "{{ foreman_installer_package }}"
+    state: present
+  register: installer_pkg_install
+  retries: 3
+  delay: 5
+  until: installer_pkg_install is succeeded
+
+- name: Install | Run Foreman Installer (creates {{ foreman_answers_file }})
+  ansible.builtin.command: foreman-installer --verbose
+  args:
+    creates: "{{ foreman_answers_file }}"
+  register: foreman_install_run
+  changed_when: "'Success!' in foreman_install_run.stdout"
+  failed_when: "'Success!' not in foreman_install_run.stdout and foreman_install_run.rc != 0"
+  async: 1800
+  poll: 15
+
+# Post-install configuration
+- name: Configure | Set SELinux to permissive mode
+  ansible.posix.selinux:
+    policy: targeted
+    state: permissive
+  notify: Reboot server if SELinux state changed
+
+- name: Configure | Open firewall ports (firewalld)
+  ansible.posix.firewalld:
+    port: "{{ item }}/tcp"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop: "{{ firewall_ports_tcp }}"
+  when: ansible_facts.services['firewalld.service'] is defined and ansible_facts.services['firewalld.service'].state == 'running'
+
+- name: Configure | Ensure firewalld service is enabled and running
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: true
+  when: ansible_facts.services['firewalld.service'] is defined

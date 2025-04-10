@@ -1,0 +1,80 @@
+---
+# Tasks to configure Puppet agents
+
+- name: Agent | Ensure hostname resolution for Foreman server (Basic Check)
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '\s{{ foreman_hostname }}$'
+    line: "{{ hostvars[groups['foreman_server'][0]]['ansible_default_ipv4']['address'] }} {{ foreman_hostname }}"
+    state: present
+  when:
+    - groups['foreman_server'] | length > 0
+    - hostvars[groups['foreman_server'][0]]['ansible_default_ipv4'] is defined
+  ignore_errors: true # DNS is preferred, don't fail if this doesn't work perfectly
+
+- name: Agent | Install and Configure NTP Client ({{ ntp_package }})
+  block:
+    - name: Agent | Install NTP package ({{ ntp_package }})
+      ansible.builtin.dnf:
+        name: "{{ ntp_package }}"
+        state: present
+
+    - name: Agent | Configure NTP Servers in {{ ntp_conf_file }}
+      ansible.builtin.template:
+        src: chrony.conf.j2 # Template located in roles/foreman/templates/
+        dest: "{{ ntp_conf_file }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart ntpd service
+
+    - name: Agent | Ensure NTP service ({{ ntp_service_name }}) is enabled and running
+      ansible.builtin.systemd:
+        name: "{{ ntp_service_name }}"
+        state: started
+        enabled: true
+  rescue:
+    - name: Agent | Print warning if NTP setup fails
+      ansible.builtin.debug:
+        msg: "Warning: Could not configure NTP on {{ inventory_hostname }}. Time synchronization issues may prevent Puppet agent from working correctly."
+
+- name: Agent | Add Puppet {{ puppet_version }} Repository
+  ansible.builtin.dnf:
+    name: "{{ puppet_repo_url }}"
+    state: present
+    disable_gpg_check: true
+  register: puppet_repo_install
+  retries: 3
+  delay: 5
+  until: puppet_repo_install is succeeded
+
+- name: Agent | Install Puppet Agent package
+  ansible.builtin.dnf:
+    name: "{{ puppet_agent_package }}"
+    state: present
+  register: agent_install
+  retries: 3
+  delay: 5
+  until: agent_install is succeeded
+
+- name: Agent | Configure Puppet Agent ({{ puppet_conf_file }})
+  ansible.builtin.ini_file:
+    path: "{{ puppet_conf_file }}"
+    section: agent
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    owner: root
+    group: root
+    mode: "0640"
+    no_extra_spaces: true
+  loop:
+    - { option: "server", value: "{{ foreman_hostname }}" }
+    - { option: "runinterval", value: "30m" } # Example: check in every 30 minutes
+  notify: Restart puppet agent
+
+- name: Agent | Ensure Puppet Agent service is enabled and running
+  ansible.builtin.systemd:
+    name: "{{ puppet_service_name }}"
+    state: started
+    enabled: true
+    daemon_reload: true

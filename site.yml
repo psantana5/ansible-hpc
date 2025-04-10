@@ -1,11 +1,36 @@
 ---
-# Existing playbook content
-# ...
-
-- name: Deploy monitoring
-  hosts: slurmctld[0]  # Deploy on the controller node
-  become: yes
-  vars:
-    grafana_admin_password: "admin"  # Change this
+- name: Configure Core Infrastructure (DNS, LDAP)
+  hosts: dns_servers, ldap_servers # Adjust groups as per your inventory
+  become: true
   roles:
-    - monitoring
+    - role: dns # Assuming you have groups like [dns_servers]
+      when: "'dns_servers' in group_names"
+    - role: openldap # Assuming you have groups like [ldap_servers]
+      when: "'ldap_servers' in group_names"
+    # Add other base infrastructure roles here if needed (e.g., epel)
+
+- name: Configure Monitoring Stack
+  hosts: monitoring_servers # Adjust group as per your inventory
+  become: true
+  roles:
+    - role: monitoring # Or grafana, prometheus, node_exporter individually
+
+- name: Configure Foreman Server and Puppet Agents
+  hosts: all # Target all hosts; the role logic handles server vs agent tasks
+  become: true
+  roles:
+    - role: foreman
+      # Can override role defaults here if needed, e.g.:
+      # foreman_version: "3.9"
+      # But using inventory group_vars is generally preferred
+
+- name: Configure Slurm Cluster
+  hosts: slurm_controller, slurm_dbd_server, slurm_compute # Adjust groups
+  become: true
+  roles:
+    - role: slurmdbd
+      when: "'slurm_dbd_server' in group_names"
+    - role: slurmctld
+      when: "'slurm_controller' in group_names"
+    - role: compute # Slurm compute node role
+      when: "'slurm_compute' in group_names"
