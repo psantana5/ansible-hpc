@@ -1,6 +1,0 @@
----
-# Default variables for slurmdbd role
-slurm_db_name: slurm_acct_db
-slurm_db_user: slurm
-slurm_db_password: slurm_password
-slurmdbd_port: 6819

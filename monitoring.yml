@@ -3,8 +3,6 @@
 - name: Deploy Prometheus and Grafana monitoring
   hosts: services
   become: yes
-  vars:
-    grafana_admin_password: "admin" # Change this to a secure password
   roles:
     - monitoring
     - epel

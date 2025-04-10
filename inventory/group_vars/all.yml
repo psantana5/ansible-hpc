@@ -157,11 +157,11 @@ slurmctld_host: "slurm01.{{ base_domain }}" # Hostname of the controller node
 slurmdbd_host: "slurmdb01.{{ base_domain }}" # Hostname of the database node
 
 # SlurmDBD Database Configuration
-slurmdbd_db_host: "localhost" # Usually localhost if DB is on same node as slurmdbd daemon
-slurmdbd_db_port: 3306 # Default MariaDB/MySQL port
-slurmdbd_db_name: "slurm_acct_db"
-slurmdbd_db_user: "slurm"
-slurmdbd_db_password: "{{ vault_slurmdbd_db_password }}" # From vault
+slurm_db_host: "localhost" # Usually localhost if DB is on same node as slurmdbd daemon
+slurmdb_port: 3306 # Default MariaDB/MySQL port
+slurm_db_name: "slurm_acct_db"
+slurm_db_user: "slurm"
+slurm_db_password: "{{ vault_slurmdbd_db_password }}" # From vault
 
 # Munge configuration
 munge_key_path: "/etc/munge/munge.key"
@@ -178,6 +178,9 @@ mysql_root_password: "{{ vault_mysql_root_password }}" # From vault
 mysql_bind_address: "127.0.0.1"
 mysql_port: 3306
 mysql_datadir: "/var/lib/mysql"
+ansible_mysql_user: root
+ansible_mysql_password: "{{ vault_mysql_root_password }}"
+ansible_mysql_host: localhost
 
 # ------------------------------------------------------------
 # Monitoring Configuration (Prometheus/Grafana/Exporters)
@@ -211,8 +214,8 @@ docker_users: # Optional: List of users to add to the 'docker' group
 # SSH Configuration
 # ------------------------------------------------------------
 ssh_port: 22
-ssh_permit_root_login: "no"
-ssh_password_authentication: "no"
+ssh_permit_root_login: "yes"
+ssh_password_authentication: "yes"
 ssh_allow_groups: "sudo wheel"
 
 # ------------------------------------------------------------
@@ -221,7 +224,49 @@ ssh_allow_groups: "sudo wheel"
 backup_dir: "/var/backups"
 backup_retention_days: 7
 backup_schedule: "0 2 * * *" # Daily at 2 AM
-
+# SLURM Group Configuration
+slurm_groups:
+  - name: "HPC-admins"
+    description: "SLURM Cluster Administrators"
+    members:
+      - "psantana"
+      - "jsmith"
+      - "rjohnson"
+  - name: "cfes"
+    description: "Core Facility Earth Sciences"
+    members:
+      - "mgarcia"
+      - "dwilliams"
+      - "lbrown"
+      - "tlee"
+  - name: "quantum-physics"
+    description: "Quantum Physics Research Group"
+    members:
+      - "kfeynman"
+      - "sbohr"
+      - "hheisenberg"
+      - "ddirac"
+  - name: "particle-physics"
+    description: "Particle Physics Research Group"
+    members:
+      - "ehiggs"
+      - "mplanck"
+      - "aeinstein"
+      - "cyang"
+  - name: "astrophysics"
+    description: "Astrophysics Research Group"
+    members:
+      - "shawking"
+      - "ntyson"
+      - "csagan"
+      - "jkaku"
+  - name: "condensed-matter"
+    description: "Condensed Matter Physics Research Group"
+    members:
+      - "landerson"
+      - "bcooper"
+      - "jbardeen"
+      - "rfeynman"
 # ============================================================
 # End of Global Variables
 # ============================================================

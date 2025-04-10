@@ -2,16 +2,33 @@
 - name: Deploy SLURM Database Server
   hosts: slurmdbd
   become: true
-  vars:
-    slurm_db_name: "slurm_acct_db"
-    slurm_db_user: "slurm"
-    slurm_db_password: "slurm_password"
-    slurmdbd_port: 6819
-    ansible_python_interpreter: /root/.ansible-venv/bin/python3
-    # Add MySQL connection parameters
-    ansible_mysql_user: root
-    ansible_mysql_password: ""
-    ansible_mysql_host: localhost
+
+  # You could add pre_tasks for setup steps
+  pre_tasks:
+    - name: Ensure required packages are installed
+      dnf:
+        name:
+          - mariadb-server
+          - munge
+        state: present
+
+    - name: Ensure MariaDB is running
+      service:
+        name: mariadb
+        state: started
+        enabled: yes
   roles:
     - epel
     - slurmdbd
+
+  post_tasks:
+    - name: Verify slurmdbd service is running
+      service:
+        name: slurmdbd
+        state: started
+        enabled: yes
+      register: slurmdbd_status
+
+    - name: Display service status
+      debug:
+        msg: "SLURM Database Daemon status: {{ slurmdbd_status.state }}"

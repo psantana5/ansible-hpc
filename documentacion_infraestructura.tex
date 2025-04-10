@@ -1,0 +1,847 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[spanish,es-noquoting,es-noshorthands]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{arrows.meta}
+\usepackage{tcolorbox}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{geometry}
+
+% Configuración de geometría de página
+\geometry{
+  a4paper,
+  top=2.5cm,
+  bottom=2.5cm,
+  left=2.5cm,
+  right=2.5cm,
+  headheight=15pt  % Aumentar el headheight para evitar advertencias
+}
+
+% Configuración de encabezado y pie de página
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Infraestructura Automatizada con Ansible}
+\fancyhead[R]{\thepage}
+\fancyfoot[C]{LinkiaFP - \today}
+
+% Colores para el código
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{commentcolor}{rgb}{0.25,0.5,0.37}
+\definecolor{keywordcolor}{rgb}{0.73,0.27,0.27}
+\definecolor{stringcolor}{rgb}{0.25,0.44,0.63}
+
+% Estilo mejorado para el código
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{commentcolor}\itshape,
+    keywordstyle=\color{keywordcolor}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{stringcolor},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    frame=single,
+    framesep=5pt,
+    framerule=0.4pt,
+    rulecolor=\color{codegray},
+    xleftmargin=15pt,
+    xrightmargin=5pt
+}
+
+% Definición de lenguajes personalizados
+\lstdefinelanguage{ansible}{
+  keywords={name, hosts, become, tasks, roles, vars, handlers, template, copy, file, service, package, command, shell, when, with_items, register, notify, include_tasks, delegate_to, ignore_errors, changed_when, failed},
+  sensitive=true,
+  comment=[l]{\#},
+  string=[s]{"}{"},
+  string=[s]{'}{'},
+  morestring=[s]{:}{,},
+  morestring=[s]{:}{ },
+  morestring=[s]{:}{$},
+}
+
+\lstdefinelanguage{yaml}{
+  keywords={name, hosts, become, tasks, roles, vars, handlers, template, copy, file, service, package, command, shell, when, with_items, register, notify, include_tasks, delegate_to, ignore_errors, changed_when, failed},
+  sensitive=true,
+  comment=[l]{\#},
+  string=[s]{"}{"},
+  string=[s]{'}{'},
+  morestring=[s]{:}{,},
+  morestring=[s]{:}{ },
+  morestring=[s]{:}{$},
+}
+
+\lstset{style=mystyle}
+
+% Configuración de cajas para información destacada
+\tcbuselibrary{skins,breakable}
+\newtcolorbox{infobox}[1][]{
+  enhanced,
+  breakable,
+  colback=blue!5!white,
+  colframe=blue!75!black,
+  title=#1,
+  fonttitle=\bfseries
+}
+
+\newtcolorbox{warningbox}[1][]{
+  enhanced,
+  breakable,
+  colback=orange!5!white,
+  colframe=orange!75!black,
+  title=#1,
+  fonttitle=\bfseries
+}
+
+\title{\Huge\bfseries Infraestructura Automatizada con Ansible}
+\author{\Large Pau Santana}
+\date{\today}
+
+% Font configuration - Using Arial (Helvetica) as the main font
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+% Improved code highlighting
+\definecolor{codebackground}{rgb}{0.97,0.97,0.97}
+\definecolor{codeborder}{rgb}{0.8,0.8,0.8}
+\definecolor{codegreen}{rgb}{0.0,0.6,0.0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{codered}{rgb}{0.8,0.0,0.0}
+\definecolor{codeblue}{rgb}{0.0,0.0,0.8}
+\definecolor{commentcolor}{rgb}{0.25,0.5,0.37}
+\definecolor{keywordcolor}{rgb}{0.0,0.0,0.7}
+\definecolor{stringcolor}{rgb}{0.7,0.0,0.0}
+
+% Improved style for code listings
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{codebackground},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    commentstyle=\color{commentcolor}\itshape,
+    keywordstyle=\color{keywordcolor}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{stringcolor},
+    keepspaces=true,
+    numbers=left,
+    numbersep=8pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    framesep=6pt,
+    framerule=0.8pt,
+    rulecolor=\color{codeborder},
+    xleftmargin=18pt,
+    xrightmargin=6pt,
+    framexleftmargin=18pt,
+    framextopmargin=6pt,
+    framexbottommargin=6pt,
+    aboveskip=12pt,
+    belowskip=12pt
+}
+
+% Improved box styles
+\tcbuselibrary{skins,breakable}
+\newtcolorbox{infobox}[1][]{
+  enhanced,
+  breakable,
+  colback=blue!3!white,
+  colframe=blue!70!black,
+  title=#1,
+  fonttitle=\bfseries,
+  boxrule=1pt,
+  arc=3mm,
+  left=8pt,
+  right=8pt,
+  top=8pt,
+  bottom=8pt,
+  boxsep=5pt,
+  drop shadow={opacity=0.3}
+}
+
+\newtcolorbox{warningbox}[1][]{
+  enhanced,
+  breakable,
+  colback=orange!3!white,
+  colframe=orange!70!black,
+  title=#1,
+  fonttitle=\bfseries,
+  boxrule=1pt,
+  arc=3mm,
+  left=8pt,
+  right=8pt,
+  top=8pt,
+  bottom=8pt,
+  boxsep=5pt,
+  drop shadow={opacity=0.3}
+}
+
+% Improved section formatting
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{blue!70!black}}
+  {\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{blue!60!black}}
+  {\thesubsection}{1em}{}
+
+% Improved hyperref settings
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    filecolor=blue!70!black,
+    urlcolor=blue!70!black,
+    citecolor=blue!70!black,
+    pdftitle={Infraestructura Automatizada con Ansible},
+    pdfauthor={Pau Santana},
+    pdfsubject={Ansible Infrastructure},
+    pdfkeywords={Ansible, SLURM, OpenLDAP, Prometheus, Grafana, Infraestructura}
+}
+
+% Improved page layout
+\geometry{
+  a4paper,
+  top=2.5cm,
+  bottom=2.5cm,
+  left=2.5cm,
+  right=2.5cm,
+  headheight=15pt,
+  footskip=30pt
+}
+
+% Improved header and footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textcolor{blue!70!black}{\textbf{Infraestructura Automatizada con Ansible}}}
+\fancyhead[R]{\textcolor{blue!70!black}{\thepage}}
+\fancyfoot[C]{\textcolor{blue!70!black}{LinkiaFP - \today}}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{blue!70!black}\leaders\hrule height \headrulewidth\hfill}}
+\renewcommand{\footrulewidth}{0.5pt}
+\renewcommand{\footrule}{\hbox to\headwidth{\color{blue!70!black}\leaders\hrule height \footrulewidth\hfill}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\noindent Este documento describe en detalle la implementación de una infraestructura completa automatizada utilizando Ansible. Se explican los diferentes componentes desplegados, incluyendo un clúster SLURM para computación de alto rendimiento, servicios de autenticación centralizada con OpenLDAP, monitorización con Prometheus y Grafana, y otros servicios esenciales. El objetivo es proporcionar una visión completa de cómo se ha diseñado, implementado y gestionado la infraestructura como código, siguiendo las mejores prácticas de DevOps y automatización.
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Introducción}
+\newpage
+
+La automatización de infraestructura es un componente esencial en los entornos de TI modernos. Este proyecto demuestra cómo se puede utilizar Ansible para desplegar y gestionar una infraestructura completa que incluye múltiples servicios interconectados. La infraestructura implementada proporciona:
+
+\begin{itemize}[leftmargin=*]
+    \item Computación de alto rendimiento mediante un clúster SLURM
+    \item Autenticación centralizada con OpenLDAP
+    \item Monitorización y alertas con Prometheus y Grafana
+    \item Gestión de contenedores con Docker
+    \item Servicios de red como DNS
+    \item Gestión de configuración con Foreman
+\end{itemize}
+
+\begin{infobox}[¿Por qué Ansible?]
+Ansible es una herramienta de automatización de código abierto que permite:
+\begin{itemize}
+    \item Automatización sin agentes (solo requiere SSH)
+    \item Configuración declarativa en YAML
+    \item Idempotencia (se puede ejecutar múltiples veces sin efectos secundarios)
+    \item Extensibilidad mediante módulos y roles
+    \item Orquestación de despliegues complejos
+    \item Documentación integrada en el código
+\end{itemize}
+\end{infobox}
+
+\section{Estructura del Repositorio}
+\newpage
+
+El repositorio está organizado siguiendo las mejores prácticas de Ansible, con una clara separación de roles, inventarios, variables y playbooks:
+
+\begin{lstlisting}[language=bash, caption=Estructura del repositorio]
+/playbooks-ansible/
+|-- inventory/
+|   |-- group_vars/
+|   |   `-- all.yml           # Variables globales
+|   `-- hosts                 # Definición de hosts y grupos
+|-- roles/
+|   |-- compute/              # Rol para nodos de cómputo SLURM
+|   |-- dns/                  # Rol para configuración DNS
+|   |-- docker/               # Rol para instalación de Docker
+|   |-- epel/                 # Rol para repositorio EPEL
+|   |-- foreman/              # Rol para Foreman
+|   |-- grafana/              # Rol para Grafana
+|   |-- monitoring/           # Rol para monitorización
+|   |-- node_exporter/        # Rol para Node Exporter
+|   |-- openldap/             # Rol para OpenLDAP
+|   |-- prometheus/           # Rol para Prometheus
+|   |-- slurmctld/            # Rol para controlador SLURM
+|   `-- slurmdbd/             # Rol para base de datos SLURM
+|-- templates/
+|   |-- ldap.conf.j2          # Plantilla para configuración LDAP
+|   `-- sssd.conf.j2          # Plantilla para configuración SSSD
+|-- compute.yml               # Playbook para nodos de cómputo
+|-- deploy-foreman.yml        # Playbook para Foreman
+|-- dns.yml                   # Playbook para DNS
+|-- ldap-client.yml           # Playbook para clientes LDAP
+|-- monitoring.yml            # Playbook para monitorización
+|-- openldap.yml              # Playbook para servidor OpenLDAP
+|-- site.yml                  # Playbook principal
+|-- slurmctld.yml             # Playbook para controlador SLURM
+|-- slurmdbd.yml              # Playbook para base de datos SLURM
+`-- documentacion_slurm.tex   # Documentación del clúster SLURM
+\end{lstlisting}
+
+Esta estructura sigue el patrón de roles de Ansible, donde cada componente de la infraestructura tiene su propio rol con tareas, plantillas y manejadores específicos. Esto permite una clara separación de responsabilidades y facilita la reutilización de código.
+
+\section{Componentes Principales de la Infraestructura}
+\newpage
+
+\subsection{Clúster SLURM}
+
+SLURM (Simple Linux Utility for Resource Management) es un sistema de gestión de recursos y programación de trabajos de código abierto diseñado para clústeres Linux. Es ampliamente utilizado en entornos de computación de alto rendimiento (HPC).
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[node distance=2cm, auto]
+    % Nodos
+    \node[draw, rectangle, rounded corners, fill=blue!20, minimum width=3cm, minimum height=1cm] (controller) {Nodo Controlador (slurm01)};
+    \node[draw, rectangle, rounded corners, fill=green!20, minimum width=3cm, minimum height=1cm, below left=of controller] (db) {Nodo DB (slurmdb01)};
+    \node[draw, rectangle, rounded corners, fill=orange!20, minimum width=3cm, minimum height=1cm, below right=of controller] (compute) {Nodos de Cómputo (bsc01)};
+    
+    % Daemons
+    \node[draw, ellipse, fill=blue!10, below=0.5cm of controller] (slurmctld) {slurmctld};
+    \node[draw, ellipse, fill=green!10, below=0.5cm of db] (slurmdbd) {slurmdbd};
+    \node[draw, ellipse, fill=orange!10, below=0.5cm of compute] (slurmd) {slurmd};
+    
+    % Conexiones
+    \draw[->, thick] (controller) -- (db) node[midway, above, sloped] {Contabilidad};
+    \draw[->, thick] (controller) -- (compute) node[midway, above, sloped] {Asignación};
+    \draw[->, thick] (slurmctld) -- (slurmdbd);
+    \draw[->, thick] (slurmctld) -- (slurmd);
+\end{tikzpicture}
+\caption{Arquitectura básica del clúster SLURM}
+\end{figure}
+
+El clúster SLURM consta de tres tipos de nodos:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Nodo Controlador (slurmctld)}: Ejecuta el daemon slurmctld, que es el cerebro del clúster. Este nodo toma decisiones sobre la asignación de recursos y la programación de trabajos.
+    
+    \item \textbf{Nodo de Base de Datos (slurmdbd)}: Ejecuta el daemon slurmdbd y MariaDB. Este nodo almacena toda la información de contabilidad, usuarios, trabajos y uso de recursos.
+    
+    \item \textbf{Nodos de Cómputo (slurmd)}: Ejecutan el daemon slurmd. Estos nodos son donde realmente se ejecutan los trabajos de los usuarios.
+\end{itemize}
+
+\begin{lstlisting}[language=yaml, caption=Extracto del playbook slurmctld.yml]
+---
+- name: Configure SLURM Controller Node
+  hosts: slurmctld
+  become: yes
+  roles:
+    - epel
+    - slurmctld
+\end{lstlisting}
+
+\subsection{Autenticación Centralizada con OpenLDAP}
+
+OpenLDAP proporciona un servicio de directorio centralizado para la autenticación y autorización de usuarios en toda la infraestructura.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[node distance=2cm, auto]
+    % Nodos
+    \node[draw, rectangle, rounded corners, fill=blue!20, minimum width=3cm, minimum height=1cm] (ldapserver) {Servidor LDAP};
+    \node[draw, rectangle, rounded corners, fill=green!20, minimum width=3cm, minimum height=1cm, below left=of ldapserver] (client1) {Cliente LDAP 1};
+    \node[draw, rectangle, rounded corners, fill=green!20, minimum width=3cm, minimum height=1cm, below right=of ldapserver] (client2) {Cliente LDAP 2};
+    
+    % Conexiones
+    \draw[->, thick] (client1) -- (ldapserver) node[midway, above, sloped] {Autenticación};
+    \draw[->, thick] (client2) -- (ldapserver) node[midway, above, sloped] {Autenticación};
+\end{tikzpicture}
+\caption{Arquitectura de autenticación centralizada con OpenLDAP}
+\end{figure}
+
+\begin{lstlisting}[language=yaml, caption=Extracto del playbook ldap-client.yml]
+---
+- name: Configure LDAP Client with SSSD
+  hosts: all
+  become: yes
+  vars:
+    ldap_server: "ldap01.linkiafp.es"
+    ldap_base_dn: "dc=linkiafp,dc=es"
+    ldap_tls_reqcert: "allow"
+    ldap_server_ip: "192.168.1.141"
+
+  tasks:
+    # Add LDAP server to hosts file
+    - name: Add LDAP server to /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "{{ ldap_server_ip }} {{ ldap_server }}"
+        state: present
+
+    # Configure SSSD
+    - name: Create SSSD configuration
+      ansible.builtin.template:
+        src: templates/sssd.conf.j2
+        dest: /etc/sssd/sssd.conf
+        owner: root
+        group: root
+        mode: "0600"
+
+    # Enable authentication with SSSD
+    - name: Enable SSSD authentication with mkhomedir
+      ansible.builtin.command: authselect select sssd with-mkhomedir --force
+      register: auth_select
+      changed_when: auth_select.rc == 0
+\end{lstlisting}
+
+\subsection{Monitorización con Prometheus y Grafana}
+
+La infraestructura incluye un sistema completo de monitorización basado en Prometheus para la recopilación de métricas y Grafana para la visualización.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[node distance=2cm, auto]
+    % Nodos
+    \node[draw, rectangle, rounded corners, fill=blue!20, minimum width=3cm, minimum height=1cm] (prometheus) {Prometheus};
+    \node[draw, rectangle, rounded corners, fill=green!20, minimum width=3cm, minimum height=1cm, right=of prometheus] (grafana) {Grafana};
+    \node[draw, rectangle, rounded corners, fill=orange!20, minimum width=3cm, minimum height=1cm, below left=of prometheus] (node1) {Node Exporter 1};
+    \node[draw, rectangle, rounded corners, fill=orange!20, minimum width=3cm, minimum height=1cm, below=of prometheus] (node2) {Node Exporter 2};
+    \node[draw, rectangle, rounded corners, fill=orange!20, minimum width=3cm, minimum height=1cm, below right=of prometheus] (node3) {Node Exporter 3};
+    
+    % Conexiones
+    \draw[->, thick] (prometheus) -- (node1) node[midway, above, sloped] {Scrape};
+    \draw[->, thick] (prometheus) -- (node2) node[midway, left] {Scrape};
+    \draw[->, thick] (prometheus) -- (node3) node[midway, above, sloped] {Scrape};
+    \draw[->, thick] (grafana) -- (prometheus) node[midway, above] {Query};
+\end{tikzpicture}
+\caption{Arquitectura de monitorización con Prometheus y Grafana}
+\end{figure}
+
+\begin{lstlisting}[language=yaml, caption=Extracto del playbook monitoring.yml]
+---
+- name: Deploy Prometheus monitoring stack
+  hosts: monitoring
+  become: yes
+  roles:
+    - epel
+    - prometheus
+    - grafana
+
+- name: Deploy Node Exporter on all nodes
+  hosts: all
+  become: yes
+  roles:
+    - node_exporter
+\end{lstlisting}
+
+\subsection{Gestión de Contenedores con Docker}
+
+Docker se utiliza para la contenerización de aplicaciones, proporcionando un entorno aislado y reproducible para los servicios.
+
+\begin{lstlisting}[language=yaml, caption=Extracto de variables para Docker en group_vars/all.yml]
+# Docker Configuration
+docker_users:
+  - psantana
+\end{lstlisting}
+
+\subsection{Servicios de Red}
+
+La infraestructura incluye servicios de red esenciales como DNS para la resolución de nombres.
+
+\begin{lstlisting}[language=yaml, caption=Extracto del playbook dns.yml]
+---
+- name: Configure DNS Server
+  hosts: dns
+  become: yes
+  roles:
+    - dns
+\end{lstlisting}
+
+\subsection{Gestión de Configuración con Foreman}
+
+Foreman se utiliza como una herramienta de gestión del ciclo de vida para servidores físicos y virtuales.
+
+\begin{lstlisting}[language=yaml, caption=Extracto del playbook deploy-foreman.yml]
+---
+- name: Deploy Foreman
+  hosts: foreman
+  become: yes
+  roles:
+    - foreman
+\end{lstlisting}
+
+\section{Integración de Componentes}
+\newpage
+
+Uno de los aspectos más importantes de esta infraestructura es cómo los diferentes componentes se integran entre sí para formar un sistema cohesivo:
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[node distance=3cm, auto]
+    % Nodos principales
+    \node[draw, rectangle, rounded corners, fill=blue!20, minimum width=3cm, minimum height=1cm] (slurm) {Clúster SLURM};
+    \node[draw, rectangle, rounded corners, fill=green!20, minimum width=3cm, minimum height=1cm, right=of slurm] (ldap) {OpenLDAP};
+    \node[draw, rectangle, rounded corners, fill=orange!20, minimum width=3cm, minimum height=1cm, below=of slurm] (monitoring) {Prometheus/Grafana};
+    \node[draw, rectangle, rounded corners, fill=red!20, minimum width=3cm, minimum height=1cm, below=of ldap] (docker) {Docker};
+    \node[draw, rectangle, rounded corners, fill=purple!20, minimum width=3cm, minimum height=1cm, below left=of monitoring] (dns) {DNS};
+    \node[draw, rectangle, rounded corners, fill=yellow!20, minimum width=3cm, minimum height=1cm, below right=of docker] (foreman) {Foreman};
+    
+    % Conexiones
+    \draw[->, thick] (slurm) -- (ldap) node[midway, above] {Autenticación};
+    \draw[->, thick] (monitoring) -- (slurm) node[midway, left] {Monitorización};
+    \draw[->, thick] (monitoring) -- (ldap) node[midway, below, sloped] {Monitorización};
+    \draw[->, thick] (monitoring) -- (docker) node[midway, below, sloped] {Monitorización};
+    \draw[->, thick] (monitoring) -- (dns) node[midway, above, sloped] {Monitorización};
+    \draw[->, thick] (monitoring) -- (foreman) node[midway, below, sloped] {Monitorización};
+    \draw[->, thick] (slurm) -- (dns) node[midway, above, sloped] {Resolución};
+    \draw[->, thick] (ldap) -- (dns) node[midway, above, sloped] {Resolución};
+    \draw[->, thick] (foreman) -- (dns) node[midway, above, sloped] {Resolución};
+\end{tikzpicture}
+\caption{Integración de componentes en la infraestructura}
+\end{figure}
+
+\subsection{Autenticación Centralizada}
+
+Todos los servicios utilizan OpenLDAP para la autenticación centralizada:
+
+\begin{itemize}[leftmargin=*]
+    \item Los usuarios se definen una sola vez en OpenLDAP
+    \item SLURM utiliza estos usuarios para la autenticación y autorización
+    \item Los nodos de cómputo autentican a los usuarios a través de SSSD
+    \item Grafana puede configurarse para utilizar LDAP como fuente de autenticación
+\end{itemize}
+
+\subsection{Monitorización Unificada}
+
+Prometheus recopila métricas de todos los componentes:
+
+\begin{itemize}[leftmargin=*]
+    \item Node Exporter proporciona métricas del sistema en todos los nodos
+    \item SLURM Exporter proporciona métricas específicas del clúster
+    \item Grafana visualiza estas métricas en dashboards personalizados
+    \item Las alertas se pueden configurar para notificar problemas
+\end{itemize}
+
+\begin{lstlisting}[language=yaml, caption=Configuración de dashboard de SLURM en Grafana]
+{
+  "title": "SLURM Cluster Overview",
+  "uid": "slurm-overview",
+  "version": 1,
+  "panels": [
+    {
+      "title": "System Load",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "node_load1",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "title": "Memory Usage %",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "100 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100)",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    }
+  ]
+}
+\end{lstlisting}
+
+\subsection{Resolución de Nombres}
+
+El servicio DNS proporciona resolución de nombres para todos los componentes:
+
+\begin{itemize}[leftmargin=*]
+    \item Facilita la comunicación entre servicios utilizando nombres en lugar de IPs
+    \item Simplifica la configuración y el mantenimiento
+    \item Permite la escalabilidad sin cambios en la configuración
+\end{itemize}
+
+\section{Despliegue y Gestión}
+\newpage
+
+\subsection{Proceso de Despliegue}
+
+El despliegue de la infraestructura completa se realiza mediante un proceso ordenado:
+
+\begin{enumerate}[leftmargin=*]
+    \item Despliegue de servicios básicos (DNS, EPEL)
+    \item Despliegue de OpenLDAP para autenticación centralizada
+    \item Configuración de clientes LDAP en todos los nodos
+    \item Despliegue del clúster SLURM (primero slurmdbd, luego slurmctld, finalmente compute)
+    \item Despliegue de la infraestructura de monitorización
+    \item Despliegue de servicios adicionales (Docker, Foreman)
+\end{enumerate}
+
+\begin{lstlisting}[language=bash, caption=Comandos para el despliegue]
+# Desplegar servicios básicos
+ansible-playbook -i inventory/hosts dns.yml
+
+# Desplegar OpenLDAP
+ansible-playbook -i inventory/hosts openldap.yml
+
+# Configurar clientes LDAP
+ansible-playbook -i inventory/hosts ldap-client.yml
+
+# Desplegar clúster SLURM
+ansible-playbook -i inventory/hosts slurmdbd.yml
+ansible-playbook -i inventory/hosts slurmctld.yml
+ansible-playbook -i inventory/hosts compute.yml
+
+# Desplegar monitorización
+ansible-playbook -i inventory/hosts monitoring.yml
+
+# Desplegar Foreman
+ansible-playbook -i inventory/hosts deploy-foreman.yml
+
+# Alternativamente, desplegar todo con el playbook principal
+ansible-playbook -i inventory/hosts site.yml
+\end{lstlisting}
+
+\subsection{Gestión de Configuración}
+
+La gestión de la configuración se realiza mediante:
+
+\begin{itemize}[leftmargin=*]
+    \item Variables en group\_vars/all.yml para configuración global
+    \item Variables específicas en cada playbook
+    \item Plantillas Jinja2 para generar archivos de configuración
+    \item Roles modulares para cada componente
+\end{itemize}
+
+\begin{lstlisting}[language=yaml, caption=Extracto de variables globales en group_vars/all.yml]
+# SSH Configuration
+ssh_port: 22
+ssh_permit_root_login: "no"
+ssh_password_authentication: "no"
+ssh_allow_groups: "sudo wheel"
+
+# Backup Configuration
+backup_dir: "/var/backups"
+backup_retention_days: 7
+backup_schedule: "0 2 * * *" # Daily at 2 AM
+\end{lstlisting}
+
+\subsection{Actualizaciones y Mantenimiento}
+
+Las actualizaciones y el mantenimiento se simplifican gracias a la automatización:
+
+\begin{itemize}[leftmargin=*]
+    \item Actualización de paquetes mediante tareas Ansible
+    \item Reinicio controlado de servicios mediante handlers
+    \item Backups automatizados
+    \item Monitorización para detectar problemas
+\end{itemize}
+
+\section{Seguridad}
+\newpage
+
+La seguridad es un aspecto fundamental de la infraestructura:
+
+\subsection{Autenticación y Autorización}
+
+\begin{itemize}[leftmargin=*]
+    \item Autenticación centralizada con OpenLDAP
+    \item SSH configurado para usar claves y deshabilitar autenticación por contraseña
+    \item Grupos de acceso restringidos
+    \item Munge para autenticación segura entre componentes SLURM
+\end{itemize}
+
+\subsection{Seguridad de Red}
+
+\begin{itemize}[leftmargin=*]
+    \item Configuración de firewall para limitar el acceso
+    \item Separación de redes para diferentes componentes
+    \item TLS para comunicaciones seguras
+\end{itemize}
+
+\subsection{Gestión de Secretos}
+
+\begin{itemize}[leftmargin=*]
+    \item Permisos restrictivos para archivos sensibles
+    \item Contraseñas y claves gestionadas de forma segura
+    \item Posibilidad de integrar con Ansible Vault para cifrar secretos
+\end{itemize}
+
+\begin{lstlisting}[language=yaml, caption=Configuración de permisos restrictivos]
+- name: Create SSSD configuration
+  ansible.builtin.template:
+    src: templates/sssd.conf.j2
+    dest: /etc/sssd/sssd.conf
+    owner: root
+    group: root
+    mode: "0600"  # Permisos restrictivos
+\end{lstlisting}
+
+\section{Escalabilidad y Alta Disponibilidad}
+\newpage
+
+\subsection{Escalabilidad}
+
+La infraestructura está diseñada para ser escalable:
+
+\begin{itemize}[leftmargin=*]
+    \item Añadir nuevos nodos de cómputo al clúster SLURM
+    \item Replicación de OpenLDAP para mayor capacidad
+    \item Escalado horizontal de la monitorización
+\end{itemize}
+
+\subsection{Alta Disponibilidad}
+
+Para entornos de producción, se pueden implementar configuraciones de alta disponibilidad:
+
+\begin{itemize}[leftmargin=*]
+    \item Múltiples controladores SLURM
+    \item Replicación de la base de datos SLURM
+    \item Clúster de OpenLDAP
+    \item Redundancia en servicios críticos
+\end{itemize}
+
+\begin{warningbox}[Consideraciones de Alta Disponibilidad]
+En un entorno de producción, es recomendable configurar nodos de respaldo para los servicios críticos para garantizar la alta disponibilidad. SLURM permite configurar múltiples nodos slurmctld y slurmdbd para evitar puntos únicos de fallo. De manera similar, OpenLDAP puede configurarse en modo multi-master para proporcionar redundancia.
+\end{warningbox}
+
+\subsection{Lecciones Aprendidas}
+
+Durante la implementación, se han aprendido varias lecciones importantes:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Orden de despliegue}: Es crucial desplegar los servicios en el orden correcto para evitar dependencias no satisfechas.
+    \item \textbf{Gestión de errores}: Implementar verificaciones y manejo de errores para detectar y resolver problemas rápidamente.
+    \item \textbf{Pruebas incrementales}: Probar cada componente individualmente antes de integrarlos.
+    \item \textbf{Documentación continua}: Documentar durante el desarrollo, no después.
+    \item \textbf{Automatización completa}: Automatizar todo lo posible para reducir errores humanos.
+\end{itemize}
+
+\section{Casos de Uso}
+\newpage
+
+La infraestructura implementada soporta varios casos de uso importantes:
+
+\subsection{Computación Científica}
+
+El clúster SLURM proporciona capacidades de computación de alto rendimiento para:
+
+\begin{itemize}[leftmargin=*]
+    \item Simulaciones científicas
+    \item Análisis de datos a gran escala
+    \item Modelado computacional
+    \item Aprendizaje automático y deep learning
+\end{itemize}
+
+\subsection{Entorno Educativo}
+
+La infraestructura es ideal para entornos educativos:
+
+\begin{itemize}[leftmargin=*]
+    \item Laboratorios de prácticas para estudiantes
+    \item Entornos de investigación para profesores
+    \item Plataforma para cursos de administración de sistemas
+    \item Demostraciones de tecnologías modernas
+\end{itemize}
+
+\subsection{Desarrollo y Pruebas}
+
+También puede utilizarse como plataforma de desarrollo y pruebas:
+
+\begin{itemize}[leftmargin=*]
+    \item Entornos de desarrollo aislados
+    \item Pruebas de integración continua
+    \item Validación de configuraciones
+    \item Pruebas de rendimiento
+\end{itemize}
+
+\section{Futuras Mejoras}
+\newpage
+
+Aunque la infraestructura actual es completa y funcional, hay varias áreas de mejora para el futuro:
+
+\subsection{Automatización Adicional}
+
+\begin{itemize}[leftmargin=*]
+    \item Implementación de CI/CD para la infraestructura
+    \item Integración con herramientas de gestión de configuración como AWX/Tower
+    \item Automatización de pruebas y validación
+\end{itemize}
+
+\subsection{Seguridad Mejorada}
+
+\begin{itemize}[leftmargin=*]
+    \item Implementación de detección de intrusiones
+    \item Escaneo automático de vulnerabilidades
+    \item Rotación automática de credenciales
+    \item Implementación de políticas de seguridad más estrictas
+\end{itemize}
+
+\subsection{Expansión de Servicios}
+
+\begin{itemize}[leftmargin=*]
+    \item Integración con servicios de nube pública para bursting
+    \item Implementación de almacenamiento distribuido
+    \item Servicios de backup y recuperación mejorados
+    \item Integración con sistemas de tickets y gestión de servicios
+\end{itemize}
+
+\section{Conclusiones}
+\newpage
+
+La implementación de esta infraestructura automatizada con Ansible demuestra cómo se pueden desplegar y gestionar entornos complejos de manera eficiente y reproducible. Los principales beneficios obtenidos son:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Eficiencia operativa}: La automatización reduce significativamente el tiempo y esfuerzo necesarios para desplegar y mantener la infraestructura.
+    \item \textbf{Consistencia}: Todos los entornos se despliegan de manera idéntica, eliminando las discrepancias entre diferentes instalaciones.
+    \item \textbf{Documentación viva}: El código Ansible sirve como documentación ejecutable de la infraestructura.
+    \item \textbf{Escalabilidad}: La infraestructura puede crecer fácilmente añadiendo nuevos nodos y servicios.
+    \item \textbf{Mantenibilidad}: Las actualizaciones y cambios se pueden aplicar de manera controlada y reproducible.
+\end{itemize}
+
+Este proyecto demuestra la potencia de la automatización y la infraestructura como código para gestionar entornos complejos. La combinación de SLURM, OpenLDAP, Prometheus, Grafana y otros servicios proporciona una plataforma completa y flexible para una variedad de casos de uso, desde la computación científica hasta entornos educativos y de desarrollo.
+
+\begin{infobox}[Recursos adicionales]
+Para profundizar en el conocimiento de las tecnologías utilizadas, se recomiendan los siguientes recursos:
+\begin{itemize}
+    \item Documentación oficial de Ansible: \url{https://docs.ansible.com/}
+    \item Documentación oficial de SLURM: \url{https://slurm.schedmd.com/documentation.html}
+    \item Documentación oficial de OpenLDAP: \url{https://www.openldap.org/doc/}
+    \item Documentación oficial de Prometheus: \url{https://prometheus.io/docs/}
+    \item Documentación oficial de Grafana: \url{https://grafana.com/docs/}
+\end{itemize}
+\end{infobox}
+
+\end{document}

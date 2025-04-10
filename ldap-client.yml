@@ -2,12 +2,6 @@
 - name: Configure LDAP Client with SSSD
   hosts: all
   become: yes
-  vars:
-    ldap_server: "ldap01.linkiafp.es"
-    ldap_base_dn: "dc=linkiafp,dc=es"
-    ldap_tls_reqcert: "allow"
-    ldap_server_ip: "192.168.1.141"
-
   tasks:
     # Add LDAP server to hosts file
     - name: Add LDAP server to /etc/hosts
@@ -68,14 +62,14 @@
         name: sssd
         state: started
         enabled: yes
-        
+
     # Verification tasks
     - name: Verify LDAP user information is accessible
       ansible.builtin.command: getent passwd rfeynman
       register: ldap_user_check
       changed_when: false
       failed_when: false
-      
+
     - name: Display LDAP authentication status
       ansible.builtin.debug:
         msg: "LDAP authentication is {{ 'WORKING' if ldap_user_check.rc == 0 else 'NOT WORKING' }}"

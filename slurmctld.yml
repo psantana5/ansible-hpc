@@ -2,49 +2,6 @@
 - name: Deploy SLURM Control Server
   hosts: slurmctld
   become: true
-  vars:
-    slurm_groups:
-      - name: "HPC-admins"
-        description: "SLURM Cluster Administrators"
-        members:
-          - "psantana"
-          - "jsmith"
-          - "rjohnson"
-      - name: "cfes"
-        description: "Core Facility Earth Sciences"
-        members:
-          - "mgarcia"
-          - "dwilliams"
-          - "lbrown"
-          - "tlee"
-      - name: "quantum-physics"
-        description: "Quantum Physics Research Group"
-        members:
-          - "kfeynman"
-          - "sbohr"
-          - "hheisenberg"
-          - "ddirac"
-      - name: "particle-physics"
-        description: "Particle Physics Research Group"
-        members:
-          - "ehiggs"
-          - "mplanck"
-          - "aeinstein"
-          - "cyang"
-      - name: "astrophysics"
-        description: "Astrophysics Research Group"
-        members:
-          - "shawking"
-          - "ntyson"
-          - "csagan"
-          - "jkaku"
-      - name: "condensed-matter"
-        description: "Condensed Matter Physics Research Group"
-        members:
-          - "landerson"
-          - "bcooper"
-          - "jbardeen"
-          - "rfeynman"
   tasks:
     - name: Fix MungeSocketPath in slurm.conf
       lineinfile:
