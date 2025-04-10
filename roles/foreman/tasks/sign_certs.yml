@@ -2,6 +2,24 @@
 # Tasks for signing Puppet certificates on the Foreman server
 # These tasks have the 'foreman_sign_certs' tag
 
+- name: Certs | Ensure Puppet Server is installed
+  ansible.builtin.package:
+    name: { { package } }
+    loop:
+      - puppetserver
+      - openssl
+    loop_control:
+      loop_var: package
+    state: present
+  tags: foreman_sign_certs
+
+- name: Certs | Ensure Puppet server is running
+  ansible.builtin.service:
+    name: puppetserver
+    state: started
+    enabled: yes
+  tags: foreman_sign_certs
+
 - name: Certs | Pause to allow agents time to submit CSRs
   ansible.builtin.pause:
     seconds: "{{ signing_delay_seconds }}"
