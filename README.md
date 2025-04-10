@@ -1,101 +1,212 @@
-```markdown
-# Infrastructure Ansible Playbooks
+# HPC Cluster Deployment with Ansible
 
-This repository contains Ansible playbooks for deploying infrastructure components including:
+## This repository contains Ansible playbooks and roles for deploying and configuring a complete High-Performance Computing (HPC) cluster with SLURM workload manager, OpenLDAP authentication, and monitoring infrastructure.
 
-- SLURM Cluster (Database, Control, and Compute nodes)
-- OpenLDAP Server
+🏗️ Architecture Overview
+The infrastructure consists of the following components:
 
-## SLURM Components
+SLURM Cluster
+Controller Node (slurmctld)
 
-### SLURM Database Server
-- MariaDB/MySQL database setup
-- Munge authentication configuration
-- SLURM database daemon configuration
+Database Node (slurmdbd with MariaDB)
 
-### SLURM Control Server
-- Munge authentication configuration
-- SLURM controller daemon setup
-- CGroup configuration
+Compute Nodes (slurmd)
 
-### SLURM Compute Nodes
-- Munge authentication configuration
-- SLURM compute daemon setup
+Authentication
+OpenLDAP Server
 
-### OpenLDAP Server
-- Complete OpenLDAP installation and configuration
-- User and group management
-- LDAP authentication setup
+LDAP Clients (SSSD)
 
-## Directory Structure
+Monitoring
+Prometheus
 
- ```
+Grafana
 
-```
+Node Exporter
 
-.
-├── group_vars/
-│   └── all.yml
-├── roles/
-│   ├── slurmdbd/
-│   ├── slurmctld/
-│   ├── compute/
-│   └── openldap/
+SLURM Exporter
+
+Additional Services
+DNS Server
+
+Foreman for system management
+
+Docker for containerized services
+
+📁 Directory Structure
+graphql
+Kopiera
+Redigera
+playbooks-ansible/
 ├── inventory/
-│   └── hosts
-├── slurmdbd.yml
-├── slurmctld.yml
-├── compute.yml
-└── openldap.yml
+│ └── hosts # Inventory file
+├── group_vars/
+│ ├── all.yml # Global variables
+│ └── vault.yml # Encrypted sensitive variables
+├── roles/
+│ ├── compute/ # SLURM compute nodes
+│ ├── dns/ # DNS configuration
+│ ├── docker/ # Docker installation
+│ ├── epel/ # EPEL repository
+│ ├── foreman/ # Foreman setup
+│ ├── grafana/ # Grafana configuration
+│ ├── monitoring/ # Monitoring stack
+│ ├── node_exporter/ # Prometheus Node Exporter
+│ ├── openldap/ # OpenLDAP server
+│ ├── prometheus/ # Prometheus configuration
+│ ├── slurmctld/ # SLURM controller
+│ └── slurmdbd/ # SLURM database
+├── templates/
+│ ├── ldap.conf.j2 # LDAP client template
+│ └── sssd.conf.j2 # SSSD configuration template
+├── compute.yml # Playbook for compute nodes
+├── deploy-foreman.yml # Playbook for Foreman
+├── dns.yml # Playbook for DNS
+├── ldap-client.yml # Playbook for LDAP clients
+├── monitoring.yml # Playbook for monitoring stack
+├── openldap.yml # Playbook for OpenLDAP
+├── site.yml # Main playbook
+├── slurmctld.yml # SLURM controller playbook
+├── slurmdbd.yml # SLURM database playbook
+└── documentacion_slurm.tex # LaTeX documentation for SLURM
+🚀 Deployment Order
+To ensure a correct deployment, follow this order:
 
-```plaintext
+Basic infrastructure (DNS, EPEL)
 
-## Usage
+Authentication (OpenLDAP)
 
-### SLURM Deployment
+SLURM components (in order: slurmdbd → slurmctld → compute)
 
-1. Configure your inventory in `inventory/hosts`
-2. Customize variables in `group_vars/all.yml`
-3. Deploy in sequence:
+Monitoring stack
 
-```bash
-# 1. Deploy SLURM Database Server
-ansible-playbook -i inventory/hosts slurmdbd.yml
+Additional services (Foreman, Docker)
 
-# 2. Deploy SLURM Control Server
-ansible-playbook -i inventory/hosts slurmctld.yml
+📜 Playbooks
+Main Playbooks
+site.yml: Orchestrates the entire deployment
 
-# 3. Deploy SLURM Compute Nodes
-ansible-playbook -i inventory/hosts compute.yml
- ```
+slurmctld.yml: Deploys the SLURM controller node
 
-```
+slurmdbd.yml: Deploys the SLURM database node
 
-### OpenLDAP Deployment
-1. Configure your inventory in inventory/hosts (add to services group)
-2. Deploy OpenLDAP:
-```bash
-# Deploy OpenLDAP Server
-ansible-playbook -i inventory/hosts openldap.yml
- ```
+compute.yml: Configures SLURM compute nodes
 
-```
+openldap.yml: Sets up the OpenLDAP server
 
-You can customize OpenLDAP settings in the playbook:
+ldap-client.yml: Configures LDAP clients (SSSD)
 
-```yaml
-vars:
-  ldap_domain: "example.com"
-  ldap_organization: "Example Org"
-  ldap_root_dn: "cn=admin,dc=example,dc=com"
-  ldap_base_dn: "dc=example,dc=com"
-  ldap_admin_password: "SecurePassword"
- ```
+monitoring.yml: Deploys Prometheus and Grafana
 
-```
+dns.yml: Sets up the DNS server
 
-## Requirements
-- Ansible 2.9 or higher
-- Target systems running supported Linux distribution (RHEL/CentOS/Rocky Linux)
-- SSH access to all nodes
-- Sudo privileges on target systems
+deploy-foreman.yml: Installs and configures Foreman
+
+⚙️ Configuration
+All configuration is centralized in inventory/group_vars/all.yml and includes:
+
+Network and domain settings
+
+SLURM cluster configuration
+
+OpenLDAP settings
+
+Database credentials (from encrypted vault.yml)
+
+Monitoring configuration
+
+Firewall rules
+
+SSH settings
+
+Backup policies
+
+SLURM user/group management
+
+Sensitive information is stored securely in an encrypted Ansible vault.
+
+⚡ SLURM Cluster
+The SLURM cluster includes:
+
+Controller Node: Manages job scheduling and resource allocation
+
+Database Node: Stores job/accounting data using MariaDB
+
+Compute Nodes: Execute jobs submitted via SLURM
+
+Includes:
+
+Munge authentication
+
+SLURM configuration
+
+User/group setup
+
+Firewall rules
+
+🔐 Authentication
+Centralized user authentication with OpenLDAP:
+
+Centralized user/group management
+
+Group-based access control
+
+SSSD integration on all nodes
+
+Automatic home directory creation
+
+📈 Monitoring
+The monitoring stack includes:
+
+Prometheus: Metrics collection
+
+Grafana: Dashboards and visualizations
+
+Node Exporter: Node metrics
+
+SLURM Exporter: SLURM-specific metrics
+
+▶️ Usage
+Deploy the Entire Infrastructure
+bash
+Kopiera
+Redigera
+ansible-playbook -i inventory/hosts site.yml
+Deploy Individual Components
+bash
+Kopiera
+Redigera
+ansible-playbook -i inventory/hosts <playbook>.yml
+✅ Requirements
+Ansible 2.9+
+
+SSH access to all nodes
+
+Sudo privileges on target nodes
+
+Rocky Linux 8+ (or compatible)
+
+🔒 Security Considerations
+Sensitive variables are encrypted via Ansible Vault
+
+SSH keys used for authentication
+
+Firewall rules configured for each service
+
+LDAP can be configured with TLS encryption
+
+🛠️ Maintenance
+Regular tasks to ensure system health:
+
+Backup SLURM database
+
+Monitor system resources
+
+Update packages
+
+Review logs for errors
+
+Check SLURM job accounting
+
+📚 Documentation
+documentacion_slurm.tex: Full SLURM deployment documentation in LaTeX format
