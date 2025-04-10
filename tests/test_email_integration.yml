@@ -1,0 +1,31 @@
+---
+- name: Test Email Integration for Reporting System
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - ../inventory/group_vars/all.yml
+    - ../inventory/group_vars/vault/vault.yml
+  tasks:
+    - name: Ensure test directory exists
+      file:
+        path: "{{ playbook_dir }}/output"
+        state: directory
+        mode: '0755'
+
+    - name: Run email test script
+      environment:
+        GMAIL_APP_PASSWORD: "{{ vault_smtp_password }}"
+      command: python {{ playbook_dir }}/test_email.py
+      register: email_test_result
+      failed_when: "'Email sent successfully' not in email_test_result.stdout"
+
+    - name: Display test result
+      debug:
+        msg: "{{ email_test_result.stdout }}"
+
+    - name: Verify email configuration
+      assert:
+        that:
+          - "'Email sent successfully' in email_test_result.stdout"
+        fail_msg: "Email test failed. Check SMTP configuration and credentials."
+        success_msg: "Email integration test passed successfully!"
