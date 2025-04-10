@@ -26,14 +26,6 @@
     mode: "0644"
   tags: foreman_sign_certs
 
-- name: Certs | Set correct ownership for puppetserver
-  ansible.builtin.file:
-    path: /etc/puppetlabs/puppet/puppet.conf
-    owner: puppetserver
-    group: puppetserver
-    mode: "0644"
-  tags: foreman_sign_certs
-
 - name: Certs | Pause to allow agents time to submit CSRs
   ansible.builtin.pause:
     seconds: "{{ signing_delay_seconds }}"
