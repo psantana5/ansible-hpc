@@ -18,23 +18,7 @@
       - automake
       - libtool
       - environment-modules
-      - lmod
       - git
-    state: present
-
-- name: Install scientific libraries
-  package:
-    name:
-      - openblas
-      - openblas-devel
-      - lapack
-      - lapack-devel
-      - fftw
-      - fftw-devel
-      - hdf5
-      - hdf5-devel
-      - netcdf
-      - netcdf-devel
     state: present
 
 - name: Ensure SLURM config directory exists
@@ -43,12 +27,29 @@
     state: directory
     mode: "0755"
 
+- name: Create slurm group
+  group:
+    name: slurm
+    gid: 982
+    state: present
+
+- name: Create slurm user
+  user:
+    name: slurm
+    uid: 982
+    group: slurm
+    state: present
+
+- name: Add slurm01 to /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ hostvars[groups['slurmctld'][0]]['ansible_host'] }} slurm01"
+    state: present
+
 - name: Fetch SLURM configuration from controller node
-  ansible.posix.synchronize:
-    src: root@192.168.1.140:/etc/slurm/slurm.conf
-    dest: /etc/slurm/slurm.conf
-    mode: pull
-  delegate_to: "{{ inventory_hostname }}"
+  shell: scp root@{{ hostvars[groups['slurmctld'][0]]['ansible_host'] }}:/etc/slurm/slurm.conf /etc/slurm/slurm.conf
+  args:
+    creates: /etc/slurm/slurm.conf
   become: yes
 
 - name: Set proper permissions on slurm.conf
@@ -67,11 +68,9 @@
     mode: "0700"
 
 - name: Fetch munge key from controller node
-  ansible.posix.synchronize:
-    src: root@192.168.1.140:/etc/munge/munge.key
-    dest: /etc/munge/munge.key
-    mode: pull
-  delegate_to: "{{ inventory_hostname }}"
+  shell: scp root@{{ hostvars[groups['slurmctld'][0]]['ansible_host'] }}:/etc/munge/munge.key /etc/munge/munge.key
+  args:
+    creates: /etc/munge/munge.key
   become: yes
 
 - name: Set proper permissions on munge key
