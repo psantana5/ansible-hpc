@@ -4,13 +4,11 @@
 
 - name: Certs | Ensure Puppet Server is installed
   ansible.builtin.package:
-    name: { { package } }
-    loop:
-      - puppetserver
-      - openssl
-    loop_control:
-      loop_var: package
+    name: "{{ item }}"
     state: present
+  loop:
+    - puppetserver
+    - openssl
   tags: foreman_sign_certs
 
 - name: Certs | Ensure Puppet server is running
@@ -20,13 +18,29 @@
     enabled: yes
   tags: foreman_sign_certs
 
+- name: Certs | Set correct ownership and permissions for puppet.conf
+  ansible.builtin.file:
+    path: /etc/puppetlabs/puppet/puppet.conf
+    owner: puppet
+    group: puppet
+    mode: "0644"
+  tags: foreman_sign_certs
+
+- name: Certs | Set correct ownership for puppetserver
+  ansible.builtin.file:
+    path: /etc/puppetlabs/puppet/puppet.conf
+    owner: puppetserver
+    group: puppetserver
+    mode: "0644"
+  tags: foreman_sign_certs
+
 - name: Certs | Pause to allow agents time to submit CSRs
   ansible.builtin.pause:
     seconds: "{{ signing_delay_seconds }}"
     prompt: |
       Waiting {{ signing_delay_seconds }} seconds for agents to submit CSRs.
       Press ENTER to continue sooner, or CTRL+C then A to abort.
-  tags: foreman_sign_certs # Apply tag here too for granularity if needed
+  tags: foreman_sign_certs
 
 - name: Certs | Check for pending Puppet certificate requests
   ansible.builtin.command: /opt/puppetlabs/bin/puppetserver ca list
