@@ -1,42 +1,32 @@
 # HPC Cluster Deployment with Ansible
 
-## This repository contains Ansible playbooks and roles for deploying and configuring a complete High-Performance Computing (HPC) cluster with SLURM workload manager, OpenLDAP authentication, and monitoring infrastructure.
+### This repository contains Ansible playbooks and roles for deploying and configuring a complete High-Performance Computing (HPC) cluster with SLURM workload manager, OpenLDAP authentication, and monitoring infrastructure.
 
-🏗️ Architecture Overview
+## 🏗️ Architecture Overview
 The infrastructure consists of the following components:
 
-SLURM Cluster
-Controller Node (slurmctld)
+### SLURM Cluster
+- **Controller Node** (slurmctld)
+- **Database Node** (slurmdbd with MariaDB)
+- **Compute Nodes** (slurmd)
 
-Database Node (slurmdbd with MariaDB)
+### Authentication
+- **OpenLDAP Server**
+- **LDAP Clients** (SSSD)
 
-Compute Nodes (slurmd)
+### Monitoring
+- **Prometheus**
+- **Grafana**
+- **Node Exporter**
+- **SLURM Exporter**
 
-Authentication
-OpenLDAP Server
+### Additional Services
+- **DNS Server**
+- **Foreman** for system management
+- **Docker** for containerized services
 
-LDAP Clients (SSSD)
+## 📁 Directory Structure
 
-Monitoring
-Prometheus
-
-Grafana
-
-Node Exporter
-
-SLURM Exporter
-
-Additional Services
-DNS Server
-
-Foreman for system management
-
-Docker for containerized services
-
-📁 Directory Structure
-graphql
-Kopiera
-Redigera
 playbooks-ansible/
 ├── inventory/
 │ └── hosts # Inventory file
@@ -69,144 +59,98 @@ playbooks-ansible/
 ├── slurmctld.yml # SLURM controller playbook
 ├── slurmdbd.yml # SLURM database playbook
 └── documentacion_slurm.tex # LaTeX documentation for SLURM
-🚀 Deployment Order
+
+## 🚀 Deployment Order
 To ensure a correct deployment, follow this order:
+1. **Basic infrastructure** (DNS, EPEL)
+2. **Authentication** (OpenLDAP)
+3. **SLURM components** (in order: slurmdbd → slurmctld → compute)
+4. **Monitoring stack**
+5. **Additional services** (Foreman, Docker)
 
-Basic infrastructure (DNS, EPEL)
+## 📜 Playbooks
 
-Authentication (OpenLDAP)
+### Main Playbooks
+- **`site.yml`**: Orchestrates the entire deployment
+- **`slurmctld.yml`**: Deploys the SLURM controller node
+- **`slurmdbd.yml`**: Deploys the SLURM database node
+- **`compute.yml`**: Configures SLURM compute nodes
+- **`openldap.yml`**: Sets up the OpenLDAP server
+- **`ldap-client.yml`**: Configures LDAP clients (SSSD)
+- **`monitoring.yml`**: Deploys Prometheus and Grafana
+- **`dns.yml`**: Sets up the DNS server
+- **`deploy-foreman.yml`**: Installs and configures Foreman
 
-SLURM components (in order: slurmdbd → slurmctld → compute)
-
-Monitoring stack
-
-Additional services (Foreman, Docker)
-
-📜 Playbooks
-Main Playbooks
-site.yml: Orchestrates the entire deployment
-
-slurmctld.yml: Deploys the SLURM controller node
-
-slurmdbd.yml: Deploys the SLURM database node
-
-compute.yml: Configures SLURM compute nodes
-
-openldap.yml: Sets up the OpenLDAP server
-
-ldap-client.yml: Configures LDAP clients (SSSD)
-
-monitoring.yml: Deploys Prometheus and Grafana
-
-dns.yml: Sets up the DNS server
-
-deploy-foreman.yml: Installs and configures Foreman
-
-⚙️ Configuration
-All configuration is centralized in inventory/group_vars/all.yml and includes:
-
-Network and domain settings
-
-SLURM cluster configuration
-
-OpenLDAP settings
-
-Database credentials (from encrypted vault.yml)
-
-Monitoring configuration
-
-Firewall rules
-
-SSH settings
-
-Backup policies
-
-SLURM user/group management
+## ⚙️ Configuration
+All configuration is centralized in `inventory/group_vars/all.yml` and includes:
+- Network and domain settings
+- SLURM cluster configuration
+- OpenLDAP settings
+- Database credentials (from encrypted `vault.yml`)
+- Monitoring configuration
+- Firewall rules
+- SSH settings
+- Backup policies
+- SLURM user/group management
 
 Sensitive information is stored securely in an encrypted Ansible vault.
 
-⚡ SLURM Cluster
+## ⚡ SLURM Cluster
 The SLURM cluster includes:
-
-Controller Node: Manages job scheduling and resource allocation
-
-Database Node: Stores job/accounting data using MariaDB
-
-Compute Nodes: Execute jobs submitted via SLURM
+- **Controller Node**: Manages job scheduling and resource allocation
+- **Database Node**: Stores job/accounting data using MariaDB
+- **Compute Nodes**: Execute jobs submitted via SLURM
 
 Includes:
+- Munge authentication
+- SLURM configuration
+- User/group setup
+- Firewall rules
 
-Munge authentication
-
-SLURM configuration
-
-User/group setup
-
-Firewall rules
-
-🔐 Authentication
+## 🔐 Authentication
 Centralized user authentication with OpenLDAP:
+- Centralized user/group management
+- Group-based access control
+- SSSD integration on all nodes
+- Automatic home directory creation
 
-Centralized user/group management
-
-Group-based access control
-
-SSSD integration on all nodes
-
-Automatic home directory creation
-
-📈 Monitoring
+## 📈 Monitoring
 The monitoring stack includes:
+- **Prometheus**: Metrics collection
+- **Grafana**: Dashboards and visualizations
+- **Node Exporter**: Node metrics
+- **SLURM Exporter**: SLURM-specific metrics
 
-Prometheus: Metrics collection
+## ▶️ Usage
 
-Grafana: Dashboards and visualizations
-
-Node Exporter: Node metrics
-
-SLURM Exporter: SLURM-specific metrics
-
-▶️ Usage
-Deploy the Entire Infrastructure
-bash
-Kopiera
-Redigera
+### Deploy the Entire Infrastructure
+```bash
 ansible-playbook -i inventory/hosts site.yml
+```
 Deploy Individual Components
-bash
-Kopiera
-Redigera
+``` bash
 ansible-playbook -i inventory/hosts <playbook>.yml
-✅ Requirements
-Ansible 2.9+
-
-SSH access to all nodes
-
-Sudo privileges on target nodes
-
-Rocky Linux 8+ (or compatible)
-
-🔒 Security Considerations
-Sensitive variables are encrypted via Ansible Vault
-
-SSH keys used for authentication
-
-Firewall rules configured for each service
-
-LDAP can be configured with TLS encryption
-
-🛠️ Maintenance
-Regular tasks to ensure system health:
-
-Backup SLURM database
-
-Monitor system resources
-
-Update packages
-
-Review logs for errors
-
-Check SLURM job accounting
-
-📚 Documentation
-documentacion_slurm.tex: Full SLURM deployment documentation in LaTeX format
+```
+## ✅ Requirements
+- Ansible 2.9+
+- SSH access to all nodes
+- Sudo privileges on target nodes
+- Rocky Linux 8+ (or compatible)
+  
+## 🔒 Security Considerations
+- Sensitive variables are encrypted via Ansible Vault
+- SSH keys used for authentication
+- Firewall rules configured for each service
+- LDAP can be configured with TLS encryption
+  
+## 🛠️ Maintenance
+- Regular tasks to ensure system health:
+- Backup SLURM database
+- Monitor system resources
+- Update packages
+- Review logs for errors
+- Check SLURM job accounting
+  
+## 📚 Documentation
+- documentacion_slurm.tex: Full SLURM deployment documentation in LaTeX format
+- documentacion_infraestructura.tex: Full Infra deployment documentation in LaTeX format.
