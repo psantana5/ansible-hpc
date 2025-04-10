@@ -1,9 +1,6 @@
 # roles/openldap/tasks/main.yml
 ---
-# Note: Variables like ldap_domain, ldap_admin_password, etc.,
-# are expected to be defined at the playbook level or in role defaults/vars.
-# Handlers (like daemon-reload, restart slapd) are also expected
-# to be defined at the playbook level or in role handlers/.
+# Note: Variables are now defined in inventory/group_vars/main.yml
 
 # ----------------------------------------------------------------------
 # Phase 1: Prerequisites and Package Installation

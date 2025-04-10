@@ -22,12 +22,14 @@ ntp_servers: # Used by Foreman role (Puppet agents) and potentially others
 # ------------------------------------------------------------
 # Domain name used across various services (LDAP, DNS Zone, etc.)
 base_domain: "linkiafp.es" # CHANGEME - Your primary domain
+cluster_domain: "{{ base_domain }}" # Used in DNS templates
 
 # DNS Role specific (if using the 'dns' role)
 dns_domain: "{{ base_domain }}" # Often same as base_domain
 # Example for 192.168.1.0/24 reverse zone:
 dns_reverse_zone_network: "1.168.192.in-addr.arpa" # CHANGEME
 dns_reverse_zone_prefix: "192.168.1" # CHANGEME - Network prefix for reverse lookups
+cluster_network: "192.168.1.0/24" # Used in DNS templates for reverse zones
 dns_forwarders: # Optional: DNS servers to forward queries to
   - 8.8.8.8
   - 8.8.4.4
@@ -36,41 +38,119 @@ dns_allow_query: ["192.168.1.0/24", "localhost"] # CHANGEME - Networks allowed t
 dns_allow_transfer: ["none"] # Define secondary DNS servers if applicable
 
 # ------------------------------------------------------------
+# Firewall Configuration
+# ------------------------------------------------------------
+firewall_ports_tcp:
+  - 22 # SSH
+  - 80 # HTTP
+  - 443 # HTTPS
+  - 389 # LDAP
+  - 636 # LDAPS
+  - 5647 # Katello (if installed/enabled via installer later)
+  - 8140 # Puppet Master Port (Foreman acts as master)
+  - 8443 # Dynflow / Smart Proxy HTTPS
+  - 9090 # Prometheus
+  - 9100 # Node Exporter
+  - 9101 # Slurm Exporter
+  - 3000 # Grafana
+
+# ------------------------------------------------------------
+# Repository Configuration
+# ------------------------------------------------------------
+epel_repo_package: "epel-release"
+
+# ------------------------------------------------------------
 # Foreman / Puppet Configuration
 # ------------------------------------------------------------
 foreman_hostname: "foreman01.{{ base_domain }}" # **VERIFY/CONFIRM THIS FQDN IS CORRECT**
 puppet_version: "7" # Match compatible Puppet version for Foreman
 foreman_version: "3.10" # Foreman version branch you intend to install
-# signing_delay_seconds: 60 # Delay before attempting auto-sign (default in role)
+signing_delay_seconds: 60 # Delay before attempting auto-sign
+
+# Foreman package and file paths
+foreman_installer_package: "foreman-installer"
+foreman_answers_file: "/etc/foreman-installer/scenarios.d/foreman-answers.yaml"
+puppet_conf_file: "/etc/puppetlabs/puppet/puppet.conf"
+puppet_agent_package: "puppet-agent"
+puppet_service_name: "puppet"
+
+# Repository URLs
+foreman_repo_url: "https://yum.theforeman.org/releases/{{ foreman_version }}/el8/x86_64/foreman-release.rpm"
+puppet_repo_url: "https://yum.puppet.com/puppet{{ puppet_version }}-release-el-8.noarch.rpm"
+
+# NTP Configuration
+ntp_package: "chrony"
+ntp_service_name: "chronyd"
+ntp_conf_file: "/etc/chrony.conf"
 
 # ------------------------------------------------------------
 # OpenLDAP Configuration (Server & Client)
 # ------------------------------------------------------------
 ldap_domain_components: "{{ base_domain.split('.') }}" # Splits "linkiafp.es" into ['linkiafp', 'es']
 ldap_base_dn: "dc={{ ldap_domain_components | join(',dc=') }}" # Generates dc=linkiafp,dc=es
-ldap_organization: "LinkiaFP" # CHANGEME - Your organization name
+ldap_organization: "LinkiaFP" # Organization name
 ldap_root_dn: "cn=admin,{{ ldap_base_dn }}" # Standard admin DN
-ldap_root_password: "CHANGEME_LDAP_ADMIN_PASSWORD" # <<< USE VAULT!
+ldap_root_password: "{{ vault_ldap_root_password }}" # From vault
 ldap_server_uri: "ldap://ldap01.{{ base_domain }}" # URI for clients (change ldap01 if needed)
-# ldap_server_host: "ldap01.{{ base_domain }}" # Often derivable from URI or inventory
+ldap_server_host: "ldap01.{{ base_domain }}" # Often derivable from URI or inventory
 ldap_user_ou: "People" # Organizational Unit for users
 ldap_group_ou: "Groups" # Organizational Unit for groups
-# ldap_tls_enable: true # Set to true if using TLS/SSL
-# ldap_tls_cert_file: "/etc/pki/tls/certs/ldap_server.crt" # Path on server
-# ldap_tls_key_file: "/etc/pki/tls/private/ldap_server.key" # Path on server
-# ldap_tls_cacert_file: "/etc/pki/tls/certs/ca.crt" # Path on server and clients
+ldap_domain: "{{ base_domain }}" # Used in ldap_vars.yml
+ldap_root_user: "admin" # Just the username part
+ldap_dc_string: "{{ ldap_domain_components | map('regex_replace', '^(.*)$', 'dc=\\1') | join(',') }}"
+
+# LDAP TLS Settings
+ldap_tls_enable: false # Set to true if using TLS/SSL
+ldap_tls_cert_file: "/etc/pki/tls/certs/ldap_server.crt" # Path on server
+ldap_tls_key_file: "/etc/pki/tls/private/ldap_server.key" # Path on server
+ldap_tls_cacert_file: "/etc/pki/tls/certs/ca.crt" # Path on server and clients
+ldap_tls_cert_path: "/etc/pki/tls/certs/ldapserver.crt" # Used in ldap_vars.yml
+ldap_tls_key_path: "/etc/pki/tls/private/ldapserver.key" # Used in ldap_vars.yml
+ldap_tls_key_owner: "ldap"
+ldap_tls_key_group: "ldap"
+ldap_tls_key_mode: "0640"
+ldap_tls_cert_owner: "root"
+ldap_tls_cert_group: "root"
+ldap_tls_cert_mode: "0644"
+
+# LDAP Indexes
+ldap_indexes:
+  - objectClass
+  - cn
+  - uid
+  - uidNumber
+  - gidNumber
+  - member
+  - mail
+  - givenName
+  - sn
+
+# LDAP Service Configuration
+ldap_start_service: true
+ldap_enable_service: true
+ldap_log_level: 256
+
+# LDAP User/Group and Paths
+ldap_user: ldap
+ldap_group: ldap
+ldap_uid: 55
+ldap_gid: 55
+ldap_home: /var/lib/ldap
+ldap_config_dir: /etc/openldap
+ldap_data_dir: "{{ ldap_home }}"
+ldap_slapd_d_dir: "{{ ldap_config_dir }}/slapd.d"
 
 # SSSD (LDAP Client) Configuration
 sssd_domains: "{{ base_domain }}" # Domain for SSSD configuration
 sssd_ldap_uri: "{{ ldap_server_uri }}"
 sssd_ldap_search_base: "{{ ldap_base_dn }}"
-# sssd_ldap_tls_cacert: "{{ ldap_tls_cacert_file }}" # Path on clients (if using TLS)
+sssd_ldap_tls_cacert: "{{ ldap_tls_cacert_file }}" # Path on clients (if using TLS)
 
 # ------------------------------------------------------------
 # Slurm Cluster Configuration
 # ------------------------------------------------------------
 slurm_cluster_name: "linkia_cluster" # CHANGEME - Name for your Slurm cluster
-# slurm_version: "23.02.7" # Optional: Specify exact Slurm version if needed for install steps
+slurm_version: "23.02.7" # Optional: Specify exact Slurm version if needed for install steps
 
 # Hostnames (ensure these match inventory group names/hosts)
 slurmctld_host: "slurm01.{{ base_domain }}" # Hostname of the controller node
@@ -81,15 +161,23 @@ slurmdbd_db_host: "localhost" # Usually localhost if DB is on same node as slurm
 slurmdbd_db_port: 3306 # Default MariaDB/MySQL port
 slurmdbd_db_name: "slurm_acct_db"
 slurmdbd_db_user: "slurm"
-slurmdbd_db_password: "admin" # <<< USE VAULT!
+slurmdbd_db_password: "{{ vault_slurmdbd_db_password }}" # From vault
 
-# Munge configuration (often handled within roles, but path could be var)
-# munge_key_path: "/etc/munge/munge.key"
+# Munge configuration
+munge_key_path: "/etc/munge/munge.key"
 
-# Slurm paths (defaults usually fine unless installing from source)
-# slurm_conf_path: "/etc/slurm/slurm.conf"
-# slurm_log_dir: "/var/log/slurm"
-# slurm_state_save_location: "/var/spool/slurmctld"
+# Slurm paths
+slurm_conf_path: "/etc/slurm/slurm.conf"
+slurm_log_dir: "/var/log/slurm"
+slurm_state_save_location: "/var/spool/slurmctld"
+
+# ------------------------------------------------------------
+# MariaDB/MySQL Configuration
+# ------------------------------------------------------------
+mysql_root_password: "{{ vault_mysql_root_password }}" # From vault
+mysql_bind_address: "127.0.0.1"
+mysql_port: 3306
+mysql_datadir: "/var/lib/mysql"
 
 # ------------------------------------------------------------
 # Monitoring Configuration (Prometheus/Grafana/Exporters)
@@ -99,7 +187,7 @@ monitoring_compose_dir: "/opt/monitoring" # Directory to store docker-compose.ym
 
 # Grafana specific (used by 'monitoring' role or standalone 'grafana' role)
 grafana_admin_user: "admin"
-grafana_admin_password: "admin" # <<< USE VAULT!
+grafana_admin_password: "{{ vault_grafana_admin_password }}" # From vault
 grafana_port: 3000 # Default Grafana port
 
 # Prometheus specific (used by 'monitoring' role or standalone 'prometheus' role)
@@ -118,6 +206,22 @@ slurm_exporter_port: 9101 # Example port (check actual exporter used)
 # ------------------------------------------------------------
 docker_users: # Optional: List of users to add to the 'docker' group
   - psantana
+
+# ------------------------------------------------------------
+# SSH Configuration
+# ------------------------------------------------------------
+ssh_port: 22
+ssh_permit_root_login: "no"
+ssh_password_authentication: "no"
+ssh_allow_groups: "sudo wheel"
+
+# ------------------------------------------------------------
+# Backup Configuration
+# ------------------------------------------------------------
+backup_dir: "/var/backups"
+backup_retention_days: 7
+backup_schedule: "0 2 * * *" # Daily at 2 AM
+
 # ============================================================
 # End of Global Variables
 # ============================================================

@@ -1,28 +1,28 @@
 $TTL 86400
-@ IN SOA {{ ansible_hostname }}.{{ cluster_domain }}. root.{{ cluster_domain }}. (
+@ IN SOA {{ ansible_hostname }}.{{ base_domain }}. root.{{ base_domain }}. (
     {{ ansible_date_time.epoch }} ; Serial
     3600        ; Refresh
     1800        ; Retry
     604800      ; Expire
     86400 )     ; Minimum TTL
 
-@ IN NS {{ ansible_hostname }}.{{ cluster_domain }}.
+@ IN NS {{ ansible_hostname }}.{{ base_domain }}.
 
 ; PTR records for cluster nodes
-{% set network = cluster_network | ipaddr('network') %}
-{{ ansible_default_ipv4.address | ipaddr('address') | replace(network + '.', '') }} IN PTR {{ ansible_hostname }}.{{ cluster_domain }}.
+{% set network = dns_reverse_zone_prefix %}
+{{ ansible_default_ipv4.address | ipaddr('address') | replace(network + '.', '') }} IN PTR {{ ansible_hostname }}.{{ base_domain }}.
 
 ; SLURM Controller
 {% for host in groups['slurmctld'] %}
-{{ hostvars[host]['ansible_default_ipv4']['address'] | ipaddr('address') | replace(network + '.', '') }} IN PTR {{ host }}.{{ cluster_domain }}.
+{{ hostvars[host]['ansible_default_ipv4']['address'] | ipaddr('address') | replace(network + '.', '') }} IN PTR {{ host }}.{{ base_domain }}.
 {% endfor %}
 
 ; SLURM Database
 {% for host in groups['slurmdbd'] %}
-{{ hostvars[host]['ansible_default_ipv4']['address'] | ipaddr('address') | replace(network + '.', '') }} IN PTR {{ host }}.{{ cluster_domain }}.
+{{ hostvars[host]['ansible_default_ipv4']['address'] | ipaddr('address') | replace(network + '.', '') }} IN PTR {{ host }}.{{ base_domain }}.
 {% endfor %}
 
 ; Compute Nodes
 {% for host in groups['compute'] %}
-{{ hostvars[host]['ansible_default_ipv4']['address'] | ipaddr('address') | replace(network + '.', '') }} IN PTR {{ host }}.{{ cluster_domain }}.
+{{ hostvars[host]['ansible_default_ipv4']['address'] | ipaddr('address') | replace(network + '.', '') }} IN PTR {{ host }}.{{ base_domain }}.
 {% endfor %}

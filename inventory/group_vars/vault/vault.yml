@@ -1,0 +1,6 @@
+---
+# Sensitive variables - encrypt this file with ansible-vault
+vault_ldap_root_password: "admin"
+vault_slurmdbd_db_password: "admin"
+vault_mysql_root_password: "admin"
+vault_grafana_admin_password: "admin"

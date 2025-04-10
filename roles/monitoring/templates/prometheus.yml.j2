@@ -1,5 +1,5 @@
 global:
-  scrape_interval: 15s
+  scrape_interval: {{ prometheus_scrape_interval }}
   evaluation_interval: 15s
 
 rule_files:
@@ -8,15 +8,15 @@ rule_files:
 scrape_configs:
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['localhost:{{ prometheus_port }}']
 
   - job_name: 'node_exporter'
     static_configs:
       - targets:
-          - localhost:9100
+          - localhost:{{ node_exporter_port }}
           {% for host in groups['all'] %}
           {% if host != 'services01' and host != inventory_hostname %}
-          - {{ hostvars[host]['ansible_host'] | default(host) }}:9100
+          - {{ hostvars[host]['ansible_host'] | default(host) }}:{{ node_exporter_port }}
           {% endif %}
           {% endfor %}
 
@@ -27,6 +27,6 @@ scrape_configs:
     static_configs:
       - targets:
           {% for host in groups['slurmctld'] %}
-          - {{ hostvars[host]['ansible_host'] | default(host) }}:9092
+          - {{ hostvars[host]['ansible_host'] | default(host) }}:{{ slurm_exporter_port }}
           {% endfor %}
 {% endif %}
