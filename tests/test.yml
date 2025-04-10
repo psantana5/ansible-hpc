@@ -1,0 +1,25 @@
+---
+- name: Verify SLURM installation
+  hosts: test_nodes
+  tasks:
+    - name: Check SLURM controller service
+      command: systemctl status slurmctld
+      register: slurmctld_status
+      changed_when: false
+      failed_when: "'active (running)' not in slurmctld_status.stdout"
+      
+    - name: Verify SLURM configuration
+      command: scontrol show config
+      register: slurm_config
+      changed_when: false
+      failed_when: slurm_config.rc != 0
+      
+    - name: Test job submission
+      shell: |
+        echo "#!/bin/bash" > /tmp/test_job.sh
+        echo "sleep 10" >> /tmp/test_job.sh
+        chmod +x /tmp/test_job.sh
+        sbatch /tmp/test_job.sh
+      register: job_submit
+      changed_when: false
+      failed_when: "'Submitted batch job' not in job_submit.stdout"

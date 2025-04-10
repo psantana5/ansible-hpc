@@ -574,7 +574,7 @@ Prometheus recopila métricas de todos los componentes:
       "type": "graph",
       "targets": [
         {
-          "expr": "100 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100)",
+          "expr": "100 - ((node_memory_MemAvailable_bytes * 100) / node_memory_MemTotal_bytes)",
           "legendFormat": "{{instance}}"
         }
       ]
@@ -583,265 +583,99 @@ Prometheus recopila métricas de todos los componentes:
 }
 \end{lstlisting}
 
-\subsection{Resolución de Nombres}
+% Add the new section on Documentation Improvements
+\section{Mejoras en la Documentación}
 
-El servicio DNS proporciona resolución de nombres para todos los componentes:
+Para garantizar que esta documentación sea lo más útil posible para todos los usuarios, se han identificado las siguientes áreas de mejora que se implementarán en futuras versiones:
 
-\begin{itemize}[leftmargin=*]
-    \item Facilita la comunicación entre servicios utilizando nombres en lugar de IPs
-    \item Simplifica la configuración y el mantenimiento
-    \item Permite la escalabilidad sin cambios en la configuración
-\end{itemize}
+\subsection{Organización del Contenido}
 
-\section{Despliegue y Gestión}
-\newpage
-
-\subsection{Proceso de Despliegue}
-
-El despliegue de la infraestructura completa se realiza mediante un proceso ordenado:
-
-\begin{enumerate}[leftmargin=*]
-    \item Despliegue de servicios básicos (DNS, EPEL)
-    \item Despliegue de OpenLDAP para autenticación centralizada
-    \item Configuración de clientes LDAP en todos los nodos
-    \item Despliegue del clúster SLURM (primero slurmdbd, luego slurmctld, finalmente compute)
-    \item Despliegue de la infraestructura de monitorización
-    \item Despliegue de servicios adicionales (Docker, Foreman)
-\end{enumerate}
-
-\begin{lstlisting}[language=bash, caption=Comandos para el despliegue]
-# Desplegar servicios básicos
-ansible-playbook -i inventory/hosts dns.yml
-
-# Desplegar OpenLDAP
-ansible-playbook -i inventory/hosts openldap.yml
-
-# Configurar clientes LDAP
-ansible-playbook -i inventory/hosts ldap-client.yml
-
-# Desplegar clúster SLURM
-ansible-playbook -i inventory/hosts slurmdbd.yml
-ansible-playbook -i inventory/hosts slurmctld.yml
-ansible-playbook -i inventory/hosts compute.yml
-
-# Desplegar monitorización
-ansible-playbook -i inventory/hosts monitoring.yml
-
-# Desplegar Foreman
-ansible-playbook -i inventory/hosts deploy-foreman.yml
-
-# Alternativamente, desplegar todo con el playbook principal
-ansible-playbook -i inventory/hosts site.yml
-\end{lstlisting}
-
-\subsection{Gestión de Configuración}
-
-La gestión de la configuración se realiza mediante:
-
-\begin{itemize}[leftmargin=*]
-    \item Variables en group\_vars/all.yml para configuración global
-    \item Variables específicas en cada playbook
-    \item Plantillas Jinja2 para generar archivos de configuración
-    \item Roles modulares para cada componente
-\end{itemize}
-
-\begin{lstlisting}[language=yaml, caption=Extracto de variables globales en group_vars/all.yml]
-# SSH Configuration
-ssh_port: 22
-ssh_permit_root_login: "no"
-ssh_password_authentication: "no"
-ssh_allow_groups: "sudo wheel"
-
-# Backup Configuration
-backup_dir: "/var/backups"
-backup_retention_days: 7
-backup_schedule: "0 2 * * *" # Daily at 2 AM
-\end{lstlisting}
-
-\subsection{Actualizaciones y Mantenimiento}
-
-Las actualizaciones y el mantenimiento se simplifican gracias a la automatización:
-
-\begin{itemize}[leftmargin=*]
-    \item Actualización de paquetes mediante tareas Ansible
-    \item Reinicio controlado de servicios mediante handlers
-    \item Backups automatizados
-    \item Monitorización para detectar problemas
-\end{itemize}
-
-\section{Seguridad}
-\newpage
-
-La seguridad es un aspecto fundamental de la infraestructura:
-
-\subsection{Autenticación y Autorización}
-
-\begin{itemize}[leftmargin=*]
-    \item Autenticación centralizada con OpenLDAP
-    \item SSH configurado para usar claves y deshabilitar autenticación por contraseña
-    \item Grupos de acceso restringidos
-    \item Munge para autenticación segura entre componentes SLURM
-\end{itemize}
-
-\subsection{Seguridad de Red}
-
-\begin{itemize}[leftmargin=*]
-    \item Configuración de firewall para limitar el acceso
-    \item Separación de redes para diferentes componentes
-    \item TLS para comunicaciones seguras
-\end{itemize}
-
-\subsection{Gestión de Secretos}
-
-\begin{itemize}[leftmargin=*]
-    \item Permisos restrictivos para archivos sensibles
-    \item Contraseñas y claves gestionadas de forma segura
-    \item Posibilidad de integrar con Ansible Vault para cifrar secretos
-\end{itemize}
-
-\begin{lstlisting}[language=yaml, caption=Configuración de permisos restrictivos]
-- name: Create SSSD configuration
-  ansible.builtin.template:
-    src: templates/sssd.conf.j2
-    dest: /etc/sssd/sssd.conf
-    owner: root
-    group: root
-    mode: "0600"  # Permisos restrictivos
-\end{lstlisting}
-
-\section{Escalabilidad y Alta Disponibilidad}
-\newpage
-
-\subsection{Escalabilidad}
-
-La infraestructura está diseñada para ser escalable:
-
-\begin{itemize}[leftmargin=*]
-    \item Añadir nuevos nodos de cómputo al clúster SLURM
-    \item Replicación de OpenLDAP para mayor capacidad
-    \item Escalado horizontal de la monitorización
-\end{itemize}
-
-\subsection{Alta Disponibilidad}
-
-Para entornos de producción, se pueden implementar configuraciones de alta disponibilidad:
-
-\begin{itemize}[leftmargin=*]
-    \item Múltiples controladores SLURM
-    \item Replicación de la base de datos SLURM
-    \item Clúster de OpenLDAP
-    \item Redundancia en servicios críticos
-\end{itemize}
-
-\begin{warningbox}[Consideraciones de Alta Disponibilidad]
-En un entorno de producción, es recomendable configurar nodos de respaldo para los servicios críticos para garantizar la alta disponibilidad. SLURM permite configurar múltiples nodos slurmctld y slurmdbd para evitar puntos únicos de fallo. De manera similar, OpenLDAP puede configurarse en modo multi-master para proporcionar redundancia.
-\end{warningbox}
-
-\subsection{Lecciones Aprendidas}
-
-Durante la implementación, se han aprendido varias lecciones importantes:
-
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Orden de despliegue}: Es crucial desplegar los servicios en el orden correcto para evitar dependencias no satisfechas.
-    \item \textbf{Gestión de errores}: Implementar verificaciones y manejo de errores para detectar y resolver problemas rápidamente.
-    \item \textbf{Pruebas incrementales}: Probar cada componente individualmente antes de integrarlos.
-    \item \textbf{Documentación continua}: Documentar durante el desarrollo, no después.
-    \item \textbf{Automatización completa}: Automatizar todo lo posible para reducir errores humanos.
-\end{itemize}
-
-\section{Casos de Uso}
-\newpage
-
-La infraestructura implementada soporta varios casos de uso importantes:
-
-\subsection{Computación Científica}
-
-El clúster SLURM proporciona capacidades de computación de alto rendimiento para:
-
-\begin{itemize}[leftmargin=*]
-    \item Simulaciones científicas
-    \item Análisis de datos a gran escala
-    \item Modelado computacional
-    \item Aprendizaje automático y deep learning
-\end{itemize}
-
-\subsection{Entorno Educativo}
-
-La infraestructura es ideal para entornos educativos:
-
-\begin{itemize}[leftmargin=*]
-    \item Laboratorios de prácticas para estudiantes
-    \item Entornos de investigación para profesores
-    \item Plataforma para cursos de administración de sistemas
-    \item Demostraciones de tecnologías modernas
-\end{itemize}
-
-\subsection{Desarrollo y Pruebas}
-
-También puede utilizarse como plataforma de desarrollo y pruebas:
-
-\begin{itemize}[leftmargin=*]
-    \item Entornos de desarrollo aislados
-    \item Pruebas de integración continua
-    \item Validación de configuraciones
-    \item Pruebas de rendimiento
-\end{itemize}
-
-\section{Futuras Mejoras}
-\newpage
-
-Aunque la infraestructura actual es completa y funcional, hay varias áreas de mejora para el futuro:
-
-\subsection{Automatización Adicional}
-
-\begin{itemize}[leftmargin=*]
-    \item Implementación de CI/CD para la infraestructura
-    \item Integración con herramientas de gestión de configuración como AWX/Tower
-    \item Automatización de pruebas y validación
-\end{itemize}
-
-\subsection{Seguridad Mejorada}
-
-\begin{itemize}[leftmargin=*]
-    \item Implementación de detección de intrusiones
-    \item Escaneo automático de vulnerabilidades
-    \item Rotación automática de credenciales
-    \item Implementación de políticas de seguridad más estrictas
-\end{itemize}
-
-\subsection{Expansión de Servicios}
-
-\begin{itemize}[leftmargin=*]
-    \item Integración con servicios de nube pública para bursting
-    \item Implementación de almacenamiento distribuido
-    \item Servicios de backup y recuperación mejorados
-    \item Integración con sistemas de tickets y gestión de servicios
-\end{itemize}
-
-\section{Conclusiones}
-\newpage
-
-La implementación de esta infraestructura automatizada con Ansible demuestra cómo se pueden desplegar y gestionar entornos complejos de manera eficiente y reproducible. Los principales beneficios obtenidos son:
-
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Eficiencia operativa}: La automatización reduce significativamente el tiempo y esfuerzo necesarios para desplegar y mantener la infraestructura.
-    \item \textbf{Consistencia}: Todos los entornos se despliegan de manera idéntica, eliminando las discrepancias entre diferentes instalaciones.
-    \item \textbf{Documentación viva}: El código Ansible sirve como documentación ejecutable de la infraestructura.
-    \item \textbf{Escalabilidad}: La infraestructura puede crecer fácilmente añadiendo nuevos nodos y servicios.
-    \item \textbf{Mantenibilidad}: Las actualizaciones y cambios se pueden aplicar de manera controlada y reproducible.
-\end{itemize}
-
-Este proyecto demuestra la potencia de la automatización y la infraestructura como código para gestionar entornos complejos. La combinación de SLURM, OpenLDAP, Prometheus, Grafana y otros servicios proporciona una plataforma completa y flexible para una variedad de casos de uso, desde la computación científica hasta entornos educativos y de desarrollo.
-
-\begin{infobox}[Recursos adicionales]
-Para profundizar en el conocimiento de las tecnologías utilizadas, se recomiendan los siguientes recursos:
+\begin{infobox}[Mejoras en la Organización]
 \begin{itemize}
-    \item Documentación oficial de Ansible: \url{https://docs.ansible.com/}
-    \item Documentación oficial de SLURM: \url{https://slurm.schedmd.com/documentation.html}
-    \item Documentación oficial de OpenLDAP: \url{https://www.openldap.org/doc/}
-    \item Documentación oficial de Prometheus: \url{https://prometheus.io/docs/}
-    \item Documentación oficial de Grafana: \url{https://grafana.com/docs/}
+    \item \textbf{Resumen e Introducción}: Ampliar el contexto, objetivos y significado del proyecto para proporcionar una introducción más sólida.
+    \item \textbf{Secciones y Subsecciones}: Asegurar consistencia en la profundidad de las secciones. Por ejemplo, algunas secciones como "Monitorización con Prometheus y Grafana" incluyen subsecciones detalladas, mientras que otras no.
+    \item \textbf{Casos de Uso}: Incluir más ejemplos o escenarios del mundo real donde la infraestructura descrita ha sido o podría ser aplicada.
 \end{itemize}
 \end{infobox}
+
+\subsection{Mejoras de Formato}
+
+\begin{infobox}[Mejoras de Formato]
+\begin{itemize}
+    \item \textbf{Listados de Código}: Asegurar que los fragmentos de código sean concisos y se centren en detalles clave. Considerar eliminar comentarios redundantes en los ejemplos.
+    \item \textbf{Figuras y Leyendas}: Mejorar la legibilidad de los diagramas utilizando etiquetas más claras y asegurando que las leyendas sean descriptivas.
+    \item \textbf{Cajas para Destacados}: Utilizar tcolorbox de manera consistente para enfatizar puntos clave, como "Lecciones Aprendidas" o "Mejoras Futuras".
+\end{itemize}
+\end{infobox}
+
+\subsection{Mejores Prácticas de Documentación}
+
+\begin{warningbox}[Mejores Prácticas]
+\begin{itemize}
+    \item \textbf{Glosario de Términos}: Incluir definiciones para términos técnicos clave como SLURM, OpenLDAP o Prometheus para ayudar a los lectores novatos.
+    \item \textbf{Referencias}: Añadir citas o referencias a recursos externos cuando sea apropiado.
+\end{itemize}
+\end{warningbox}
+
+\subsection{Glosario Preliminar}
+
+\begin{description}
+    \item[SLURM] Simple Linux Utility for Resource Management. Un sistema de gestión de recursos y programación de trabajos de código abierto diseñado para clústeres Linux.
+    \item[OpenLDAP] Implementación de código abierto del protocolo LDAP (Lightweight Directory Access Protocol) utilizado para servicios de directorio.
+    \item[Prometheus] Sistema de monitorización y alerta de código abierto, diseñado para la confiabilidad y escalabilidad.
+    \item[Grafana] Plataforma de análisis y visualización de métricas de código abierto.
+    \item[Foreman] Herramienta de gestión del ciclo de vida para servidores físicos y virtuales.
+    \item[Ansible] Herramienta de automatización de TI que automatiza el aprovisionamiento, la gestión de configuración y el despliegue de aplicaciones.
+\end{description}
+
+\section{Casos de Uso}
+
+\subsection{Entorno Académico}
+
+Esta infraestructura es ideal para entornos académicos donde los estudiantes necesitan acceso a recursos computacionales para sus proyectos:
+
+\begin{itemize}
+    \item Cursos de computación paralela y distribuida
+    \item Proyectos de investigación que requieren simulaciones intensivas
+    \item Laboratorios virtuales para clases de ciencias de la computación
+\end{itemize}
+
+\begin{infobox}[Ejemplo: Curso de Bioinformática]
+En un curso de bioinformática, los estudiantes pueden utilizar el clúster SLURM para ejecutar análisis de secuenciación de ADN que requieren gran capacidad computacional. El sistema de autenticación LDAP permite a los profesores gestionar fácilmente el acceso de los estudiantes, mientras que Prometheus y Grafana proporcionan visibilidad sobre el uso de recursos.
+\end{infobox}
+
+\subsection{Investigación Científica}
+
+Los grupos de investigación pueden beneficiarse de esta infraestructura para:
+
+\begin{itemize}
+    \item Simulaciones físicas complejas
+    \item Análisis de grandes conjuntos de datos
+    \item Modelado climático o geológico
+\end{itemize}
+
+\begin{infobox}[Ejemplo: Modelado Climático]
+Un equipo de investigación climática utiliza el clúster para ejecutar modelos climáticos regionales. Los diferentes grupos de usuarios configurados en SLURM permiten priorizar recursos según las necesidades del proyecto, mientras que la monitorización proporciona datos sobre el rendimiento y la eficiencia de los modelos.
+\end{infobox}
+
+\section{Referencias}
+
+\begin{thebibliography}{9}
+    \bibitem{slurm} SchedMD LLC, ``SLURM Workload Manager'', \url{https://slurm.schedmd.com/}
+    \bibitem{openldap} The OpenLDAP Project, ``OpenLDAP Software'', \url{https://www.openldap.org/}
+    \bibitem{prometheus} Prometheus Authors, ``Prometheus - Monitoring system \& time series database'', \url{https://prometheus.io/}
+    \bibitem{grafana} Grafana Labs, ``Grafana - The open observability platform'', \url{https://grafana.com/}
+    \bibitem{ansible} Red Hat, Inc., ``Ansible Documentation'', \url{https://docs.ansible.com/}
+    \bibitem{foreman} The Foreman Project, ``Foreman Documentation'', \url{https://theforeman.org/documentation.html}
+\end{thebibliography}
+
+\begin{thebibliography}{9}
+    \bibitem{slurm} SchedMD LLC, ``SLURM Workload Manager'', \url{https://slurm.schedmd.com/}
+    \bibitem{openldap} The OpenLDAP Project, ``OpenLDAP Software'', \url{https://www.openldap.org/}
+    \bibitem{prometheus} Prometheus Authors, ``Prometheus - Monitoring system \& time series database'', \url{https://prometheus.io/}
+    \bibitem{grafana} Grafana Labs, ``Grafana - The open observability platform'', \url{https://grafana.com/}
+    \bibitem{ansible} Red Hat, Inc., ``Ansible Documentation'', \url{https://docs.ansible.com/}
+    \bibitem{foreman} The Foreman Project, ``Foreman Documentation'', \url{https://theforeman.org/documentation.html}
+\end{thebibliography}
 
 \end{document}

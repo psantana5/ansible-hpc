@@ -1,0 +1,511 @@
+#!/usr/bin/env python3
+# Monthly Billing Report
+# Generates a monthly billing report for SLURM cluster usage by account/project
+
+import os
+import sys
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
+import subprocess
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+from jinja2 import Template
+import calendar
+
+# Configuration
+OUTPUT_DIR = "/opt/reporting/output"
+TODAY = datetime.now()
+FIRST_DAY = datetime(TODAY.year, TODAY.month, 1)
+# Get the last day of previous month
+if TODAY.month == 1:
+    LAST_MONTH = 12
+    LAST_YEAR = TODAY.year - 1
+else:
+    LAST_MONTH = TODAY.month - 1
+    LAST_YEAR = TODAY.year
+
+LAST_DAY_OF_PREV_MONTH = calendar.monthrange(LAST_YEAR, LAST_MONTH)[1]
+START_DATE = datetime(LAST_YEAR, LAST_MONTH, 1)
+END_DATE = datetime(LAST_YEAR, LAST_MONTH, LAST_DAY_OF_PREV_MONTH, 23, 59, 59)
+
+REPORT_MONTH = START_DATE.strftime("%Y-%m")
+EMAIL_RECIPIENTS = ["{{ admin_email | default('admin@' + base_domain) }}"]
+
+# Billing rates (cost per CPU hour in your currency)
+CPU_HOUR_RATE = {{ cpu_hour_rate | default(0.05) }}  # Default: $0.05 per CPU hour
+GPU_HOUR_RATE = {{ gpu_hour_rate | default(0.50) }}  # Default: $0.50 per GPU hour
+MEM_GB_HOUR_RATE = {{ mem_gb_hour_rate | default(0.01) }}  # Default: $0.01 per GB hour
+
+# Create output directory if it doesn't exist
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+def get_slurm_accounting_data():
+    """Retrieve SLURM accounting data for the previous month"""
+    start_str = START_DATE.strftime("%Y-%m-%d")
+    end_str = END_DATE.strftime("%Y-%m-%d")
+    
+    cmd = [
+        "sacct", 
+        "-a",
+        "--format=JobID,User,Account,Partition,State,Start,End,Elapsed,AllocCPUS,AllocTRES,NodeList,NNodes",
+        "-S", f"{start_str}T00:00:00", 
+        "-E", f"{end_str}T23:59:59",
+        "--parsable2"
+    ]
+    
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        print(f"Error retrieving SLURM data: {e}")
+        return None
+
+def process_billing_data(data):
+    """Process the SLURM accounting data for billing"""
+    if not data:
+        return None
+    
+    lines = data.strip().split('\n')
+    headers = lines[0].split('|')
+    
+    rows = []
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+        rows.append(line.split('|'))
+    
+    df = pd.DataFrame(rows, columns=headers)
+    
+    # Filter out batch job steps, keeping only the main job entries
+    df = df[~df['JobID'].str.contains(r'\.', regex=True)]
+    
+    # Convert relevant columns to numeric
+    numeric_cols = ['AllocCPUS', 'NNodes']
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+    
+    # Parse elapsed time (format: [DD-]HH:MM:SS)
+    def parse_elapsed(time_str):
+        if not time_str or pd.isna(time_str):
+            return 0
+        
+        days = 0
+        if '-' in time_str:
+            days_part, time_part = time_str.split('-')
+            days = int(days_part)
+        else:
+            time_part = time_str
+        
+        hours, minutes, seconds = map(int, time_part.split(':'))
+        return days * 24 + hours + minutes / 60 + seconds / 3600  # Convert to hours
+    
+    df['ElapsedHours'] = df['Elapsed'].apply(parse_elapsed)
+    
+    # Calculate CPU hours
+    df['CPUHours'] = df['AllocCPUS'] * df['ElapsedHours']
+    
+    # Parse TRES (Trackable Resources) to extract GPU usage
+    def extract_gpu_count(tres_str):
+        if not tres_str or pd.isna(tres_str):
+            return 0
+        
+        # Example TRES: "cpu=4,mem=16G,node=1,billing=4,gres/gpu=2"
+        if 'gres/gpu=' in tres_str:
+            gpu_part = tres_str.split('gres/gpu=')[1].split(',')[0]
+            return int(gpu_part)
+        return 0
+    
+    def extract_mem_gb(tres_str):
+        if not tres_str or pd.isna(tres_str):
+            return 0
+        
+        # Example TRES: "cpu=4,mem=16G,node=1,billing=4"
+        if 'mem=' in tres_str:
+            mem_part = tres_str.split('mem=')[1].split(',')[0]
+            if 'G' in mem_part:
+                return float(mem_part.replace('G', ''))
+            elif 'M' in mem_part:
+                return float(mem_part.replace('M', '')) / 1024
+            elif 'T' in mem_part:
+                return float(mem_part.replace('T', '')) * 1024
+            else:
+                return float(mem_part) / (1024 * 1024)  # Assume bytes if no unit
+        return 0
+    
+    df['GPUCount'] = df['AllocTRES'].apply(extract_gpu_count)
+    df['MemoryGB'] = df['AllocTRES'].apply(extract_mem_gb)
+    
+    # Calculate GPU hours and Memory GB hours
+    df['GPUHours'] = df['GPUCount'] * df['ElapsedHours']
+    df['MemoryGBHours'] = df['MemoryGB'] * df['ElapsedHours']
+    
+    # Calculate costs
+    df['CPUCost'] = df['CPUHours'] * CPU_HOUR_RATE
+    df['GPUCost'] = df['GPUHours'] * GPU_HOUR_RATE
+    df['MemoryCost'] = df['MemoryGBHours'] * MEM_GB_HOUR_RATE
+    df['TotalCost'] = df['CPUCost'] + df['GPUCost'] + df['MemoryCost']
+    
+    return df
+
+def generate_billing_plots(df):
+    """Generate billing analysis plots"""
+    if df is None or df.empty:
+        return None
+    
+    plots = {}
+    
+    # 1. Cost by Account/Project
+    plt.figure(figsize=(12, 6))
+    account_costs = df.groupby('Account')['TotalCost'].sum().sort_values(ascending=False)
+    account_costs.plot(kind='bar')
+    plt.title('Total Cost by Account/Project')
+    plt.xlabel('Account/Project')
+    plt.ylabel('Cost ({{ currency_symbol | default("$") }})')
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    account_cost_path = os.path.join(OUTPUT_DIR, f"account_cost_{REPORT_MONTH}.png")
+    plt.savefig(account_cost_path)
+    plots['account_cost'] = account_cost_path
+    
+    # 2. Cost by User (Top 15)
+    plt.figure(figsize=(12, 6))
+    user_costs = df.groupby('User')['TotalCost'].sum().sort_values(ascending=False).head(15)
+    user_costs.plot(kind='bar')
+    plt.title('Total Cost by User (Top 15)')
+    plt.xlabel('User')
+    plt.ylabel('Cost ({{ currency_symbol | default("$") }})')
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    user_cost_path = os.path.join(OUTPUT_DIR, f"user_cost_{REPORT_MONTH}.png")
+    plt.savefig(user_cost_path)
+    plots['user_cost'] = user_cost_path
+    
+    # 3. Cost by Partition
+    plt.figure(figsize=(10, 6))
+    partition_costs = df.groupby('Partition')['TotalCost'].sum().sort_values(ascending=False)
+    partition_costs.plot(kind='bar')
+    plt.title('Total Cost by Partition')
+    plt.xlabel('Partition')
+    plt.ylabel('Cost ({{ currency_symbol | default("$") }})')
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    partition_cost_path = os.path.join(OUTPUT_DIR, f"partition_cost_{REPORT_MONTH}.png")
+    plt.savefig(partition_cost_path)
+    plots['partition_cost'] = partition_cost_path
+    
+    # 4. Cost Breakdown (CPU vs GPU vs Memory)
+    plt.figure(figsize=(8, 8))
+    total_cpu_cost = df['CPUCost'].sum()
+    total_gpu_cost = df['GPUCost'].sum()
+    total_memory_cost = df['MemoryCost'].sum()
+    
+    cost_breakdown = pd.Series({
+        'CPU': total_cpu_cost,
+        'GPU': total_gpu_cost,
+        'Memory': total_memory_cost
+    })
+    
+    cost_breakdown.plot(kind='pie', autopct='%1.1f%%')
+    plt.title('Cost Breakdown')
+    plt.axis('equal')
+    plt.tight_layout()
+    cost_breakdown_path = os.path.join(OUTPUT_DIR, f"cost_breakdown_{REPORT_MONTH}.png")
+    plt.savefig(cost_breakdown_path)
+    plots['cost_breakdown'] = cost_breakdown_path
+    
+    return plots
+
+def generate_html_report(df, plots):
+    """Generate an HTML report with the billing data and plots"""
+    if df is None or df.empty:
+        return "No data available for the specified period."
+    
+    # Calculate overall statistics
+    total_jobs = len(df)
+    total_cpu_hours = df['CPUHours'].sum()
+    total_gpu_hours = df['GPUHours'].sum()
+    total_memory_gb_hours = df['MemoryGBHours'].sum()
+    total_cost = df['TotalCost'].sum()
+    
+    # Template for the HTML report
+    html_template = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Monthly Billing Report - {{ report_month }}</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1, h2, h3 { color: #2c3e50; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .stats { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; }
+            .stat-box { background-color: #f8f9fa; border-radius: 5px; padding: 15px; width: 22%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 10px; }
+            .plot-container { margin-bottom: 30px; }
+            .plot-image { max-width: 100%; height: auto; }
+            .total-cost { font-size: 24px; font-weight: bold; color: #2c3e50; }
+            .currency { font-weight: normal; }
+        </style>
+    </head>
+    <body>
+        <h1>Monthly Billing Report</h1>
+        <p>Report Period: {{ start_date }} to {{ end_date }}</p>
+        
+        <h2>Summary</h2>
+        <div class="stats">
+            <div class="stat-box">
+                <h3>Total Cost</h3>
+                <p class="total-cost">{{ currency_symbol }}{{ total_cost|round(2) }}</p>
+            </div>
+            <div class="stat-box">
+                <h3>Total Jobs</h3>
+                <p>{{ total_jobs }}</p>
+            </div>
+            <div class="stat-box">
+                <h3>CPU Hours</h3>
+                <p>{{ total_cpu_hours|round(1) }}</p>
+            </div>
+            <div class="stat-box">
+                <h3>GPU Hours</h3>
+                <p>{{ total_gpu_hours|round(1) }}</p>
+            </div>
+            <div class="stat-box">
+                <h3>Memory (GB-Hours)</h3>
+                <p>{{ total_memory_gb_hours|round(1) }}</p>
+            </div>
+            <div class="stat-box">
+                <h3>Billing Rates</h3>
+                <p>
+                    CPU: {{ currency_symbol }}{{ cpu_rate }}/hour<br>
+                    GPU: {{ currency_symbol }}{{ gpu_rate }}/hour<br>
+                    Memory: {{ currency_symbol }}{{ mem_rate }}/GB-hour
+                </p>
+            </div>
+        </div>
+        
+        <h2>Cost Analysis</h2>
+        {% if plots %}
+            {% if plots.account_cost %}
+            <div class="plot-container">
+                <h3>Cost by Account/Project</h3>
+                <img src="cid:account_cost" class="plot-image" />
+            </div>
+            {% endif %}
+            
+            {% if plots.user_cost %}
+            <div class="plot-container">
+                <h3>Cost by User (Top 15)</h3>
+                <img src="cid:user_cost" class="plot-image" />
+            </div>
+            {% endif %}
+            
+            {% if plots.partition_cost %}
+            <div class="plot-container">
+                <h3>Cost by Partition</h3>
+                <img src="cid:partition_cost" class="plot-image" />
+            </div>
+            {% endif %}
+            
+            {% if plots.cost_breakdown %}
+            <div class="plot-container">
+                <h3>Cost Breakdown</h3>
+                <img src="cid:cost_breakdown" class="plot-image" />
+            </div>
+            {% endif %}
+        {% else %}
+            <p>No cost analysis plots available.</p>
+        {% endif %}
+        
+        <h2>Account/Project Billing Summary</h2>
+        {% if account_table %}
+            {{ account_table|safe }}
+        {% else %}
+            <p>No account billing data available.</p>
+        {% endif %}
+        
+        <h2>Top Users Billing Summary</h2>
+        {% if user_table %}
+            {{ user_table|safe }}
+        {% else %}
+            <p>No user billing data available.</p>
+        {% endif %}
+        
+        <footer>
+            <p>Generated automatically by the HPC Cluster Billing System</p>
+            <p><small>Note: This is an automated report. For billing inquiries, please contact the HPC administration team.</small></p>
+        </footer>
+    </body>
+    </html>
+    """
+    
+    # Create account/project summary table
+    account_summary = df.groupby('Account').agg({
+        'JobID': 'count',
+        'CPUHours': 'sum',
+        'GPUHours': 'sum',
+        'MemoryGBHours': 'sum',
+        'CPUCost': 'sum',
+        'GPUCost': 'sum',
+        'MemoryCost': 'sum',
+        'TotalCost': 'sum'
+    }).reset_index()
+    
+    account_summary = account_summary.rename(columns={
+        'JobID': 'Jobs',
+        'CPUHours': 'CPU Hours',
+        'GPUHours': 'GPU Hours',
+        'MemoryGBHours': 'Memory GB-Hours',
+        'CPUCost': 'CPU Cost',
+        'GPUCost': 'GPU Cost',
+        'MemoryCost': 'Memory Cost',
+        'TotalCost': 'Total Cost'
+    })
+    
+    account_summary = account_summary.sort_values('Total Cost', ascending=False)
+    
+    # Format currency columns
+    currency_cols = ['CPU Cost', 'GPU Cost', 'Memory Cost', 'Total Cost']
+    for col in currency_cols:
+        account_summary[col] = account_summary[col].map('{{ currency_symbol | default("$") }}{:.2f}'.format)
+    
+    # Format hour columns
+    hour_cols = ['CPU Hours', 'GPU Hours', 'Memory GB-Hours']
+    for col in hour_cols:
+        account_summary[col] = account_summary[col].map('{:.1f}'.format)
+    
+    account_table = account_summary.to_html(index=False)
+    
+    # Create user summary table (top 20 users by cost)
+    user_summary = df.groupby('User').agg({
+        'JobID': 'count',
+        'CPUHours': 'sum',
+        'GPUHours': 'sum',
+        'MemoryGBHours': 'sum',
+        'CPUCost': 'sum',
+        'GPUCost': 'sum',
+        'MemoryCost': 'sum',
+        'TotalCost': 'sum'
+    }).reset_index()
+    
+    user_summary = user_summary.rename(columns={
+        'JobID': 'Jobs',
+        'CPUHours': 'CPU Hours',
+        'GPUHours': 'GPU Hours',
+        'MemoryGBHours': 'Memory GB-Hours',
+        'CPUCost': 'CPU Cost',
+        'GPUCost': 'GPU Cost',
+        'MemoryCost': 'Memory Cost',
+        'TotalCost': 'Total Cost'
+    })
+    
+    user_summary = user_summary.sort_values('Total Cost', ascending=False).head(20)
+    
+    # Format currency columns
+    for col in currency_cols:
+        user_summary[col] = user_summary[col].map('{{ currency_symbol | default("$") }}{:.2f}'.format)
+    
+    # Format hour columns
+    for col in hour_cols:
+        user_summary[col] = user_summary[col].map('{:.1f}'.format)
+    
+    user_table = user_summary.to_html(index=False)
+    
+    # Render the template
+    template = Template(html_template)
+    html_content = template.render(
+        report_month=REPORT_MONTH,
+        start_date=START_DATE.strftime('%Y-%m-%d'),
+        end_date=END_DATE.strftime('%Y-%m-%d'),
+        total_jobs=total_jobs,
+        total_cpu_hours=total_cpu_hours,
+        total_gpu_hours=total_gpu_hours,
+        total_memory_gb_hours=total_memory_gb_hours,
+        total_cost=total_cost,
+        cpu_rate=CPU_HOUR_RATE,
+        gpu_rate=GPU_HOUR_RATE,
+        mem_rate=MEM_GB_HOUR_RATE,
+        currency_symbol='{{ currency_symbol | default("$") }}',
+        plots=plots,
+        account_table=account_table,
+        user_table=user_table
+    )
+    
+    # Save the HTML report
+    report_path = os.path.join(OUTPUT_DIR, f"monthly_billing_report_{REPORT_MONTH}.html")
+    with open(report_path, 'w') as f:
+        f.write(html_content)
+    
+    return report_path
+
+def send_email_report(report_path, plots):
+    """Send the report via email"""
+    if not os.path.exists(report_path):
+        print(f"Report file not found: {report_path}")
+        return False
+    
+    try:
+        # Create message
+        msg = MIMEMultipart()
+        msg['From'] = '{{ smtp_from | default("hpc-reports@" + base_domain) }}'
+        msg['To'] = ', '.join(EMAIL_RECIPIENTS)
+        msg['Subject'] = f'Monthly HPC Cluster Billing Report - {REPORT_MONTH}'
+        
+        # Attach HTML report
+        with open(report_path, 'r') as f:
+            html_content = f.read()
+        
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        # Attach plot images
+        if plots:
+            for plot_type, plot_path in plots.items():
+                with open(plot_path, 'rb') as f:
+                    img_attachment = MIMEApplication(f.read(), _subtype="png")
+                    img_attachment.add_header('Content-ID', f'<{plot_type}>')
+                    img_attachment.add_header('Content-Disposition', 'inline', filename=os.path.basename(plot_path))
+                    msg.attach(img_attachment)
+        
+        # Send email
+        with smtplib.SMTP('{{ smtp_server | default("localhost") }}', {{ smtp_port | default(25) }}) as server:
+            {% if smtp_use_tls | default(false) %}
+            server.starttls()
+            {% endif %}
+            {% if smtp_username is defined and smtp_password is defined %}
+            server.login('{{ smtp_username }}', '{{ smtp_password }}')
+            {% endif %}
+            server.send_message(msg)
+        
+        print(f"Email report sent successfully to {', '.join(EMAIL_RECIPIENTS)}")
+        return True
+    
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
+
+def main():
+    # Get SLURM accounting data
+    slurm_data = get_slurm_accounting_data()
+    
+    # Process the data
+    df = process_billing_data(slurm_data)
+    
+    if df is None or df.empty:
+        print("No SLURM data available for the specified period.")
+        sys.exit(1)
+    
+    # Generate plots
+    plots = generate_billing_plots(df)
+    
+    # Generate HTML report
+    report_path = generate_html_report(df, plots)
+    
+    # Send email report
+    send_email_report(report_path, plots)
+
+if __name__ == "__main__":
+    main()

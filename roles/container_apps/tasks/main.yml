@@ -1,0 +1,30 @@
+---
+- name: Install Singularity/Apptainer
+  package:
+    name: singularity-ce
+    state: present
+
+- name: Create container library directory
+  file:
+    path: /opt/containers
+    state: directory
+    mode: "0755"
+
+- name: Pull common scientific containers
+  command: "singularity pull --dir /opt/containers {{ item.dest }} {{ item.source }}"
+  loop:
+    - { source: "docker://tensorflow/tensorflow:latest-gpu", dest: "tensorflow_gpu.sif" }
+    - { source: "docker://pytorch/pytorch:latest", dest: "pytorch.sif" }
+    - { source: "docker://jupyter/datascience-notebook:latest", dest: "jupyter_datascience.sif" }
+  args:
+    creates: "/opt/containers/{{ item.dest }}"
+
+- name: Create SLURM submission scripts for containers
+  template:
+    src: "{{ item.template }}"
+    dest: "/usr/local/bin/{{ item.script }}"
+    mode: "0755"
+  loop:
+    - { template: "tensorflow_job.sh.j2", script: "tensorflow_job.sh" }
+    - { template: "pytorch_job.sh.j2", script: "pytorch_job.sh" }
+    - { template: "jupyter_job.sh.j2", script: "jupyter_job.sh" }

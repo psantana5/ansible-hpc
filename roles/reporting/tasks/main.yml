@@ -1,0 +1,59 @@
+---
+- name: Install reporting dependencies
+  package:
+    name:
+      - python3
+      - python3-pip
+      - python3-devel
+      - gcc
+    state: present
+
+- name: Install Python packages for reporting
+  pip:
+    name:
+      - pandas
+      - matplotlib
+      - jupyter
+      - sqlalchemy
+      - pymysql
+      - tabulate
+      - jinja2
+    state: present
+
+- name: Create reporting scripts directory
+  file:
+    path: /opt/reporting
+    state: directory
+    mode: "0755"
+
+- name: Copy reporting scripts
+  template:
+    src: "{{ item }}"
+    dest: "/opt/reporting/{{ item | basename | regex_replace('\\.j2$', '') }}"
+    mode: "0755"
+  with_fileglob:
+    - "templates/reporting/*.py.j2"
+
+- name: Set up cron jobs for automated reports
+  cron:
+    name: "{{ item.name }}"
+    job: "{{ item.job }}"
+    hour: "{{ item.hour }}"
+    minute: "{{ item.minute }}"
+    weekday: "{{ item.weekday | default('*') }}"
+    user: root
+  loop:
+    - name: "Daily usage report"
+      job: "/opt/reporting/daily_usage_report.py"
+      hour: "6"
+      minute: "0"
+    - name: "Weekly efficiency report"
+      job: "/opt/reporting/weekly_efficiency_report.py"
+      hour: "7"
+      minute: "0"
+      weekday: "1" # Monday
+    - name: "Monthly billing report"
+      job: "/opt/reporting/monthly_billing_report.py"
+      hour: "5"
+      minute: "0"
+      weekday: "1"
