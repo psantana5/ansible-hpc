@@ -1,0 +1,10 @@
+---
+- name: restart munge
+  service:
+    name: munge
+    state: restarted
+
+- name: restart sshd
+  service:
+    name: sshd
+    state: restarted

@@ -145,6 +145,7 @@ SlurmdLogFile=/var/log/slurm/slurmd.log
 # COMPUTE NODES
 NodeName={{ groups['compute'] | join(',') }} CPUs=20 State=UNKNOWN
 PartitionName=hswl-cpu Nodes={{ groups['compute'] | join(',') }} Default=YES MaxTime=INFINITE State=UP
+PartitionName= Nodes={{ groups['compute'] | join(',') }} Default=YES MaxTime=INFINITE State=UP
 
 # Authentication configuration
 AuthType=auth/munge

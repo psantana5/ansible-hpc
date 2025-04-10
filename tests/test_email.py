@@ -10,7 +10,7 @@ smtp_port = 587
 smtp_username = "pausantanapi2@gmail.com"
 smtp_password = os.environ.get('GMAIL_APP_PASSWORD')
 sender = "pausantanapi2@gmail.com"
-recipient = "pausantanapi2@gmail.com"  # Change this to your email
+recipient = "pausantanapi2@gmail.com" 
 
 # Create message
 msg = MIMEMultipart()

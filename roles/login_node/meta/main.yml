@@ -1,0 +1,7 @@
+---
+dependencies:
+  - role: epel
+  - role: foreman
+    vars:
+      foreman_client_only: true
+  - role: node_exporter

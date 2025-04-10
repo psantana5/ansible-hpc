@@ -7,7 +7,6 @@
       when: "'dns_servers' in group_names"
     - role: openldap # Assuming you have groups like [ldap_servers]
       when: "'ldap_servers' in group_names"
-    # Add other base infrastructure roles here if needed (e.g., epel)
 
 - name: Configure Monitoring Stack
   hosts: monitoring_servers # Adjust group as per your inventory
@@ -34,3 +33,9 @@
       when: "'slurm_controller' in group_names"
     - role: compute # Slurm compute node role
       when: "'slurm_compute' in group_names"
+
+- name: Deploy Reporting Tools
+  hosts: slurmctld
+  become: true
+  roles:
+    - reporting

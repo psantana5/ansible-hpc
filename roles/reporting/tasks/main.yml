@@ -20,19 +20,53 @@
       - jinja2
     state: present
 
+- name: Check if reporting directory exists
+  stat:
+    path: /opt/reporting
+  register: reporting_dir
+
+- name: Check if output directory exists
+  stat:
+    path: /opt/reporting/output
+  register: output_dir
+
 - name: Create reporting scripts directory
   file:
     path: /opt/reporting
     state: directory
     mode: "0755"
+  when: not reporting_dir.stat.exists
+
+- name: Create output directory for reports
+  file:
+    path: /opt/reporting/output
+    state: directory
+    mode: "0755"
+  when: not output_dir.stat.exists or not output_dir.stat.isdir
+
+- name: Check if reporting scripts exist
+  find:
+    paths: /opt/reporting
+    patterns: "*.py"
+  register: existing_scripts
 
 - name: Copy reporting scripts
-  template:
-    src: "{{ item }}"
-    dest: "/opt/reporting/{{ item | basename | regex_replace('\\.j2$', '') }}"
+  copy:
+    src: "../templates/reporting/{{ item }}"
+    dest: "/opt/reporting/{{ item | regex_replace('\\.j2$', '') }}"
     mode: "0755"
-  with_fileglob:
-    - "templates/reporting/*.py.j2"
+  loop:
+    - daily_usage_report.py.j2
+    - weekly_efficiency_report.py.j2
+    - monthly_billing_report.py.j2
+  when: existing_scripts.matched == 0
+
+- name: Fetch updated scripts from remote server if needed
+  shell: scp -r root@192.168.1.152:/home/psantana/playbooks-slurm/roles/reporting/templates/reporting/*.py /opt/reporting/
+  args:
+    creates: /opt/reporting/daily_usage_report.py
+  when: existing_scripts.matched == 0 and ansible_hostname == 'slurm01'
+  ignore_errors: yes
 
 - name: Set up cron jobs for automated reports
   cron:

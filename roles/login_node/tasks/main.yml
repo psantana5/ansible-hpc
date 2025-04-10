@@ -1,0 +1,107 @@
+---
+- name: Install SLURM client packages
+  package:
+    name:
+      - slurm
+      - slurm-contribs
+      - slurm-pam_slurm
+    state: present
+
+- name: Install development tools and compilers
+  package:
+    name:
+      - gcc
+      - gcc-c++
+      - make
+      - cmake
+      - autoconf
+      - automake
+      - libtool
+      - environment-modules
+      - lmod
+      - git
+    state: present
+
+- name: Install scientific libraries
+  package:
+    name:
+      - openblas
+      - openblas-devel
+      - lapack
+      - lapack-devel
+      - fftw
+      - fftw-devel
+      - hdf5
+      - hdf5-devel
+      - netcdf
+      - netcdf-devel
+    state: present
+
+- name: Ensure SLURM config directory exists
+  file:
+    path: /etc/slurm
+    state: directory
+    mode: "0755"
+
+- name: Fetch SLURM configuration from controller node
+  ansible.posix.synchronize:
+    src: root@192.168.1.140:/etc/slurm/slurm.conf
+    dest: /etc/slurm/slurm.conf
+    mode: pull
+  delegate_to: "{{ inventory_hostname }}"
+  become: yes
+
+- name: Set proper permissions on slurm.conf
+  file:
+    path: /etc/slurm/slurm.conf
+    owner: slurm
+    group: slurm
+    mode: "0644"
+
+- name: Ensure munge directory exists
+  file:
+    path: /etc/munge
+    state: directory
+    owner: munge
+    group: munge
+    mode: "0700"
+
+- name: Fetch munge key from controller node
+  ansible.posix.synchronize:
+    src: root@192.168.1.140:/etc/munge/munge.key
+    dest: /etc/munge/munge.key
+    mode: pull
+  delegate_to: "{{ inventory_hostname }}"
+  become: yes
+
+- name: Set proper permissions on munge key
+  file:
+    path: /etc/munge/munge.key
+    owner: munge
+    group: munge
+    mode: "0400"
+  notify: restart munge
+
+- name: Start and enable munge service
+  service:
+    name: munge
+    state: started
+    enabled: yes
+
+- name: Configure user resource limits
+  template:
+    src: 99-hpc-limits.conf.j2
+    dest: /etc/security/limits.d/99-hpc-limits.conf
+    mode: "0644"
+
+- name: Configure SSH for X11 forwarding
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^X11Forwarding'
+    line: 'X11Forwarding yes'
+    state: present
+  notify: restart sshd
+
+- name: Install monitoring client
+  include_role:
+    name: node_exporter

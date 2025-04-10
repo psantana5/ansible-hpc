@@ -1,0 +1,30 @@
+---
+- name: Process Jinja2 template to create runnable Python script
+  hosts: slurm01
+  gather_facts: yes
+  vars_files:
+    - "/home/psantana/playbooks-slurm/inventory/group_vars/all.yml"
+  vars:
+    report_date: "{{ ansible_date_time.date }}"
+    total_jobs: 1000
+    completed_jobs: 920
+    failed_jobs: 60
+    cancelled_jobs: 20
+    plots: {}
+    jobs_table: ""
+  tasks:
+    - name: Create test directory
+      file:
+        path: "/home/psantana/playbooks-slurm/tests/reporting_scripts"
+        state: directory
+        mode: "0755"
+
+    - name: Process template to create Python script
+      template:
+        src: "/home/psantana/playbooks-slurm/roles/reporting/templates/reporting/daily_usage_report.py.j2"
+        dest: "/home/psantana/playbooks-slurm/tests/reporting_scripts/daily_usage_report.py"
+        mode: "0755"
+
+    - name: Display success message
+      debug:
+        msg: "Script created at /home/psantana/playbooks-slurm/tests/reporting_scripts/daily_usage_report.py"
