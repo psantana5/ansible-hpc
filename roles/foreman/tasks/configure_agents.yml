@@ -48,14 +48,56 @@
   delay: 5
   until: puppet_repo_install is succeeded
 
+- name: Agent | Agent | Ensure core utilities are installed
+  ansible.builtin.package:
+    name:
+      - coreutils
+      - findutils
+      - glibc-common
+    state: present
+  register: core_utils_install
+  retries: 3
+  delay: 5
+  until: core_utils_install is succeeded
+
+- name: Agent | Check OS distribution
+  ansible.builtin.debug:
+    msg: "OS: {{ ansible_distribution }} {{ ansible_distribution_major_version }}"
+
+- name: Agent | Set correct Puppet repo URL for RHEL/CentOS 8
+  ansible.builtin.set_fact:
+    puppet_repo_url: "https://yum.puppet.com/puppet{{ puppet_version }}-release-el-{{ ansible_distribution_major_version }}.noarch.rpm"
+  when: ansible_distribution in ['RedHat', 'CentOS', 'Rocky', 'AlmaLinux'] and ansible_distribution_major_version == '8'
+
+- name: Agent | Set correct Puppet repo URL for RHEL/CentOS 7
+  ansible.builtin.set_fact:
+    puppet_repo_url: "https://yum.puppet.com/puppet{{ puppet_version }}-release-el-{{ ansible_distribution_major_version }}.noarch.rpm"
+  when: ansible_distribution in ['RedHat', 'CentOS'] and ansible_distribution_major_version == '7'
+
+- name: Agent | Set correct Puppet repo URL for Ubuntu
+  ansible.builtin.set_fact:
+    puppet_repo_url: "https://apt.puppet.com/puppet{{ puppet_version }}-release-{{ ansible_distribution_release }}.deb"
+  when: ansible_distribution == 'Ubuntu'
+
+- name: Agent | Install Puppet repository (RPM-based)
+  ansible.builtin.dnf:
+    name: "{{ puppet_repo_url }}"
+    state: present
+    disable_gpg_check: true
+  register: puppet_repo_install
+  retries: 3
+  delay: 5
+  until: puppet_repo_install is succeeded
+  when: ansible_os_family == 'RedHat'
+
 - name: Agent | Install Puppet Agent package
   ansible.builtin.dnf:
     name: "{{ puppet_agent_package }}"
     state: present
-  register: agent_install
+  register: puppet_agent_install
   retries: 3
   delay: 5
-  until: agent_install is succeeded
+  until: puppet_agent_install is succeeded
 
 - name: Agent | Configure Puppet Agent ({{ puppet_conf_file }})
   ansible.builtin.ini_file:
