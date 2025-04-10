@@ -2,10 +2,14 @@
 - name: Play 1 - Install Foreman Server & Configure Puppet Agents
   hosts: all # Target everyone; role logic differentiates server vs agent
   become: true
-  gather_facts: true # Needed for hostname checks, repo URLs etc.
-  # Ensure variables like 'foreman_hostname', 'puppet_version' are defined
-  # in your inventory (e.g., inventory/group_vars/all.yml)
-
+  gather_facts: true
+  
+  pre_tasks:
+    - name: Debug variables
+      debug:
+        msg: "Foreman hostname is {{ foreman_hostname | default('undefined') }}"
+      tags: always
+  
   roles:
     - role: foreman
       # This will automatically run:
