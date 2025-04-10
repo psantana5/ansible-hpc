@@ -1,4 +1,123 @@
 # inventory/group_vars/all.yml
 ---
-foreman_hostname: "foreman01.linkiafp.es"
-# Add other global variables here (puppet_version, ntp_servers, ldap domain, etc.)
+# ============================================================
+# Global Variables for All Hosts
+# ============================================================
+# NOTE: Review and customize ALL values below for your specific environment.
+# NOTE: Use Ansible Vault for ALL sensitive values (passwords, keys).
+
+# ------------------------------------------------------------
+# General System Settings
+# ------------------------------------------------------------
+# ansible_user: your_ssh_user # Often defined per-host or defaulted by Ansible cfg
+system_timezone: "Europe/Madrid" # e.g., "UTC", "America/New_York"
+ntp_servers: # Used by Foreman role (Puppet agents) and potentially others
+  - 0.pool.ntp.org
+  - 1.pool.ntp.org
+  - 2.pool.ntp.org
+  - 3.pool.ntp.org
+
+# ------------------------------------------------------------
+# Network / DNS Configuration
+# ------------------------------------------------------------
+# Domain name used across various services (LDAP, DNS Zone, etc.)
+base_domain: "linkiafp.es" # CHANGEME - Your primary domain
+
+# DNS Role specific (if using the 'dns' role)
+dns_domain: "{{ base_domain }}" # Often same as base_domain
+# Example for 192.168.1.0/24 reverse zone:
+dns_reverse_zone_network: "1.168.192.in-addr.arpa" # CHANGEME
+dns_reverse_zone_prefix: "192.168.1" # CHANGEME - Network prefix for reverse lookups
+dns_forwarders: # Optional: DNS servers to forward queries to
+  - 8.8.8.8
+  - 8.8.4.4
+dns_server_ip: "192.168.1.151" # Define if needed by templates (often derived from inventory)
+dns_allow_query: ["192.168.1.0/24", "localhost"] # CHANGEME - Networks allowed to query
+dns_allow_transfer: ["none"] # Define secondary DNS servers if applicable
+
+# ------------------------------------------------------------
+# Foreman / Puppet Configuration
+# ------------------------------------------------------------
+foreman_hostname: "foreman01.{{ base_domain }}" # **VERIFY/CONFIRM THIS FQDN IS CORRECT**
+puppet_version: "7" # Match compatible Puppet version for Foreman
+foreman_version: "3.10" # Foreman version branch you intend to install
+# signing_delay_seconds: 60 # Delay before attempting auto-sign (default in role)
+
+# ------------------------------------------------------------
+# OpenLDAP Configuration (Server & Client)
+# ------------------------------------------------------------
+ldap_domain_components: "{{ base_domain.split('.') }}" # Splits "linkiafp.es" into ['linkiafp', 'es']
+ldap_base_dn: "dc={{ ldap_domain_components | join(',dc=') }}" # Generates dc=linkiafp,dc=es
+ldap_organization: "LinkiaFP" # CHANGEME - Your organization name
+ldap_root_dn: "cn=admin,{{ ldap_base_dn }}" # Standard admin DN
+ldap_root_password: "CHANGEME_LDAP_ADMIN_PASSWORD" # <<< USE VAULT!
+ldap_server_uri: "ldap://ldap01.{{ base_domain }}" # URI for clients (change ldap01 if needed)
+# ldap_server_host: "ldap01.{{ base_domain }}" # Often derivable from URI or inventory
+ldap_user_ou: "People" # Organizational Unit for users
+ldap_group_ou: "Groups" # Organizational Unit for groups
+# ldap_tls_enable: true # Set to true if using TLS/SSL
+# ldap_tls_cert_file: "/etc/pki/tls/certs/ldap_server.crt" # Path on server
+# ldap_tls_key_file: "/etc/pki/tls/private/ldap_server.key" # Path on server
+# ldap_tls_cacert_file: "/etc/pki/tls/certs/ca.crt" # Path on server and clients
+
+# SSSD (LDAP Client) Configuration
+sssd_domains: "{{ base_domain }}" # Domain for SSSD configuration
+sssd_ldap_uri: "{{ ldap_server_uri }}"
+sssd_ldap_search_base: "{{ ldap_base_dn }}"
+# sssd_ldap_tls_cacert: "{{ ldap_tls_cacert_file }}" # Path on clients (if using TLS)
+
+# ------------------------------------------------------------
+# Slurm Cluster Configuration
+# ------------------------------------------------------------
+slurm_cluster_name: "linkia_cluster" # CHANGEME - Name for your Slurm cluster
+# slurm_version: "23.02.7" # Optional: Specify exact Slurm version if needed for install steps
+
+# Hostnames (ensure these match inventory group names/hosts)
+slurmctld_host: "slurm01.{{ base_domain }}" # Hostname of the controller node
+slurmdbd_host: "slurmdb01.{{ base_domain }}" # Hostname of the database node
+
+# SlurmDBD Database Configuration
+slurmdbd_db_host: "localhost" # Usually localhost if DB is on same node as slurmdbd daemon
+slurmdbd_db_port: 3306 # Default MariaDB/MySQL port
+slurmdbd_db_name: "slurm_acct_db"
+slurmdbd_db_user: "slurm"
+slurmdbd_db_password: "admin" # <<< USE VAULT!
+
+# Munge configuration (often handled within roles, but path could be var)
+# munge_key_path: "/etc/munge/munge.key"
+
+# Slurm paths (defaults usually fine unless installing from source)
+# slurm_conf_path: "/etc/slurm/slurm.conf"
+# slurm_log_dir: "/var/log/slurm"
+# slurm_state_save_location: "/var/spool/slurmctld"
+
+# ------------------------------------------------------------
+# Monitoring Configuration (Prometheus/Grafana/Exporters)
+# ------------------------------------------------------------
+# If using the 'monitoring' role with Docker Compose:
+monitoring_compose_dir: "/opt/monitoring" # Directory to store docker-compose.yml and data
+
+# Grafana specific (used by 'monitoring' role or standalone 'grafana' role)
+grafana_admin_user: "admin"
+grafana_admin_password: "admin" # <<< USE VAULT!
+grafana_port: 3000 # Default Grafana port
+
+# Prometheus specific (used by 'monitoring' role or standalone 'prometheus' role)
+prometheus_port: 9090 # Default Prometheus port
+prometheus_config_path: "/etc/prometheus/prometheus.yml" # If standalone install
+prometheus_scrape_interval: "15s" # Default scrape interval
+
+# Node Exporter specific
+node_exporter_port: 9100 # Default port
+
+# Slurm Exporter specific (if used with monitoring)
+slurm_exporter_port: 9101 # Example port (check actual exporter used)
+
+# ------------------------------------------------------------
+# Docker Configuration (if used by 'monitoring' or other roles)
+# ------------------------------------------------------------
+docker_users: # Optional: List of users to add to the 'docker' group
+  - psantana
+# ============================================================
+# End of Global Variables
+# ============================================================

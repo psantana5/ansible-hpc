@@ -1,0 +1,26 @@
+---
+- name: Play 1 - Install Foreman Server & Configure Puppet Agents
+  hosts: all # Target everyone; role logic differentiates server vs agent
+  become: true
+  gather_facts: true # Needed for hostname checks, repo URLs etc.
+  # Ensure variables like 'foreman_hostname', 'puppet_version' are defined
+  # in your inventory (e.g., inventory/group_vars/all.yml)
+
+  roles:
+    - role: foreman
+      # This will automatically run:
+      # - Server install tasks on hosts in the 'foreman_server' group.
+      # - Agent configuration tasks on hosts NOT in the 'foreman_server' group.
+      # - It will SKIP certificate signing tasks (due to the 'never' tag in the role).
+
+- name: Play 2 - Sign Pending Puppet Agent Certificates
+  hosts: foreman_server # Target ONLY the Foreman server
+  become: true
+  gather_facts: false # Facts not strictly needed for signing command
+  # Ensure variables like 'signing_delay_seconds' are defined
+  # in inventory or role defaults.
+
+  # We re-apply the foreman role, but ONLY run tasks tagged 'foreman_sign_certs'
+  roles:
+    - role: foreman
+      tags: ["foreman_sign_certs"] # Apply tag here to filter tasks within the role
