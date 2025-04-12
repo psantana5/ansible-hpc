@@ -144,8 +144,12 @@ SlurmdLogFile=/var/log/slurm/slurmd.log
 #
 # COMPUTE NODES
 NodeName={{ groups['compute'] | join(',') }} CPUs=20 State=UNKNOWN
-PartitionName=hswl-cpu Nodes={{ groups['compute'] | join(',') }} Default=YES MaxTime=INFINITE State=UP
-PartitionName= Nodes={{ groups['compute'] | join(',') }} Default=YES MaxTime=INFINITE State=UP
+# Partitions
+PartitionName=cfes-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP
+PartitionName=qprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP
+PartitionName=pprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP
+PartitionName=arg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP
+PartitionName=cmprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=YES MaxTime=INFINITE State=UP
 
 # Authentication configuration
 AuthType=auth/munge
