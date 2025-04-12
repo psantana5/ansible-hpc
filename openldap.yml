@@ -4,8 +4,7 @@
   become: yes
 
   vars_files:
-    - openldap/vars/secrets.yml
-    - openldap/vars/ldap_vars.yml
+    - inventory/group_vars/all.yml
   roles:
     - epel
     - openldap
