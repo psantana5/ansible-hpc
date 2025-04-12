@@ -1,4 +1,14 @@
 ---
+- name: Configure Reporting
+  hosts: all
+  become: yes
+
+  vars_files:
+    - inventory/group_vars/all.yml
+    - inventory/group_vars/vault/vault.yml
+  roles:
+    - reporting
+
 - name: Deploy HPC Cluster Reporting System
   hosts: slurmctld
   become: yes

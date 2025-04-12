@@ -2,12 +2,16 @@
 - name: Configure Login Node
   hosts: login
   become: yes
+
+  vars_files:
+    - inventory/group_vars/all.yml
+    - inventory/group_vars/vault/vault.yml
   roles:
+    - login_node
     - epel
     - foreman
     - node_exporter
-    - login_node
-  
+
   tasks:
     - name: Configure firewall for SSH
       firewalld:

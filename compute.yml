@@ -1,7 +1,10 @@
 ---
-- name: Deploy SLURM Compute Nodes
+- name: Configure Compute Node
   hosts: compute
-  become: true
+  become: yes
+
+  vars_files:
+    - inventory/group_vars/all.yml
+    - inventory/group_vars/vault/vault.yml
   roles:
-    - epel
     - compute

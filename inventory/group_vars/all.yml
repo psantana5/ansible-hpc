@@ -94,7 +94,8 @@ ldap_root_password: "{{ vault_ldap_root_password }}" # From vault
 ldap_server_uri: "ldap://ldap01.{{ base_domain }}" # URI for clients (change ldap01 if needed)
 ldap_server_host: "ldap01.{{ base_domain }}" # Often derivable from URI or inventory
 # Dynamically set the LDAP server IP from the inventory
-ldap_server: "ldap01.{{ base_domain }}
+# Correct the ldap_server variable definition
+ldap_server: "ldap01.{{ base_domain }}"  # Ensure the closing quote is present
 ldap_server_ip: "{{ hostvars['ldap01']['ansible_host'] }}"
 ldap_user_ou: "People" # Organizational Unit for users
 ldap_group_ou: "Groups" # Organizational Unit for groups

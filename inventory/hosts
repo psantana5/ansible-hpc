@@ -28,7 +28,6 @@ login
 ldap01 ansible_host=192.168.1.141
 
 [monitoring_servers]
-# Assuming services01 runs the monitoring stack (Prometheus/Grafana)
 services01 ansible_host=192.168.1.152 ansible_python_interpreter=/usr/bin/python3
 
 [dns_servers]

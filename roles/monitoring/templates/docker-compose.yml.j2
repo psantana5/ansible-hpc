@@ -31,7 +31,7 @@ services:
       - /opt/monitoring/grafana/dashboards:/etc/grafana/dashboards
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD={{ grafana_admin_password }}
+      - GF_SECURITY_ADMIN_PASSWORD={{ vault_grafana_admin_password }}
       - GF_USERS_ALLOW_SIGN_UP=false
     ports:
       - "3000:3000"

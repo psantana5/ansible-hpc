@@ -1,8 +1,11 @@
 ---
-# Deploy Prometheus and Grafana only on services01
 - name: Deploy Prometheus and Grafana monitoring
-  hosts: services
+  hosts: monitoring_servers
   become: yes
+
+  vars_files:
+    - inventory/group_vars/all.yml
+    - inventory/group_vars/vault/vault.yml
   roles:
     - monitoring
     - epel
