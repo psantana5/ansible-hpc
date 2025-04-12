@@ -418,3 +418,4 @@ currency_symbol: "$"
 cpu_hour_rate: 0.05  # Cost per CPU hour
 gpu_hour_rate: 0.50  # Cost per GPU hour
 mem_gb_hour_rate: 0.01  # Cost per GB-hour of memory
+prometheus_ip: "{{ hostvars['services01']['ansible_host'] }}"  # Dynamically obtain IP from inventory
