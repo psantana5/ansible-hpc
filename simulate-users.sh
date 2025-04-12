@@ -27,8 +27,8 @@
 #   - Herramientas: bash, sbatch, shuf, awk, grep, sudo, sleep, dd, sinfo, ps, rm
 #     (y 'stress' si se activa su carga de trabajo).
 #
-# Autor: [Tu Nombre/Organización]
-# Fecha: [Fecha Actual]
+# Autor: Pau Santana
+# Fecha: 12-4-2025
 # ==============================================================================
 
 # --- Configuración ---
