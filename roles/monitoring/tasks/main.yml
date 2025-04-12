@@ -60,6 +60,8 @@
     src: datasource.yml.j2
     dest: /opt/monitoring/grafana/provisioning/datasources/datasource.yml
     mode: "0644"
+  vars:
+    prometheus_ip: "{{ hostvars['services01']['ansible_host'] }}" 
 
 - name: Copy Grafana dashboard provisioning configuration
   template:

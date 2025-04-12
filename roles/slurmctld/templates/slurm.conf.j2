@@ -145,11 +145,11 @@ SlurmdLogFile=/var/log/slurm/slurmd.log
 # COMPUTE NODES
 NodeName={{ groups['compute'] | join(',') }} CPUs=20 State=UNKNOWN
 # Partitions
-PartitionName=cfes-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP
-PartitionName=qprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP
-PartitionName=pprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP
-PartitionName=arg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP
-PartitionName=cmprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=YES MaxTime=INFINITE State=UP
+PartitionName=cfes-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=cfes
+PartitionName=qprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=quantum-physics
+PartitionName=pprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=particle-physics
+PartitionName=arg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=astrophysics
+PartitionName=cmprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=YES MaxTime=INFINITE State=UP AllowGroups=condensed-matter
 
 # Authentication configuration
 AuthType=auth/munge
