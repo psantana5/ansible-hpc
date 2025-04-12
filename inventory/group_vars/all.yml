@@ -206,7 +206,7 @@ prometheus_scrape_interval: "15s" # Default scrape interval
 node_exporter_port: 9100 # Default port
 
 # Slurm Exporter specific (if used with monitoring)
-slurm_exporter_port: 9101 # Example port (check actual exporter used)
+slurm_exporter_port: 9092 # Example port (check actual exporter used)
 
 # ------------------------------------------------------------
 # Docker Configuration (if used by 'monitoring' or other roles)
