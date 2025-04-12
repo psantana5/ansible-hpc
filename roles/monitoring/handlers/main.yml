@@ -1,13 +1,13 @@
 ---
-- name: restart prometheus
-  service:
-    name: prometheus
-    state: restarted
+- name: restart prometheus container
+  command: docker compose -f /opt/monitoring/docker-compose.yml restart prometheus
+  args:
+    chdir: /opt/monitoring
 
-- name: restart grafana
-  service:
-    name: grafana-server
-    state: restarted
+- name: restart grafana container
+  command: docker compose -f /opt/monitoring/docker-compose.yml restart grafana
+  args:
+    chdir: /opt/monitoring
 
 - name: reload systemd
   command: systemctl daemon-reload

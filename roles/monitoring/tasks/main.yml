@@ -2,11 +2,14 @@
 - name: Update package database
   dnf:
     update_cache: yes
+  changed_when: false  # This operation just updates cache, not a real change
 
 - name: Add Docker repository
-  command: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-  args:
-    creates: /etc/yum.repos.d/docker-ce.repo
+  get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: "0644"
+  register: docker_repo
 
 - name: Install required packages
   package:
@@ -48,32 +51,42 @@
     src: prometheus.yml.j2
     dest: /opt/monitoring/prometheus/prometheus.yml
     mode: "0644"
+  register: prometheus_config
+  notify: restart prometheus container
 
 - name: Copy Prometheus alert rules
   template:
     src: alert_rules.yml.j2
     dest: /opt/monitoring/prometheus/alert_rules.yml
     mode: "0644"
+  register: prometheus_alerts
+  notify: restart prometheus container
 
 - name: Copy Grafana datasource configuration
   template:
     src: datasource.yml.j2
     dest: /opt/monitoring/grafana/provisioning/datasources/datasource.yml
     mode: "0644"
+  register: grafana_datasource
+  notify: restart grafana container
   vars:
-    prometheus_ip: "{{ hostvars['services01']['ansible_host'] }}" 
+    prometheus_ip: "{{ hostvars['services01']['ansible_host'] }}"
 
 - name: Copy Grafana dashboard provisioning configuration
   template:
     src: dashboards.yml.j2
     dest: /opt/monitoring/grafana/provisioning/dashboards/dashboards.yml
     mode: "0644"
+  register: grafana_dashboards
+  notify: restart grafana container
 
 - name: Copy Node Exporter dashboard
   copy:
     src: node_exporter.json
     dest: /opt/monitoring/grafana/dashboards/node_exporter.json
     mode: "0644"
+  register: node_exporter_dashboard
+  notify: restart grafana container
 
 - name: Copy SLURM Exporter dashboard
   copy:
@@ -81,6 +94,8 @@
     dest: /opt/monitoring/grafana/dashboards/slurm_exporter.json
     mode: "0644"
   when: "'slurmctld' in groups"
+  register: slurm_exporter_dashboard
+  notify: restart grafana container
 
 - name: Set proper permissions for monitoring directories
   file:
@@ -99,8 +114,15 @@
     src: docker-compose.yml.j2
     dest: /opt/monitoring/docker-compose.yml
     mode: "0644"
+  register: docker_compose_file
+
+- name: Check if monitoring stack is running
+  command: docker ps -q --filter "name=prometheus|grafana"
+  register: monitoring_containers
+  changed_when: false
 
 - name: Start monitoring stack with docker-compose
   command: docker compose -f /opt/monitoring/docker-compose.yml up -d
   args:
     chdir: /opt/monitoring
+  when: docker_compose_file.changed or prometheus_config.changed or prometheus_alerts.changed or grafana_datasource.changed or grafana_dashboards.changed or node_exporter_dashboard.changed or (slurm_exporter_dashboard is defined and slurm_exporter_dashboard.changed) or monitoring_containers.stdout == ""
