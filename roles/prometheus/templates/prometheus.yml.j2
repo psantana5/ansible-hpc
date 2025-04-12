@@ -27,5 +27,5 @@ scrape_configs:
     static_configs:
       - targets:
 {% for host in groups['slurmctld'] %}
-        - "{{ hostvars[host]['ansible_host'] }}:9102"
+        - "{{ hostvars[host]['ansible_host'] }}:9092"
 {% endfor %}
