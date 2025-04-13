@@ -166,3 +166,56 @@
     state: enabled
   notify: reload firewall
 
+- name: Create directories for prolog and epilog scripts
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: slurm
+    group: slurm
+    mode: '0755'
+  with_items:
+    - /etc/slurm/prolog.d
+    - /etc/slurm/epilog.d
+
+- name: Create basic prolog script
+  copy:
+    dest: /etc/slurm/prolog.d/00-basic.sh
+    content: |
+      #!/bin/bash
+      # Basic prolog script for SLURM
+      # This script runs before a job starts
+      
+      # Log job information
+      logger -t slurm-prolog "Job $SLURM_JOB_ID starting for user $SLURM_JOB_USER on nodes $SLURM_JOB_NODELIST"
+      
+      exit 0
+    owner: slurm
+    group: slurm
+    mode: '0755'
+
+- name: Create basic epilog script
+  copy:
+    dest: /etc/slurm/epilog.d/99-basic.sh
+    content: |
+      #!/bin/bash
+      # Basic epilog script for SLURM
+      # This script runs after a job completes
+      
+      # Log job completion
+      logger -t slurm-epilog "Job $SLURM_JOB_ID completed for user $SLURM_JOB_USER on nodes $SLURM_JOB_NODELIST"
+      
+      # Clean up any temporary files if needed
+      
+      exit 0
+    owner: slurm
+    group: slurm
+    mode: '0755'
+
+- name: Ensure job completions log directory exists
+  file:
+    path: /var/log/slurm
+    state: directory
+    owner: slurm
+    group: slurm
+    mode: '0755'
+

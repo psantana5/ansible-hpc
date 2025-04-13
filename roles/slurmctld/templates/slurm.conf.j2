@@ -6,9 +6,9 @@ ClusterName={{ cluster_name | default('slurm_cluster') }}
 SlurmctldHost={{ ansible_hostname }}
 #SlurmctldHost=
 #
-#DisableRootJobs=NO
-#EnforcePartLimits=NO
-#Epilog=
+DisableRootJobs=NO
+EnforcePartLimits=YES
+Epilog=/etc/slurm/epilog.d/*
 #EpilogSlurmctld=
 #FirstJobId=1
 #MaxJobId=67043328
@@ -22,7 +22,7 @@ SlurmctldHost={{ ansible_hostname }}
 #LaunchType=launch/slurm
 #Licenses=foo*4,bar
 #MailProg=/bin/mail
-#MaxJobCount=10000
+MaxJobCount=10000
 #MaxStepCount=40000
 #MaxTasksPerNode=512
 #MpiDefault=
@@ -31,7 +31,7 @@ SlurmctldHost={{ ansible_hostname }}
 #PlugStackConfig=
 #PrivateData=jobs
 ProctrackType=proctrack/cgroup
-#Prolog=
+Prolog=/etc/slurm/prolog.d/*
 #PrologFlags=
 #PrologSlurmctld=
 #PropagatePrioProcess=0
@@ -58,7 +58,7 @@ TaskPlugin=task/affinity,task/cgroup
 #TrackWCKey=no
 #TreeWidth=
 #UnkillableStepProgram=
-#UsePAM=0
+UsePAM=1
 #
 #
 # TIMERS
@@ -87,6 +87,7 @@ Waittime=0
 #SchedulerTimeSlice=30
 SchedulerType=sched/backfill
 SelectType=select/cons_tres
+SchedulerParameters=bf_continue,bf_window=15,defer,sched_min_interval=2000
 #
 #
 # JOB PRIORITY
@@ -112,11 +113,11 @@ AccountingStorageType=accounting_storage/slurmdbd
 AccountingStorageUser={{ slurm_db_user | default('slurm') }}
 AccountingStorageTRES=gres/gpu,cpu,mem,node
 #JobCompHost=
-#JobCompLoc=
+JobCompLoc=/var/log/slurm/job_completions
 #JobCompParams=
 #JobCompPass=
 #JobCompPort=
-JobCompType=jobcomp/none
+JobCompType=jobcomp/filetxt
 #JobCompUser=
 #JobContainerType=
 JobAcctGatherFrequency=30
@@ -145,11 +146,11 @@ SlurmdLogFile=/var/log/slurm/slurmd.log
 # COMPUTE NODES
 NodeName={{ groups['compute'] | join(',') }} CPUs=20 State=UNKNOWN
 # Partitions
-PartitionName=cfes-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=cfes,hpc-admins
-PartitionName=qprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=quantum-physics,hpc-admins
-PartitionName=pprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=particle-physics,hpc-admins
-PartitionName=arg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=astrophysics,hpc-admins
-PartitionName=cmprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=YES MaxTime=INFINITE State=UP AllowGroups=condensed-matter,hpc-admins
+PartitionName=cfes-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=cfes,hpc-admins Hidden=NO
+PartitionName=qprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=quantum-physics,hpc-admins Hidden=NO
+PartitionName=pprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=particle-physics,hpc-admins Hidden=NO
+PartitionName=arg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=astrophysics,hpc-admins Hidden=NO
+PartitionName=cmprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=YES MaxTime=INFINITE State=UP AllowGroups=condensed-matter,hpc-admins Hidden=NO
 
 # Authentication configuration
 AuthType=auth/munge
