@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# Epilog script for SLURM jobs
+# This script runs after a job completes
+#
+
+if [ X"$SLURM_STEP_ID" = "X" -a X"$SLURM_PROCID" = "X"0 ]
+then
+  echo "print =========================================="
+  echo "print SLURM_JOB_ID $SLURM_JOB_ID has completed"
+  echo "print SLURM_NODELIST = $SLURM_NODELIST"
+  echo "print =========================================="
+fi
+
+# Log job completion
+logger -t slurm-epilog "Job $SLURM_JOB_ID completed for user $SLURM_JOB_USER on nodes $SLURM_NODELIST"
+
+exit 0

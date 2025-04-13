@@ -177,36 +177,18 @@
     - /etc/slurm/prolog.d
     - /etc/slurm/epilog.d
 
-- name: Create basic prolog script
-  copy:
+- name: Create prolog script
+  template:
+    src: prolog.sh.j2
     dest: /etc/slurm/prolog.d/00-basic.sh
-    content: |
-      #!/bin/bash
-      # Basic prolog script for SLURM
-      # This script runs before a job starts
-      
-      # Log job information
-      logger -t slurm-prolog "Job $SLURM_JOB_ID starting for user $SLURM_JOB_USER on nodes $SLURM_JOB_NODELIST"
-      
-      exit 0
     owner: slurm
     group: slurm
     mode: '0755'
 
-- name: Create basic epilog script
-  copy:
+- name: Create epilog script
+  template:
+    src: epilog.sh.j2
     dest: /etc/slurm/epilog.d/99-basic.sh
-    content: |
-      #!/bin/bash
-      # Basic epilog script for SLURM
-      # This script runs after a job completes
-      
-      # Log job completion
-      logger -t slurm-epilog "Job $SLURM_JOB_ID completed for user $SLURM_JOB_USER on nodes $SLURM_JOB_NODELIST"
-      
-      # Clean up any temporary files if needed
-      
-      exit 0
     owner: slurm
     group: slurm
     mode: '0755'

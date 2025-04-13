@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# Prolog script for SLURM jobs
+# This script runs before a job starts
+#
+ 
+if [ X"$SLURM_STEP_ID" = "X" -a X"$SLURM_PROCID" = "X"0 ]
+then
+  echo "print =========================================="
+  echo "print SLURM_JOB_ID = $SLURM_JOB_ID"
+  echo "print SLURM_NODELIST = $SLURM_NODELIST"
+  echo "print =========================================="
+fi
+
+# Log job information
+logger -t slurm-prolog "Job $SLURM_JOB_ID starting for user $SLURM_JOB_USER on nodes $SLURM_NODELIST"
+
+exit 0
