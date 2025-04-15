@@ -125,5 +125,39 @@
     permanent: yes
     state: enabled
   with_items:
-    - "6817-6819"  # Puertos de SLURM
+    - "6817-6819"
   notify: reload firewall
+
+
+- name: Create SLURM prolog and epilog directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: slurm
+    group: slurm
+    mode: '0755'
+  with_items:
+    - /etc/slurm/prolog.d
+    - /etc/slurm/epilog.d
+
+- name: Copy prolog scripts
+  copy:
+    src: "{{ item }}"
+    dest: /etc/slurm/prolog.d/
+    owner: slurm
+    group: slurm
+    mode: '0755'
+  with_fileglob:
+    - "{{ role_path }}/files/prolog.d/*"
+  when: (lookup('fileglob', '{{ role_path }}/files/prolog.d/*') | length) > 0
+
+- name: Copy epilog scripts
+  copy:
+    src: "{{ item }}"
+    dest: /etc/slurm/epilog.d/
+    owner: slurm
+    group: slurm
+    mode: '0755'
+  with_fileglob:
+    - "{{ role_path }}/files/epilog.d/*"
+  when: (lookup('fileglob', '{{ role_path }}/files/epilog.d/*') | length) > 0
