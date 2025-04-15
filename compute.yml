@@ -7,4 +7,5 @@
     - inventory/group_vars/all.yml
     - inventory/group_vars/vault/vault.yml
   roles:
+    - epel
     - compute
