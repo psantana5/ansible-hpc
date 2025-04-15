@@ -18,6 +18,14 @@
     dest: /tmp
     remote_src: yes
 
+- name: Create textfile collector directory
+  file:
+    path: /var/lib/node_exporter/textfile_collector
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
 - name: Copy Node Exporter binary
   copy:
     src: /tmp/node_exporter-1.6.1.linux-amd64/node_exporter

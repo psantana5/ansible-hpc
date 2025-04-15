@@ -1,0 +1,5 @@
+---
+- name: restart power metrics
+  systemd:
+    name: power-metrics
+    state: restarted

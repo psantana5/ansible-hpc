@@ -1,0 +1,13 @@
+[Unit]
+Description=Slurm Power Metrics Collector
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/opt/slurm/scripts/power_metrics.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
