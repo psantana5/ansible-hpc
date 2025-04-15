@@ -1,0 +1,13 @@
+[Unit]
+Description=Proxmox Power Usage Exporter
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/bin/bash -c 'while true; do /opt/proxmox_power_monitoring/script.sh; sleep 60; done'
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target

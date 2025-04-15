@@ -1,0 +1,254 @@
+#!/bin/bash
+
+# Script para monitoreo de consumo energético en Proxmox con integración Prometheus
+# y recomendaciones de eficiencia energética
+
+# Verificar e instalar dependencias necesarias
+check_dependencies() {
+  for cmd in bc curl python3; do
+    if ! command -v $cmd &> /dev/null; then
+      echo "📦 Instalando $cmd..."
+      apt-get update && apt-get install -y $cmd
+    fi
+  done
+
+  # Verificar si pip está instalado
+  if ! command -v pip3 &> /dev/null; then
+    echo "📦 Instalando pip3..."
+    apt-get update && apt-get install -y python3-pip
+  fi
+}  
+
+# Valores base de consumo (en vatios)
+power_idle={{ power_idle | default(30) }}   # Consumo en reposo del nodo
+power_vm_base={{ power_vm_base | default(5) }} # Consumo base estimado por VM encendida
+
+# Función para calcular el consumo energético
+calculate_power_usage() {
+  echo "🔍 Midiendo consumo en base a uso de CPU..."
+  echo
+
+  # Obtener lista de VMs activas
+  vms=$(qm list | awk '/running/ {print $1}')
+
+  # Contador de uso total de CPU
+  cpu_usage_total=0
+  vm_data=""
+  vm_count=0
+
+  # Recorrer cada VM activa
+  for vmid in $vms; do
+    # Obtener PID del proceso de la VM
+    pid=$(pgrep -f "kvm -id $vmid")
+    vm_count=$((vm_count + 1))
+
+    # Obtener uso de CPU de ese PID (puede ser más de uno, usamos suma)
+    cpu_vm=0
+    if [ -n "$pid" ]; then
+      for p in $pid; do
+        cpu=$(ps -p $p -o %cpu= | awk '{sum+=$1} END {print sum}')
+        cpu_vm=$(echo "$cpu_vm + $cpu" | bc)
+        cpu_usage_total=$(echo "$cpu_usage_total + $cpu" | bc)
+      done
+    fi
+
+    # Obtener nombre de la VM
+    name=$(qm config $vmid | grep ^name | awk '{print $2}')
+    
+    # Calcular estimación de consumo para la VM
+    power_vm=$(echo "$power_vm_base + ($power_idle * $cpu_vm / 100)" | bc -l | xargs printf "%.2f")
+    
+    # Guardar datos para Prometheus
+    vm_data="$vm_data\n# HELP proxmox_vm_power_usage_watts Estimated power usage for VM in watts\n# TYPE proxmox_vm_power_usage_watts gauge\nproxmox_vm_power_usage_watts{vmid=\"$vmid\",name=\"$name\"} $power_vm\n# HELP proxmox_vm_cpu_usage CPU usage percentage for VM\n# TYPE proxmox_vm_cpu_usage gauge\nproxmox_vm_cpu_usage{vmid=\"$vmid\",name=\"$name\"} $cpu_vm"
+    
+    echo "🖥️  VM $name (ID $vmid): ${cpu_vm}% CPU -> ~${power_vm} W"
+  done
+
+  # Evitar valores vacíos
+  if [[ -z "$cpu_usage_total" ]]; then
+    cpu_usage_total=0
+  fi
+
+  # Calcular el consumo total estimado del nodo
+  power_total=$(echo "$power_idle + ($power_idle * $cpu_usage_total / 100)" | bc -l | xargs printf "%.2f")
+
+  if [[ -z "$power_total" ]]; then
+    power_total="0.00"
+  fi
+
+  echo "⚡ Consumo total del nodo: $power_total W"
+  echo "🧠 Uso total CPU por VMs: ${cpu_usage_total}%"
+  echo "💻 Número de VMs activas: $vm_count"
+  echo
+
+  # Generar recomendaciones de eficiencia
+  generate_recommendations "$power_total" "$cpu_usage_total" "$vm_count"
+
+  # Crear archivo de métricas para Prometheus
+  cat > /tmp/proxmox_power_metrics.prom << EOF
+# HELP proxmox_node_power_usage_watts Estimated total power usage for the node in watts
+# TYPE proxmox_node_power_usage_watts gauge
+proxmox_node_power_usage_watts $power_total
+# HELP proxmox_node_vm_cpu_usage_total Total CPU usage percentage from all VMs
+# TYPE proxmox_node_vm_cpu_usage_total gauge
+proxmox_node_vm_cpu_usage_total $cpu_usage_total
+# HELP proxmox_node_vm_count Number of running VMs
+# TYPE proxmox_node_vm_count gauge
+proxmox_node_vm_count $vm_count
+$vm_data
+EOF
+}
+
+# Función para generar recomendaciones de eficiencia energética
+generate_recommendations() {
+  local power_total=$1
+  local cpu_usage_total=$2
+  local vm_count=$3
+  
+  echo "🌱 Recomendaciones de eficiencia energética:"
+  echo "------------------------------------------"
+  
+  # Convertir a números para comparación
+  power_num=$(echo "$power_total" | sed 's/\.//g')
+  cpu_num=$(echo "$cpu_usage_total" | sed 's/\.//g')
+  
+  # Umbrales para clasificación
+  power_threshold={{ power_threshold | default(50) }}  # Más de 50W se considera alto
+  cpu_threshold={{ cpu_threshold | default(30) }}    # Más de 30% se considera alto
+  
+  # Calcular consumo por VM promedio
+  if [ "$vm_count" -gt 0 ]; then
+    power_per_vm=$(echo "scale=2; $power_total / $vm_count" | bc)
+  else
+    power_per_vm=0
+  fi
+  
+  # Caso 1: Consumo bajo y CPU bajo
+  if (( $(echo "$power_total < $power_threshold" | bc -l) )) && (( $(echo "$cpu_usage_total < $cpu_threshold" | bc -l) )); then
+    echo "✅ Estado óptimo: El consumo energético y uso de CPU son bajos."
+    echo "   Consumo por VM: ~$power_per_vm W"
+  
+  # Caso 2: Consumo alto pero CPU bajo
+  elif (( $(echo "$power_total >= $power_threshold" | bc -l) )) && (( $(echo "$cpu_usage_total < $cpu_threshold" | bc -l) )); then
+    echo "⚠️ Consumo elevado con bajo uso de CPU. Posibles causas:"
+    echo "   - Procesos del sistema ineficientes"
+    echo "   - Configuración de energía subóptima"
+    echo "   - Hardware antiguo o ineficiente"
+    echo ""
+    echo "   Recomendaciones:"
+    echo "   - Ejecutar 'powertop --auto-tune' para optimizar consumo"
+    echo "   - Verificar configuración de CPU governor: 'cpupower frequency-info'"
+    echo "   - Considerar ajustar intel_pstate a modo 'powersave'"
+    echo "   - Revisar procesos del sistema con 'htop' o 'ps aux --sort=-%cpu'"
+  
+  # Caso 3: Consumo alto y CPU alto
+  elif (( $(echo "$power_total >= $power_threshold" | bc -l) )) && (( $(echo "$cpu_usage_total >= $cpu_threshold" | bc -l) )); then
+    echo "🔥 Alto uso de recursos. Recomendaciones:"
+    echo "   - Considerar migrar VMs entre nodos para balancear carga"
+    echo "   - Evaluar si se pueden consolidar VMs en horarios valle"
+    echo "   - Ajustar CPUs virtuales asignadas a las VMs"
+    echo "   - Verificar si hay VMs con alta contención de recursos"
+    echo "   - Considerar usar cgroups para limitar recursos de VMs específicas"
+  
+  # Caso 4: Consumo bajo pero CPU alto
+  else
+    echo "🔄 Uso eficiente de recursos con alta carga de CPU."
+    echo "   Buen rendimiento energético. Considerar:"
+    echo "   - Monitorear temperaturas para evitar throttling"
+    echo "   - Verificar si hay suficiente refrigeración"
+  fi
+  
+  echo ""
+}
+
+# Función para iniciar el servidor HTTP para Prometheus
+start_prometheus_exporter() {
+  # Crear script Python para el servidor HTTP
+  cat > /tmp/prometheus_exporter.py << 'EOF'
+#!/usr/bin/env python3
+import http.server
+import socketserver
+import os
+import time
+from urllib.parse import urlparse, parse_qs
+
+PORT = {{ prometheus_port | default(9200) }}
+METRICS_FILE = "{{ metrics_file | default('/tmp/proxmox_power_metrics.prom') }}"
+
+class PrometheusHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        parsed_path = urlparse(self.path)
+        if parsed_path.path == "/metrics":
+            try:
+                with open(METRICS_FILE, 'r') as file:
+                    content = file.read()
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(content.encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(f"Error: {str(e)}".encode())
+        else:
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(b"<html><head><title>Proxmox Power Metrics Exporter</title></head>")
+            self.wfile.write(b"<body><h1>Proxmox Power Metrics Exporter</h1>")
+            self.wfile.write(b"<p>Visit <a href='/metrics'>/metrics</a> for Prometheus metrics</p></body></html>")
+    
+    def log_message(self, format, *args):
+        # Silenciar logs para evitar spam en la consola
+        return
+
+def run_server():
+    with socketserver.TCPServer(("", PORT), PrometheusHandler) as httpd:
+        print(f"Servidor iniciado en puerto {PORT}")
+        httpd.serve_forever()
+
+if __name__ == "__main__":
+    run_server()
+EOF
+
+  # Hacer ejecutable el script
+  chmod +x /tmp/prometheus_exporter.py
+  
+  # Verificar si ya hay un servidor en ejecución
+  if pgrep -f "python3 /tmp/prometheus_exporter.py" > /dev/null; then
+    echo "🔄 El servidor Prometheus ya está en ejecución"
+  else
+    echo "🚀 Iniciando servidor Prometheus en puerto 9200..."
+    nohup python3 /tmp/prometheus_exporter.py > /dev/null 2>&1 &
+    echo "✅ Servidor iniciado. Métricas disponibles en http://localhost:9200/metrics"
+  fi
+  
+  # Informar sobre la configuración de Prometheus
+  echo "ℹ️ Para configurar Prometheus, añade lo siguiente a prometheus.yml:"
+  echo ""
+  echo "  - job_name: 'proxmox_power'"
+  echo "    scrape_interval: 60s"
+  echo "    static_configs:"
+  echo "      - targets: ['$(hostname):9200']"
+  echo ""
+  echo "📊 Prometheus está configurado en 192.168.1.152"
+}
+
+# Función principal
+main() {
+  # Verificar dependencias
+  check_dependencies
+  
+  # Calcular consumo energético
+  calculate_power_usage
+  
+  # Iniciar servidor para Prometheus
+  start_prometheus_exporter
+  
+  echo "✨ Proceso completado. El servidor seguirá ejecutándose en segundo plano."
+  echo "🔄 Ejecuta este script periódicamente para actualizar las métricas."
+}
+
+# Ejecutar función principal
+main

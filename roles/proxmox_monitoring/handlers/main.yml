@@ -1,0 +1,16 @@
+---
+- name: restart power exporter
+  systemd:
+    name: power-exporter
+    state: restarted
+
+- name: restart node exporter
+  systemd:
+    name: prometheus-node-exporter
+    state: restarted
+
+- name: restart grafana container
+  command: docker compose -f /opt/monitoring/docker-compose.yml restart grafana
+  args:
+    chdir: /opt/monitoring
+  ignore_errors: yes

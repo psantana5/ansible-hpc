@@ -1,0 +1,50 @@
+---
+# Proxmox power monitoring role
+
+- name: Install required packages
+  package:
+    name:
+      - bc
+      - curl
+      - python3
+      - python3-pip
+      - prometheus-node-exporter
+    state: present
+
+- name: Create monitoring directory
+  file:
+    path: /opt/proxmox_power_monitoring
+    state: directory
+    mode: '0755'
+
+- name: Copy power monitoring script as template
+  template:
+    src: script.sh.j2
+    dest: /opt/proxmox_power_monitoring/script.sh
+    mode: '0755'
+
+- name: Create systemd service for power monitoring
+  template:
+    src: power-exporter.service.j2
+    dest: /etc/systemd/system/power-exporter.service
+    mode: '0644'
+  notify: restart power exporter
+
+- name: Configure node_exporter to read power metrics
+  lineinfile:
+    path: /etc/default/prometheus-node-exporter
+    regexp: '^ARGS=".*"'
+    line: 'ARGS="--collector.textfile.directory=/tmp"'
+  notify: restart node exporter
+
+- name: Enable and start power exporter service
+  systemd:
+    name: power-exporter
+    enabled: yes
+    state: started
+
+- name: Copy Grafana dashboard JSON
+  copy:
+    content: "{{ lookup('file', 'templates/proxmox_power_dashboard.json') }}"
+    dest: /opt/proxmox_power_monitoring/proxmox_power_dashboard.json
+    mode: '0644'
