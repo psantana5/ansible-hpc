@@ -1,0 +1,10 @@
+---
+- name: Deploy Proxmox Power Monitoring
+  hosts: proxmox
+  become: yes
+  
+  vars_files:
+    - inventory/group_vars/all.yml
+    
+  roles:
+    - proxmox_monitoring

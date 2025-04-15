@@ -420,3 +420,13 @@ gpu_hour_rate: 0.50  # Cost per GPU hour
 mem_gb_hour_rate: 0.01  # Cost per GB-hour of memory
 prometheus_ip: "{{ hostvars['services01']['ansible_host'] }}"  # Dynamically obtain IP from inventory
 ldap_tls_reqcert: "never"  # Options: never, allow, try, demand, hard
+
+# Default variables for proxmox_monitoring role
+proxmox_monitoring_port: 9200
+power_idle: 30                # Base power consumption in watts when idle
+power_vm_base: 5              # Base power consumption per VM in watts
+power_threshold: 50           # Threshold for high power consumption warnings
+cpu_threshold: 30             # Threshold for high CPU usage warnings
+prometheus_port_proxmox: 9200         # Port for the Prometheus exporter
+metrics_file: /tmp/proxmox_power_metrics.prom  # Path to store metrics
+monitoring_interval: 60       # Interval in seconds between monitoring runs

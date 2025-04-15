@@ -93,6 +93,7 @@
     src: "{{ playbook_dir }}/roles/proxmox_monitoring/files/proxmox_power_dashboard.json"
     dest: /opt/monitoring/grafana/dashboards/proxmox_power_dashboard.json
     mode: "0644"
+  register: proxmox_dashboard
   notify: restart grafana container
 
 - name: Set proper permissions for monitoring directories
@@ -123,4 +124,4 @@
   command: docker compose -f /opt/monitoring/docker-compose.yml up -d
   args:
     chdir: /opt/monitoring
-  when: docker_compose_file.changed or prometheus_config.changed or prometheus_alerts.changed or grafana_datasource.changed or grafana_dashboards.changed or node_exporter_dashboard.changed or (slurm_exporter_dashboard is defined and slurm_exporter_dashboard.changed) or monitoring_containers.stdout == ""
+  when: docker_compose_file.changed or prometheus_config.changed or prometheus_alerts.changed or grafana_datasource.changed or grafana_dashboards.changed or node_exporter_dashboard.changed or (proxmox_dashboard is defined and proxmox_dashboard.changed) or monitoring_containers.stdout == ""

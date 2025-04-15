@@ -172,7 +172,7 @@ import os
 import time
 from urllib.parse import urlparse, parse_qs
 
-PORT = {{ prometheus_port | default(9200) }}
+PORT = {{ prometheus_port_proxmox | default(9200) }}
 METRICS_FILE = "{{ metrics_file | default('/tmp/proxmox_power_metrics.prom') }}"
 
 class PrometheusHandler(http.server.SimpleHTTPRequestHandler):
