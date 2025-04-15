@@ -1,32 +1,50 @@
+# Corrected prometheus.yml.j2
+
 global:
-  scrape_interval: {{ prometheus_scrape_interval }}
+  scrape_interval: 15s
   evaluation_interval: 15s
 
+# Assuming you want rule files uncommented now
 rule_files:
   - alert_rules.yml
 
 scrape_configs:
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['localhost:{{ prometheus_port }}']
+      - targets: ['localhost:9090']
 
   - job_name: 'node_exporter'
     static_configs:
+      # 'targets:' starts at indent level 6 (3 * 2 spaces)
       - targets:
-          - localhost:{{ node_exporter_port }}
-          {% for host in groups['all'] %}
-          {% if host != 'services01' and host != inventory_hostname %}
-          - {{ hostvars[host]['ansible_host'] | default(host) }}:{{ node_exporter_port }}
-          {% endif %}
-          {% endfor %}
+        # The list item '-' MUST start at indent level 8 (4 * 2 spaces)
+        # Ensure there are exactly 8 spaces before this line in your .j2 file
+{% for host in groups['slurm'] %} # Or groups['all'] or whichever group is correct
+        - "{{ hostvars[host]['ansible_host'] | default(host) }}:9100"
+{% endfor %}
+        # Note: If you *also* want localhost:9100 hardcoded, add it like this:
+        # - localhost:9100
+        # Or ensure the host running prometheus is *also* in the group used above.
 
-{% if 'slurmctld' in groups %}
   - job_name: 'slurm_exporter'
-    scrape_interval: 30s
-    scrape_timeout: 30s
+    scrape_interval: 30s  # Keeping this based on your output
+    scrape_timeout: 30s   # Keeping this based on your output
     static_configs:
+      # 'targets:' starts at indent level 6
       - targets:
-          {% for host in groups['slurmctld'] %}
-          - {{ hostvars[host]['ansible_host'] | default(host) }}:{{ slurm_exporter_port }}
-          {% endfor %}
-{% endif %}
+        # The list item '-' MUST start at indent level 8
+        # Ensure there are exactly 8 spaces before this line in your .j2 file
+{% for host in groups['slurmctld'] %} # Assuming this is the correct group
+        - "{{ hostvars[host]['ansible_host'] }}:9092"
+{% endfor %}
+
+  # Adding back the proxmox block from your first example, correctly formatted
+  - job_name: "proxmox_vms_power"
+    static_configs:
+      # 'targets:' starts at indent level 6
+      - targets:
+        # The list item '-' MUST start at indent level 8
+        # Ensure there are exactly 8 spaces before this line in your .j2 file
+{% for host in groups['proxmox'] %}
+        - "{{ hostvars[host]['ansible_host'] }}:9200"
+{% endfor %}
