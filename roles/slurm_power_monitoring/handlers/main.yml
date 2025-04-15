@@ -3,3 +3,8 @@
   systemd:
     name: power-metrics
     state: restarted
+
+- name: restart power metrics collector
+  systemd:
+    name: power-metrics-collector
+    state: restarted

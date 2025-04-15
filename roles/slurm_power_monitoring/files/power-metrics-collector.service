@@ -1,0 +1,12 @@
+[Unit]
+Description=Slurm Power Metrics Collector Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/slurm/scripts/collect_power_data.sh --daemon
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -4,6 +4,7 @@
     name:
       - python3
       - python3-pip
+      - bc  # Required for the bash script calculations
     state: present
 
 - name: Install required Python packages
@@ -24,12 +25,25 @@
     dest: /opt/slurm/scripts/power_metrics.py
     mode: '0755'
 
-- name: Copy systemd service file
+- name: Copy manual data collection script
+  template:
+    src: collect_power_data.sh.j2
+    dest: /opt/slurm/scripts/collect_power_data.sh
+    mode: '0755'
+
+- name: Copy systemd service file for Python collector
   template:
     src: power_metrics.service.j2
     dest: /etc/systemd/system/power-metrics.service
     mode: '0644'
   notify: restart power metrics
+
+- name: Copy systemd service file for bash collector
+  template:
+    src: power-metrics-collector.service.j2
+    dest: /etc/systemd/system/power-metrics-collector.service
+    mode: '0644'
+  notify: restart power metrics collector
 
 - name: Create metrics directory
   file:
@@ -39,9 +53,16 @@
     owner: root
     group: root
 
-- name: Enable and start power metrics service
+- name: Enable and start power metrics service (Python)
   systemd:
     name: power-metrics
+    enabled: yes
+    state: started
+    daemon_reload: yes
+
+- name: Enable and start power metrics collector service (Bash)
+  systemd:
+    name: power-metrics-collector
     enabled: yes
     state: started
     daemon_reload: yes
