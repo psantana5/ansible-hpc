@@ -3,4 +3,6 @@
   systemd:
     name: node_exporter
     state: restarted
-    daemon_reload: yes
+
+- name: reload firewall
+  command: firewall-cmd --reload
