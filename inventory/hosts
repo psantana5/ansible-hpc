@@ -26,6 +26,11 @@ slurmctld
 compute
 login
 
+# Power monitoring targets
+[power_monitoring:children]
+compute
+slurmctld
+
 # Specific Service Hosts (Aligned with site.yml role targeting)
 [ldap_servers]
 ldap01 ansible_host=192.168.1.141
