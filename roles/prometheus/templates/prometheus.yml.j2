@@ -1,3 +1,5 @@
+# prometheus.yml.j2
+
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
@@ -20,6 +22,7 @@ scrape_configs:
     static_configs:
       - targets:
 {% for host in groups['slurm'] %}
+        # This line needs to be indented correctly relative to 'targets:'
         - "{{ hostvars[host]['ansible_host'] }}:9100"
 {% endfor %}
 
@@ -29,3 +32,10 @@ scrape_configs:
 {% for host in groups['slurmctld'] %}
         - "{{ hostvars[host]['ansible_host'] }}:9092"
 {% endfor %}
+
+  - job_name: "proxmox_vms_power"
+    static_configs:
+      - targets:
+{% for host in groups['proxmox'] %}
+        - "{{ hostvars[host]['ansible_host'] }}:9200"
+{% endfor %} 
