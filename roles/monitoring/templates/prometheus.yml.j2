@@ -1,5 +1,3 @@
-# Corrected prometheus.yml.j2
-
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
@@ -35,7 +33,7 @@ scrape_configs:
 
 
   - job_name: "proxmox_vms_power"
-    scrape_interval: 15s
+    scrape_interval: 30s
     scrape_timeout: 30s
     static_configs:
       # 'targets:' starts at indent level 6
