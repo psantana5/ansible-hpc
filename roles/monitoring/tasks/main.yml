@@ -88,13 +88,11 @@
   register: node_exporter_dashboard
   notify: restart grafana container
 
-- name: Copy SLURM Exporter dashboard
+- name: Copy power monitoring for nodes dashboard
   copy:
-    src: slurm_exporter.json
-    dest: /opt/monitoring/grafana/dashboards/slurm_exporter.json
+    src: "{{ playbook_dir }}/roles/proxmox_monitoring/files/proxmox_power_dashboard.json"
+    dest: /opt/monitoring/grafana/dashboards/proxmox_power_dashboard.json
     mode: "0644"
-  when: "'slurmctld' in groups"
-  register: slurm_exporter_dashboard
   notify: restart grafana container
 
 - name: Set proper permissions for monitoring directories

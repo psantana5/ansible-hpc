@@ -18,33 +18,26 @@ scrape_configs:
       # 'targets:' starts at indent level 6 (3 * 2 spaces)
       - targets:
         # The list item '-' MUST start at indent level 8 (4 * 2 spaces)
-        # Ensure there are exactly 8 spaces before this line in your .j2 file
 {% for host in groups['slurm'] %} # Or groups['all'] or whichever group is correct
         - "{{ hostvars[host]['ansible_host'] | default(host) }}:9100"
 {% endfor %}
-        # Note: If you *also* want localhost:9100 hardcoded, add it like this:
-        # - localhost:9100
-        # Or ensure the host running prometheus is *also* in the group used above.
 
   - job_name: 'slurm_exporter'
-    scrape_interval: 30s  # Keeping this based on your output
-    scrape_timeout: 30s   # Keeping this based on your output
+    scrape_interval: 30s  
+    scrape_timeout: 30s   
     static_configs:
       # 'targets:' starts at indent level 6
       - targets:
         # The list item '-' MUST start at indent level 8
-        # Ensure there are exactly 8 spaces before this line in your .j2 file
 {% for host in groups['slurmctld'] %} # Assuming this is the correct group
         - "{{ hostvars[host]['ansible_host'] }}:9092"
 {% endfor %}
 
-  # Adding back the proxmox block from your first example, correctly formatted
+
   - job_name: "proxmox_vms_power"
     static_configs:
       # 'targets:' starts at indent level 6
       - targets:
-        # The list item '-' MUST start at indent level 8
-        # Ensure there are exactly 8 spaces before this line in your .j2 file
 {% for host in groups['proxmox'] %}
         - "{{ hostvars[host]['ansible_host'] }}:9200"
 {% endfor %}
