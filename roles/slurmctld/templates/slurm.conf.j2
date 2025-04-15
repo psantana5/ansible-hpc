@@ -144,13 +144,25 @@ SlurmdLogFile=/var/log/slurm/slurmd.log
 #
 #
 # COMPUTE NODES
-NodeName={{ groups['compute'] | join(',') }} CPUs=20 State=UNKNOWN
+{% for node in groups['compute'] %}
+{% if node == groups['compute'][0] %}
+NodeName={{ node }} CPUs=12 RealMemory=31439 State=UNKNOWN Feature=highmem
+{% else %}
+NodeName={{ node }} CPUs=32 RealMemory=15692 State=UNKNOWN Feature=highcpu
+{% endif %}
+{% endfor %}
+
 # Partitions
+# Research group partitions
 PartitionName=cfes-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=cfes,hpc-admins Hidden=NO
 PartitionName=qprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=quantum-physics,hpc-admins Hidden=NO
 PartitionName=pprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=particle-physics,hpc-admins Hidden=NO
 PartitionName=arg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=NO MaxTime=INFINITE State=UP AllowGroups=astrophysics,hpc-admins Hidden=NO
 PartitionName=cmprg-cpu-hswl Nodes={{ groups['compute'] | join(',') }} Default=YES MaxTime=INFINITE State=UP AllowGroups=condensed-matter,hpc-admins Hidden=NO
+
+# Resource-specific partitions
+PartitionName=highmem Nodes={{ groups['compute'][0] }} Default=NO MaxTime=INFINITE State=UP AllowGroups=cfes,quantum-physics,particle-physics,astrophysics,condensed-matter,hpc-admins
+PartitionName=highcpu Nodes={% for node in groups['compute'][1:] %}{{ node }}{% if not loop.last %},{% endif %}{% endfor %} Default=NO MaxTime=INFINITE State=UP AllowGroups=cfes,quantum-physics,particle-physics,astrophysics,condensed-matter,hpc-admins
 
 # Authentication configuration
 AuthType=auth/munge
