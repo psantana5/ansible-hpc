@@ -1,0 +1,490 @@
+\documentclass[aspectratio=169]{beamer}
+\usetheme{Madrid}
+\usecolortheme{dolphin}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{fontawesome}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows,shapes}
+
+% Custom colors
+\definecolor{cientigo}{RGB}{0, 102, 153}
+\setbeamercolor{title}{fg=cientigo}
+\setbeamercolor{frametitle}{fg=cientigo}
+\setbeamercolor{structure}{fg=cientigo}
+
+% Title information
+\title{Infraestructura HPC con SLURM}
+\subtitle{Computación de Alto Rendimiento para Investigación}
+\author{Pau Santana}
+\institute{CientiGO}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}
+\frametitle{Contenido}
+\begin{columns}
+\column{0.5\textwidth}
+\tableofcontents[sections={1-4}]
+\column{0.5\textwidth}
+\tableofcontents[sections={5-9}]
+\end{columns}
+
+\vspace{0.5cm}
+\begin{center}
+\textbf{Objetivos de la presentación:}
+\begin{itemize}
+    \item Comprender la arquitectura del clúster HPC
+    \item Conocer las tecnologías clave implementadas
+    \item Entender los procedimientos operativos
+    \item Explorar casos de uso prácticos
+\end{itemize}
+\end{center}
+\end{frame}
+
+\section{Introducción}
+
+\begin{frame}
+\frametitle{Visión General}
+\begin{itemize}
+    \item \textbf{Propósito:} Infraestructura HPC para investigación científica
+    \item \textbf{Componentes clave:}
+    \begin{itemize}
+        \item SLURM - Gestor de recursos y trabajos
+        \item OpenLDAP - Autenticación centralizada
+        \item Prometheus/Grafana - Monitorización
+        \item Ansible - Automatización y despliegue
+    \end{itemize}
+    \item \textbf{Beneficios:} Escalabilidad, gestión centralizada, monitorización avanzada
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Motivación del Proyecto}
+\begin{itemize}
+    \item \textbf{Necesidades identificadas:}
+    \begin{itemize}
+        \item Recursos computacionales para investigación avanzada
+        \item Gestión eficiente de recursos compartidos
+        \item Entorno controlado y seguro
+        \item Reducción de costes operativos
+    \end{itemize}
+    \item \textbf{Solución:} Clúster HPC con gestión centralizada
+    \item \textbf{Valor añadido:} Infraestructura como código, reproducible y escalable
+\end{itemize}
+\end{frame}
+
+\section{Arquitectura}
+
+\begin{frame}
+\frametitle{Arquitectura del Sistema}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Componentes principales:}
+\begin{itemize}
+    \item Nodos de control SLURM
+    \item Nodos de cómputo
+    \item Servidor LDAP
+    \item Monitorización
+    \item Foreman
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Topología de red:}
+\begin{itemize}
+    \item Dominio: \texttt{linkiafp.es}
+    \item DNS interno
+    \item Servicios distribuidos
+    \item Segmentación lógica
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagrama de Arquitectura}
+\centering
+\begin{tikzpicture}[node distance=1.5cm, auto]
+    % Nodes
+    \node[draw, rectangle, rounded corners, fill=blue!20, minimum width=3cm, minimum height=1cm] (slurmctld) {SLURM Controller};
+    \node[draw, rectangle, rounded corners, fill=blue!20, minimum width=3cm, minimum height=1cm, below=of slurmctld] (slurmdbd) {SLURM Database};
+    \node[draw, rectangle, rounded corners, fill=green!20, minimum width=3cm, minimum height=1cm, left=2cm of slurmctld] (compute) {Compute Nodes};
+    \node[draw, rectangle, rounded corners, fill=orange!20, minimum width=3cm, minimum height=1cm, right=2cm of slurmctld] (ldap) {LDAP Server};
+    \node[draw, rectangle, rounded corners, fill=purple!20, minimum width=3cm, minimum height=1cm, below=of ldap] (monitoring) {Monitoring};
+    
+    % Connections
+    \draw[->] (slurmctld) -- (slurmdbd);
+    \draw[->] (slurmctld) -- (compute);
+    \draw[->] (slurmctld) -- (ldap);
+    \draw[->] (compute) -- (ldap);
+    \draw[->] (monitoring) -- (slurmctld);
+    \draw[->] (monitoring) -- (compute);
+    \draw[->] (monitoring) -- (ldap);
+    \draw[->] (monitoring) -- (slurmdbd);
+\end{tikzpicture}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Infraestructura Física}
+\begin{verbatim}
+# Estructura actual
+- 1 controlador SLURM (slurm01)
+- 1 servidor de base de datos (slurmdb01)
+- 2+ nodos de cómputo (nodo01, nodo02, ...)
+- 1 nodo de login (login01)
+- 1 servidor LDAP (ldap01)
+- 1 servidor de servicios (services01)
+\end{verbatim}
+\end{frame}
+
+\section{Gestión de Usuarios}
+
+\begin{frame}
+\frametitle{Sistema LDAP}
+\begin{itemize}
+    \item \textbf{Estructura:}
+    \begin{itemize}
+        \item Base DN: \texttt{dc=linkiafp,dc=es}
+        \item Usuarios: \texttt{ou=People,dc=linkiafp,dc=es}
+        \item Grupos: \texttt{ou=Groups,dc=linkiafp,dc=es}
+    \end{itemize}
+    \item \textbf{Grupos de investigación:}
+    \begin{itemize}
+        \item HPC-admins
+        \item cfes (Core Facility Earth Sciences)
+        \item quantum-physics
+        \item particle-physics
+        \item astrophysics
+        \item condensed-matter
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\section{SLURM}
+
+\begin{frame}
+\frametitle{Configuración de SLURM}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Componentes:}
+\begin{itemize}
+    \item slurmctld
+    \item slurmd
+    \item slurmdbd
+    \item munge
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Particiones generales:}
+\begin{itemize}
+    \item debug
+    \item short
+    \item medium
+    \item long
+    \item gpu
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Particiones por Grupo}
+\begin{verbatim}
+PARTITION       AVAIL  TIMELIMIT  NODES  STATE NODELIST
+cfes-cpu-hswl      up   infinite      1   idle nodo01
+qprg-cpu-hswl      up   infinite      1   idle nodo01
+pprg-cpu-hswl      up   infinite      1   idle nodo01
+arg-cpu-hswl       up   infinite      1   idle nodo01
+cmprg-cpu-hswl*    up   infinite      1   idle nodo01
+\end{verbatim}
+
+\begin{itemize}
+    \item Cada grupo tiene su partición dedicada
+    \item Políticas de acceso basadas en pertenencia a grupos
+    \item Prioridades configurables por grupo
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Comandos Básicos de SLURM}
+\begin{itemize}
+    \item \textbf{Envío de trabajos:} 
+    \begin{verbatim}
+    sbatch script.sh
+    srun --partition=debug hostname
+    \end{verbatim}
+    
+    \item \textbf{Monitorización:}
+    \begin{verbatim}
+    squeue -u $USER
+    sinfo -a
+    sacct -u $USER --format=JobID,JobName,State
+    \end{verbatim}
+    
+    \item \textbf{Gestión:}
+    \begin{verbatim}
+    scancel <jobid>
+    scontrol show job <jobid>
+    \end{verbatim}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Políticas de Calidad de Servicio}
+\begin{itemize}
+    \item \textbf{Límites por usuario:}
+    \begin{itemize}
+        \item Número máximo de trabajos simultáneos
+        \item Tiempo máximo de ejecución por trabajo
+        \item Recursos máximos por usuario
+    \end{itemize}
+    
+    \item \textbf{Prioridades:}
+    \begin{itemize}
+        \item Basadas en grupo de investigación
+        \item Ajuste dinámico según uso histórico
+        \item Factores de prioridad configurables
+    \end{itemize}
+    
+    \item \textbf{Reservas:} Posibilidad de reservar recursos para eventos especiales
+\end{itemize}
+\end{frame}
+
+\section{Monitorización}
+
+\begin{frame}
+\frametitle{Sistema de Monitorización}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Prometheus:}
+\begin{itemize}
+    \item Recopilación de métricas
+    \item Alertas configurables
+    \item Datos históricos
+    \item Exportadores específicos para SLURM
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Grafana:}
+\begin{itemize}
+    \item Dashboards personalizados
+    \item Visualización en tiempo real
+    \item Informes periódicos
+    \item Métricas por grupo/usuario
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\section{Despliegue}
+
+\begin{frame}
+\frametitle{Automatización con Ansible}
+\begin{itemize}
+    \item \textbf{Playbooks principales:}
+    \begin{itemize}
+        \item \texttt{site.yml} - Playbook principal
+        \item \texttt{openldap.yml} - Configuración LDAP
+        \item \texttt{slurmctld.yml} - Controlador SLURM
+        \item \texttt{compute.yml} - Nodos de cómputo
+        \item \texttt{monitoring.yml} - Prometheus/Grafana
+    \end{itemize}
+    \item \textbf{Ventajas:}
+    \begin{itemize}
+        \item Despliegue reproducible
+        \item Gestión de configuración
+        \item Escalabilidad sencilla
+        \item Documentación como código
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\section{Procedimientos}
+
+\begin{frame}
+\frametitle{Procedimientos Operativos}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Gestión de usuarios:}
+\begin{itemize}
+    \item Creación de usuarios LDAP
+    \item Asignación a grupos
+    \item Gestión de cuotas
+    \item Políticas de acceso
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Mantenimiento:}
+\begin{itemize}
+    \item Actualizaciones rolling
+    \item Backups de configuración
+    \item Monitorización proactiva
+    \item Gestión de recursos
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\section{Computación Verde}
+
+\begin{frame}
+\frametitle{Sostenibilidad Energética}
+\begin{itemize}
+    \item \textbf{Gestión dinámica de energía:}
+    \begin{itemize}
+        \item Suspensión de nodos inactivos
+        \item Escalado dinámico de frecuencia
+        \item Consolidación de trabajos
+    \end{itemize}
+    \item \textbf{Métricas de sostenibilidad:}
+    \begin{itemize}
+        \item PUE (Power Usage Effectiveness)
+        \item Consumo por trabajo
+        \item Huella de carbono
+    \end{itemize}
+    \item \textbf{Optimizaciones:} Refrigeración eficiente, hardware seleccionado, virtualización
+\end{itemize}
+\end{frame}
+
+\section{Casos de Uso}
+
+\begin{frame}
+\frametitle{Aplicaciones Prácticas}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Entorno académico:}
+\begin{itemize}
+    \item Cursos de computación paralela
+    \item Bioinformática
+    \item Simulaciones científicas
+    \item Laboratorios virtuales
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Investigación:}
+\begin{itemize}
+    \item Simulaciones físicas
+    \item Análisis de grandes datos
+    \item Modelado climático
+    \item Cálculos complejos
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}
+\frametitle{Conclusiones}
+\begin{itemize}
+    \item Infraestructura HPC completa y escalable
+    \item Gestión centralizada de usuarios y recursos
+    \item Monitorización avanzada
+    \item Automatización del despliegue
+    \item Enfoque en sostenibilidad energética
+    \item Adaptable a diversos casos de uso
+\end{itemize}
+
+\textbf{Próximos pasos:}
+\begin{itemize}
+    \item Implementación de alta disponibilidad
+    \item Expansión de capacidad de cómputo
+    \item Integración con servicios adicionales
+\end{itemize}
+\end{frame}
+\section{Seguridad}
+
+\begin{frame}
+\frametitle{Seguridad de la Infraestructura}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Autenticación:}
+\begin{itemize}
+    \item LDAP centralizado
+    \item Munge para SLURM
+    \item SSH con claves públicas
+    \item Políticas de contraseñas
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Autorización:}
+\begin{itemize}
+    \item Control de acceso basado en grupos
+    \item Permisos granulares
+    \item Aislamiento de particiones
+    \item Auditoría de acciones
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}
+\frametitle{Seguridad en Red}
+\begin{itemize}
+    \item \textbf{Segmentación de red:}
+    \begin{itemize}
+        \item Red de administración separada
+        \item Red de almacenamiento dedicada
+        \item Acceso controlado desde exterior
+    \end{itemize}
+    \item \textbf{Firewall:} Reglas específicas por servicio
+    \item \textbf{Monitorización:} Detección de anomalías
+    \item \textbf{Actualizaciones:} Proceso automatizado de parches
+\end{itemize}
+\end{frame}
+
+\section{Trabajo Futuro}
+
+\begin{frame}
+\frametitle{Líneas de Desarrollo Futuro}
+\begin{itemize}
+    \item \textbf{Alta disponibilidad:}
+    \begin{itemize}
+        \item Controladores SLURM redundantes
+        \item Replicación LDAP
+        \item DNS secundario
+    \end{itemize}
+    
+    \item \textbf{Expansión de capacidad:}
+    \begin{itemize}
+        \item Incorporación de nodos GPU especializados
+        \item Ampliación de almacenamiento paralelo
+        \item Integración con recursos cloud bajo demanda
+    \end{itemize}
+    
+    \item \textbf{Nuevas funcionalidades:}
+    \begin{itemize}
+        \item Portal web para usuarios
+        \item Integración con sistemas de tickets
+        \item Automatización avanzada de workflows científicos
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\section{Demostración}
+
+\begin{frame}
+\frametitle{Demostración}
+\begin{center}
+\Large{\textbf{Demostración en vivo}}
+
+\vspace{0.5cm}
+\begin{itemize}
+    \item Envío de un trabajo a SLURM
+    \item Monitorización en Grafana
+    \item Gestión de usuarios en LDAP
+    \item Despliegue con Ansible
+\end{itemize}
+\end{center}
+\end{frame}
+\begin{frame}
+\frametitle{¿Preguntas?}
+\begin{center}
+\Huge{¡Gracias por su atención!}
+
+\vspace{1cm}
+\large{Pau Santana}\\
+\large{CientiGO}
+\end{center}
+\end{frame}
+
+\end{document}
