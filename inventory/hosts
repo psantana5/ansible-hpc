@@ -42,6 +42,8 @@ services01 ansible_host=192.168.1.152 ansible_python_interpreter=/usr/bin/python
 [dns_servers]
 services01 ansible_host=192.168.1.152 ansible_python_interpreter=/usr/bin/python3
 
+[nfs_servers]
+filer01 ansible_host=192.168.1.142
 # --- Puppet Agent Notes ---
 # Hosts configured as Puppet Agents (implicitly via 'all:!foreman_server' in foreman role):
 # - slurmdb01
