@@ -92,7 +92,7 @@
                         "type": "prometheus",
                         "uid": "Prometheus"
                     },
-                    "expr": "proxmox_node_power_usage_watts",
+                    "expr": "proxmox_node_power_usage_watts / clamp_min(proxmox_node_vm_cpu_usage_total,1)",
                     "refId": "A"
                 }
             ],
