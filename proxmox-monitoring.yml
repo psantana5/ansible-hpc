@@ -5,6 +5,6 @@
   
   vars_files:
     - inventory/group_vars/all.yml
-    
+    - inventory/group_vars/monitoring_servers/vault.yml
   roles:
     - proxmox_monitoring
