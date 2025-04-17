@@ -48,3 +48,28 @@
     content: "{{ lookup('file', 'templates/proxmox_power_dashboard.json') }}"
     dest: /opt/proxmox_power_monitoring/proxmox_power_dashboard.json
     mode: '0644'
+  tags: grafana
+
+- name: Deploy dashboard to Grafana
+  uri:
+    url: "http://{{ grafana_host | default('localhost') }}:{{ grafana_port | default('3000') }}/api/dashboards/db"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer glsa_YIoKHuenoUolASKQyTzv4drGo61Nb2oN_68b0d45a"
+    body_format: json
+    body:
+      dashboard: "{{ lookup('file', 'templates/proxmox_power_dashboard.json') | from_json }}"
+      overwrite: true
+      message: "Updated by Ansible"
+    status_code: [200, 201, 202]
+  delegate_to: localhost
+  register: grafana_dashboard_result
+  ignore_errors: true
+  tags: grafana
+
+- name: Display Grafana dashboard deployment result
+  debug:
+    var: grafana_dashboard_result
+    verbosity: 1
+  tags: grafana
