@@ -58,8 +58,14 @@ calculate_power_usage() {
     # Calcular estimación de consumo para la VM
     power_vm=$(echo "$power_vm_base + ($power_idle * $cpu_vm / 100)" | bc -l | xargs printf "%.2f")
     
-    # Guardar datos para Prometheus
-    vm_data="$vm_data\n# HELP proxmox_vm_power_usage_watts Estimated power usage for VM in watts\n# TYPE proxmox_vm_power_usage_watts gauge\nproxmox_vm_power_usage_watts{vmid=\"$vmid\",name=\"$name\"} $power_vm\n# HELP proxmox_vm_cpu_usage CPU usage percentage for VM\n# TYPE proxmox_vm_cpu_usage gauge\nproxmox_vm_cpu_usage{vmid=\"$vmid\",name=\"$name\"} $cpu_vm"
+    # Guardar datos para Prometheus - Fix the newline issue by using proper formatting
+    vm_data="${vm_data}
+# HELP proxmox_vm_power_usage_watts Estimated power usage for VM in watts
+# TYPE proxmox_vm_power_usage_watts gauge
+proxmox_vm_power_usage_watts{vmid=\"$vmid\",name=\"$name\"} $power_vm
+# HELP proxmox_vm_cpu_usage CPU usage percentage for VM
+# TYPE proxmox_vm_cpu_usage gauge
+proxmox_vm_cpu_usage{vmid=\"$vmid\",name=\"$name\"} $cpu_vm"
     
     echo "🖥️  VM $name (ID $vmid): ${cpu_vm}% CPU -> ~${power_vm} W"
   done
