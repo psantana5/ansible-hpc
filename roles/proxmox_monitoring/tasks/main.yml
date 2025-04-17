@@ -50,22 +50,37 @@
     mode: '0644'
   tags: grafana
 
+- name: Check if Grafana dashboard already exists
+  uri:
+    url: "http://{{ grafana_host | default('localhost') }}:{{ grafana_port | default(3000) }}/api/dashboards/uid/proxmox-power-monitoring"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ grafana_api_key }}"
+    status_code: [200, 404]
+  delegate_to: localhost
+  become: no
+  register: dashboard_check
+  failed_when: false
+  check_mode: no  # Run this task even in check mode
+  tags: grafana
+
 - name: Deploy dashboard to Grafana
   uri:
-    url: "http://{{ grafana_host | default('localhost') }}:{{ grafana_port | default('3000') }}/api/dashboards/db"
+    url: "http://{{ grafana_host | default('localhost') }}:{{ grafana_port | default(3000) }}/api/dashboards/db"
     method: POST
     headers:
-      Content-Type: "application/json"
       Authorization: "Bearer {{ grafana_api_key }}"
+      Content-Type: "application/json"
     body_format: json
     body:
-      dashboard: "{{ lookup('file', 'templates/proxmox_power_dashboard.json') | from_json }}"
+      dashboard: "{{ lookup('file', 'templates/proxmox_power_dashboard.json') | from_json | combine({'uid': 'proxmox-power-monitoring'}) }}"
       overwrite: true
       message: "Updated by Ansible"
-    status_code: [200, 201, 202]
+    status_code: 200
   delegate_to: localhost
+  become: no
   register: grafana_dashboard_result
-  ignore_errors: true
+  when: not ansible_check_mode  # Only deploy in real mode, not check mode
   tags: grafana
 
 - name: Display Grafana dashboard deployment result
