@@ -61,6 +61,13 @@ calculate_power_usage() {
     # Calcular estimación de consumo para la VM
     power_vm=$(echo "$power_vm_base + ($power_idle * $cpu_vm / 100)" | bc -l | xargs printf "%.2f")
     
+    # Calculate efficiency (W/CPU%) for the VM - avoid division by zero
+    if (( $(echo "$cpu_vm > 0" | bc -l) )); then
+      efficiency_vm=$(echo "scale=4; $power_vm / $cpu_vm" | bc -l | xargs printf "%.4f")
+    else
+      efficiency_vm="0.0000"
+    fi
+    
     # Guardar datos para Prometheus - Fix the newline issue by using proper formatting
     vm_data="${vm_data}
 # HELP proxmox_vm_power_usage_watts Estimated power usage for VM in watts
@@ -68,9 +75,12 @@ calculate_power_usage() {
 proxmox_vm_power_usage_watts{vmid=\"$vmid\",name=\"$sanitized_name\"} $power_vm
 # HELP proxmox_vm_cpu_usage CPU usage percentage for VM
 # TYPE proxmox_vm_cpu_usage gauge
-proxmox_vm_cpu_usage{vmid=\"$vmid\",name=\"$sanitized_name\"} $cpu_vm"
+proxmox_vm_cpu_usage{vmid=\"$vmid\",name=\"$sanitized_name\"} $cpu_vm
+# HELP proxmox_vm_power_efficiency Power efficiency for VM (W/CPU%)
+# TYPE proxmox_vm_power_efficiency gauge
+proxmox_vm_power_efficiency{vmid=\"$vmid\",name=\"$sanitized_name\"} $efficiency_vm"
     
-    echo "🖥️  VM $name (ID $vmid): ${cpu_vm}% CPU -> ~${power_vm} W"
+    echo "🖥️  VM $name (ID $vmid): ${cpu_vm}% CPU -> ~${power_vm} W (${efficiency_vm} W/CPU%)"
   done
 
   # Evitar valores vacíos
