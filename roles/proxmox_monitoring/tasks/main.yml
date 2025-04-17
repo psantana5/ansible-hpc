@@ -56,7 +56,7 @@
     method: POST
     headers:
       Content-Type: "application/json"
-      Authorization: "Bearer glsa_YIoKHuenoUolASKQyTzv4drGo61Nb2oN_68b0d45a"
+      Authorization: "Bearer {{ grafana_api_key }}"
     body_format: json
     body:
       dashboard: "{{ lookup('file', 'templates/proxmox_power_dashboard.json') | from_json }}"
