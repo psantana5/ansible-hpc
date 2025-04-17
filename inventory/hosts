@@ -36,14 +36,20 @@ slurmctld
 [ldap_servers]
 ldap01 ansible_host=192.168.1.141
 
+# Add this to your existing inventory
 [monitoring_servers]
-services01 ansible_host=192.168.1.152 ansible_python_interpreter=/usr/bin/python3
+services01 ansible_host=192.168.1.152 ansible_python_interpreter=/usr/bin/python3 grafana_host=192.168.1.152
 
 [dns_servers]
 services01 ansible_host=192.168.1.152 ansible_python_interpreter=/usr/bin/python3
 
 [nfs_servers]
 filer01 ansible_host=192.168.1.142
+
+
+# --- Foreman Notes ---
+# Hosts configured as Foreman Servers (implicitly via 'foreman_server' group):
+# - foreman01
 # --- Puppet Agent Notes ---
 # Hosts configured as Puppet Agents (implicitly via 'all:!foreman_server' in foreman role):
 # - slurmdb01
