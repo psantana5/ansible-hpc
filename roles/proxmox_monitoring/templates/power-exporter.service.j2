@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/bin/bash -c 'while true; do /opt/proxmox_power_monitoring/script.sh; sleep 60; done'
+ExecStart=/bin/bash -c 'while true; do /opt/proxmox_power_monitoring/script.sh; sleep 30; done'
 Restart=always
 RestartSec=1
 
