@@ -55,6 +55,9 @@ calculate_power_usage() {
     # Obtener nombre de la VM
     name=$(qm config $vmid | grep ^name | awk '{print $2}')
     
+    # Sanitize the VM name to remove problematic characters for Prometheus
+    sanitized_name=$(echo "$name" | tr -d '?"\\\n')
+    
     # Calcular estimación de consumo para la VM
     power_vm=$(echo "$power_vm_base + ($power_idle * $cpu_vm / 100)" | bc -l | xargs printf "%.2f")
     
@@ -62,10 +65,10 @@ calculate_power_usage() {
     vm_data="${vm_data}
 # HELP proxmox_vm_power_usage_watts Estimated power usage for VM in watts
 # TYPE proxmox_vm_power_usage_watts gauge
-proxmox_vm_power_usage_watts{vmid=\"$vmid\",name=\"$name\"} $power_vm
+proxmox_vm_power_usage_watts{vmid=\"$vmid\",name=\"$sanitized_name\"} $power_vm
 # HELP proxmox_vm_cpu_usage CPU usage percentage for VM
 # TYPE proxmox_vm_cpu_usage gauge
-proxmox_vm_cpu_usage{vmid=\"$vmid\",name=\"$name\"} $cpu_vm"
+proxmox_vm_cpu_usage{vmid=\"$vmid\",name=\"$sanitized_name\"} $cpu_vm"
     
     echo "🖥️  VM $name (ID $vmid): ${cpu_vm}% CPU -> ~${power_vm} W"
   done
