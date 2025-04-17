@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proxmox Power Monitoring Deployment Guide</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #2c3e50;
+        }
+
+        h1 {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            margin-top: 30px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        code {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            padding: 2px 4px;
+            color: #c7254e;
+        }
+
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 10px;
+            overflow-x: auto;
+        }
+
+        .note {
+            background-color: #e7f3fe;
+            border-left: 4px solid #2196F3;
+            padding: 10px;
+            margin: 15px 0;
+        }
+
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin: 15px 0;
+        }
+
+        .step {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .step h3 {
+            margin-top: 0;
+            color: #3498db;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Proxmox Power Monitoring Deployment Guide</h1>
+
+    <p>This guide explains how to deploy the Proxmox power monitoring solution with Grafana integration using Ansible.
+    </p>
+
+    <h2>Overview</h2>
+
+    <p>The Proxmox power monitoring solution collects power usage metrics from Proxmox VE hosts and VMs, and displays
+        them in Grafana dashboards. The solution consists of:</p>
+
+    <ul>
+        <li>A monitoring script that runs on Proxmox hosts</li>
+        <li>A Prometheus exporter to expose metrics</li>
+        <li>Grafana dashboards for visualization</li>
+    </ul>
+
+    <h2>Prerequisites</h2>
+
+    <ul>
+        <li>Ansible control node with access to Proxmox hosts</li>
+        <li>Grafana instance (running on a monitoring server)</li>
+        <li>Prometheus instance configured to scrape metrics</li>
+        <li>Grafana API key with Editor permissions</li>
+    </ul>
+
+    <h2>Deployment Steps</h2>
+
+    <div class="step">
+        <h3>Step 1: Configure Inventory</h3>
+        <p>Ensure your Ansible inventory includes the Proxmox hosts and monitoring server with Grafana:</p>
+        <pre><code>[proxmox]
+proxmox ansible_host=your_proxmox_host
+
+[monitoring_servers]
+services01 ansible_host=your_grafana_host_ip ansible_python_interpreter=/usr/bin/python3 grafana_host=your_grafana_host_ip</code></pre>
+    </div>
+
+    <div class="step">
+        <h3>Step 2: Create Ansible Vault for Grafana API Key</h3>
+        <p>Create a secure vault to store your Grafana API key:</p>
+        <ol>
+            <li>Create the directory structure for group variables:
+                <pre><code>mkdir -p inventory/group_vars/monitoring_servers</code></pre>
+            </li>
+            <li>Create an encrypted vault file:
+                <pre><code>ansible-vault create inventory/group_vars/monitoring_servers/vault.yml</code></pre>
+                <p>When prompted, enter a secure password that you'll remember.</p>
+            </li>
+            <li>Add your Grafana API key to the vault file:
+                <pre><code>grafana_api_key: your_grafana_api_key_here</code></pre>
+                <p>Replace <code>your_grafana_api_key_here</code> with your actual Grafana API key.</p>
+            </li>
+            <li>Create a regular variables file to include the vault:
+                <pre><code>touch inventory/group_vars/monitoring_servers/vars.yml</code></pre>
+            </li>
+            <li>Edit the vars.yml file to include:
+                <pre><code># Include vault variables
+grafana_port: 3000</code></pre>
+            </li>
+        </ol>
+        <div class="note">
+            <p><strong>Note:</strong> Never commit vault files to version control. Add <code>*vault.yml</code> to your
+                <code>.gitignore</code> file.</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <h3>Step 3: Run the Ansible Playbook</h3>
+        <p>Deploy the Proxmox power monitoring solution:</p>
+        <pre><code>ansible-playbook -i inventory/hosts proxmox-monitoring.yml --ask-vault-pass --ask-become-pass</code></pre>
+        <p>If you only want to deploy the Grafana dashboard without reinstalling the monitoring agent:</p>
+        <pre><code>ansible-playbook -i inventory/hosts proxmox-monitoring.yml --ask-vault-pass --ask-become-pass --tags grafana</code></pre>
+    </div>
+
+    <h2>Verification</h2>
+
+    <div class="step">
+        <h3>Verify Metrics Collection</h3>
+        <p>Check if the Proxmox host is exposing metrics:</p>
+        <pre><code>curl http://proxmox_host:9200/metrics</code></pre>
+        <p>You should see metrics like <code>proxmox_node_power_usage_watts</code>,
+            <code>proxmox_vm_power_usage_watts</code>, etc.</p>
+    </div>
+
+    <div class="step">
+        <h3>Verify Grafana Dashboard</h3>
+        <p>Access your Grafana instance and check if the Proxmox Power Monitoring dashboard is available:</p>
+        <ol>
+            <li>Open a web browser and navigate to <code>http://grafana_host:3000</code></li>
+            <li>Log in with your Grafana credentials</li>
+            <li>Go to Dashboards and look for "Proxmox Power Monitoring"</li>
+        </ol>
+    </div>
+
+    <h2>Troubleshooting</h2>
+
+    <table>
+        <tr>
+            <th>Issue</th>
+            <th>Solution</th>
+        </tr>
+        <tr>
+            <td>Metrics not showing in Grafana</td>
+            <td>
+                <ul>
+                    <li>Check if Prometheus is scraping the metrics endpoint</li>
+                    <li>Verify the Prometheus data source is configured in Grafana</li>
+                    <li>Check if the power-exporter service is running on the Proxmox host</li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>Dashboard deployment fails</td>
+            <td>
+                <ul>
+                    <li>Verify the Grafana API key has Editor permissions</li>
+                    <li>Check if the Grafana host is accessible from the Ansible control node</li>
+                    <li>Ensure the vault password is correct</li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>Power metrics show incorrect values</td>
+            <td>
+                <ul>
+                    <li>Adjust the power estimation parameters in the script</li>
+                    <li>Check if RAPL is available on the Proxmox host</li>
+                </ul>
+            </td>
+        </tr>
+    </table>
+
+    <h2>Maintenance</h2>
+
+    <div class="step">
+        <h3>Updating the Dashboard</h3>
+        <p>If you make changes to the dashboard JSON file, you can redeploy it using:</p>
+        <pre><code>ansible-playbook -i inventory/hosts proxmox-monitoring.yml --ask-vault-pass --tags grafana</code></pre>
+    </div>
+
+    <div class="step">
+        <h3>Rotating API Keys</h3>
+        <p>To update the Grafana API key:</p>
+        <ol>
+            <li>Generate a new API key in Grafana</li>
+            <li>Edit the vault file:
+                <pre><code>ansible-vault edit inventory/group_vars/monitoring_servers/vault.yml</code></pre>
+            </li>
+            <li>Replace the old API key with the new one</li>
+        </ol>
+    </div>
+
+    <div class="warning">
+        <p><strong>Warning:</strong> The power usage values are estimates based on CPU usage and may not reflect actual
+            power consumption. For accurate measurements, consider using hardware power meters or IPMI-based solutions.
+        </p>
+    </div>
+
+    <h2>Additional Resources</h2>
+
+    <ul>
+        <li><a href="https://grafana.com/docs/grafana/latest/administration/api-keys/">Grafana API Keys
+                Documentation</a></li>
+        <li><a href="https://docs.ansible.com/ansible/latest/user_guide/vault.html">Ansible Vault Documentation</a></li>
+        <li><a href="https://prometheus.io/docs/prometheus/latest/configuration/configuration/">Prometheus
+                Configuration</a></li>
+    </ul>
+</body>
+
+</html>
