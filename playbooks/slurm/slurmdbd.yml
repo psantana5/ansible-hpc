@@ -1,0 +1,34 @@
+---
+- name: Deploy SLURM Database Server
+  hosts: slurmdbd
+  become: true
+
+  # You could add pre_tasks for setup steps
+  pre_tasks:
+    - name: Ensure required packages are installed
+      dnf:
+        name:
+          - mariadb-server
+          - munge
+        state: present
+
+    - name: Ensure MariaDB is running
+      service:
+        name: mariadb
+        state: started
+        enabled: yes
+  roles:
+    - epel
+    - slurmdbd
+
+  post_tasks:
+    - name: Verify slurmdbd service is running
+      service:
+        name: slurmdbd
+        state: started
+        enabled: yes
+      register: slurmdbd_status
+
+    - name: Display service status
+      debug:
+        msg: "SLURM Database Daemon status: {{ slurmdbd_status.state }}"

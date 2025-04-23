@@ -1,0 +1,38 @@
+---
+- name: Configure Login Node
+  hosts: login
+  become: yes
+
+  vars_files:
+    - inventory/group_vars/all.yml
+    - inventory/group_vars/vault/vault.yml
+  roles:
+    - login_node
+    - epel
+    - foreman
+    - node_exporter
+
+  tasks:
+    - name: Configure firewall for SSH
+      firewalld:
+        service: ssh
+        permanent: yes
+        state: enabled
+      notify: reload firewall
+      
+    - name: Ensure SSH service is running
+      service:
+        name: sshd
+        state: started
+        enabled: yes
+        
+  handlers:
+    - name: reload firewall
+      service:
+        name: firewalld
+        state: reloaded
+        
+    - name: restart sshd
+      service:
+        name: sshd
+        state: restarted

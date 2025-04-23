@@ -1,0 +1,65 @@
+---
+- name: Configure HPC NFS Mounts
+  hosts: compute:login
+  become: yes
+  
+  vars_files:
+    - inventory/group_vars/all.yml
+    
+  tasks:
+    - name: Install NFS client packages
+      package:
+        name: 
+          - nfs-utils
+          - autofs
+        state: present
+        
+    - name: Create mount points
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /apps
+        - /apps/software
+        - /apps/libraries
+        - /apps/data
+        - /scratch
+        
+    - name: Configure AutoFS for apps
+      template:
+        src: templates/auto.apps.j2
+        dest: /etc/auto.apps
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart autofs
+        
+    - name: Configure AutoFS master file
+      template:
+        src: templates/auto.master.j2
+        dest: /etc/auto.master
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart autofs
+        
+    - name: Enable and start AutoFS service
+      systemd:
+        name: autofs
+        enabled: yes
+        state: started
+        
+    - name: Mount scratch directory
+      mount:
+        path: /scratch
+        src: "{{ nfs_server_host }}:/scratch"
+        fstype: nfs
+        opts: rw,sync,hard,intr
+        state: mounted
+        
+  handlers:
+    - name: restart autofs
+      systemd:
+        name: autofs
+        state: restarted

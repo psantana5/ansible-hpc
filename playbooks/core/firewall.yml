@@ -1,0 +1,23 @@
+---
+- name: Configure firewall for monitoring services
+  hosts: all
+  become: yes
+  tasks:
+    - name: Open node_exporter port in firewall
+      firewalld:
+        port: 9100/tcp
+        permanent: yes
+        state: enabled
+      notify: reload firewall
+
+    - name: Open Prometheus port in firewall (for Proxmox hosts)
+      firewalld:
+        port: "{{ prometheus_port_proxmox }}/tcp"
+        permanent: yes
+        state: enabled
+      when: inventory_hostname in groups.get('proxmox', [])
+      notify: reload firewall
+
+  handlers:
+    - name: reload firewall
+      command: firewall-cmd --reload

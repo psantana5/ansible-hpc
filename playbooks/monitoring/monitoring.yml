@@ -1,0 +1,158 @@
+---
+- name: Deploy Prometheus and Grafana monitoring
+  hosts: monitoring_servers
+  become: yes
+
+  vars_files:
+    - inventory/group_vars/all.yml
+    - inventory/group_vars/vault/vault.yml
+  roles:
+    - monitoring
+    - epel
+
+# Deploy Node Exporter on all nodes
+- name: Deploy Node Exporter on all nodes
+  hosts: all
+  become: yes
+  tasks:
+    - name: Download Node Exporter
+      get_url:
+        url: https://github.com/prometheus/node_exporter/releases/download/v1.5.0/node_exporter-1.5.0.linux-amd64.tar.gz
+        dest: /tmp/node_exporter.tar.gz
+        mode: "0644"
+
+    - name: Create Node Exporter directory
+      file:
+        path: /opt/node_exporter
+        state: directory
+        mode: "0755"
+
+    - name: Extract Node Exporter
+      unarchive:
+        src: /tmp/node_exporter.tar.gz
+        dest: /opt/node_exporter
+        remote_src: yes
+        extra_opts:
+          - --strip-components=1
+          - --wildcards
+          - "*/node_exporter"
+        creates: /opt/node_exporter/node_exporter
+
+    - name: Create Node Exporter systemd service
+      template:
+        src: roles/monitoring/templates/node_exporter.service.j2
+        dest: /etc/systemd/system/node_exporter.service
+        mode: "0644"
+      notify: reload systemd
+
+    - name: Start and enable Node Exporter
+      service:
+        name: node_exporter
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: reload systemd
+      command: systemctl daemon-reload
+
+# Deploy SLURM Exporter only on the controller node
+- name: Deploy SLURM Exporter
+  hosts: slurmctld
+  become: yes
+  tasks:
+    - name: Download Go
+      get_url:
+        url: https://go.dev/dl/go1.24.1.linux-amd64.tar.gz
+        dest: /tmp/go1.24.1.linux-amd64.tar.gz
+        mode: "0644"
+
+    - name: Remove existing Go installation
+      file:
+        path: /usr/local/go
+        state: absent
+
+    - name: Extract Go
+      unarchive:
+        src: /tmp/go1.24.1.linux-amd64.tar.gz
+        dest: /usr/local
+        remote_src: yes
+
+    - name: Set Go environment variables
+      lineinfile:
+        path: /etc/profile.d/go.sh
+        line: "{{ item }}"
+        create: yes
+        mode: "0644"
+      with_items:
+        - "export PATH=$PATH:/usr/local/go/bin"
+        - "export GOPATH=$HOME/go"
+        - "export PATH=$PATH:$GOPATH/bin"
+
+    - name: Source Go environment
+      shell: source /etc/profile.d/go.sh
+      args:
+        executable: /bin/bash
+
+    - name: Install Rivos SLURM Exporter
+      shell: |
+        export PATH=$PATH:/usr/local/go/bin
+        export GOPATH=$HOME/go
+        export PATH=$PATH:$GOPATH/bin
+        go install github.com/rivosinc/prometheus-slurm-exporter@latest
+      args:
+        executable: /bin/bash
+
+    - name: Create SLURM Exporter systemd service
+      template:
+        src: roles/monitoring/templates/slurm-exporter.service.j2
+        dest: /etc/systemd/system/slurm-exporter.service
+        mode: "0644"
+      notify: reload systemd
+
+    - name: Open firewall port for SLURM exporter
+      firewalld:
+        port: 9092/tcp
+        permanent: yes
+        state: enabled
+      notify: reload firewall
+
+    - name: Kill any existing SLURM exporter processes
+      shell: pkill -f "prometheus-slurm-exporter" || true
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: Run SLURM exporter in background
+      shell: |
+        nohup /root/go/bin/prometheus-slurm-exporter -slurm.cli-fallback -web.listen-address=:9092 > /var/log/slurm-exporter.log 2>&1 &
+      args:
+        executable: /bin/bash
+
+    # Add the verification tasks inside the existing play
+    - name: Wait for SLURM exporter to start listening
+      wait_for:
+        port: 9092
+        timeout: 30
+        state: started
+
+    - name: Verify SLURM exporter is responding
+      uri:
+        url: http://localhost:9092/metrics
+        return_content: yes
+      register: metrics_result
+      failed_when: "'slurm_' not in metrics_result.content"
+      ignore_errors: yes
+
+    - name: Display SLURM exporter status
+      debug:
+        msg: "SLURM exporter is running and responding with metrics"
+      when: "'slurm_' in metrics_result.content | default('')"
+
+  handlers:
+    - name: reload systemd
+      command: systemctl daemon-reload
+
+    - name: reload firewall
+      service:
+        name: firewalld
+        state: reloaded

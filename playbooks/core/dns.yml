@@ -1,0 +1,11 @@
+---
+- name: Configure DNS Server
+  hosts: dns_servers
+  become: yes
+
+  vars_files:
+    - inventory/group_vars/all.yml
+    - inventory/group_vars/vault/vault.yml
+  roles:
+    - epel
+    - dns

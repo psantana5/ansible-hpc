@@ -1,0 +1,117 @@
+---
+- name: Deploy SLURM Control Server
+  hosts: slurmctld
+  become: true
+  vars_files:
+    - inventory/group_vars/all.yml
+    - inventory/group_vars/vault/vault.yml
+  tasks:
+    - name: Check if slurm.conf exists
+      stat:
+        path: /etc/slurm/slurm.conf
+      register: slurm_conf_exists
+
+    - name: Fix MungeSocketPath in slurm.conf
+      lineinfile:
+        path: /etc/slurm/slurm.conf
+        regexp: ".*MungeSocketPath=.*"
+        state: absent
+      notify: restart slurmctld
+      when: slurm_conf_exists.stat.exists
+
+    - name: Create SLURM user groups
+      group:
+        name: "{{ item.name }}"
+        state: present
+      loop: "{{ slurm_groups }}"
+
+    - name: Check if SLURM accounts exist
+      shell: sacctmgr -n show account {{ item.name }} format=account
+      loop: "{{ slurm_groups }}"
+      register: account_check
+      changed_when: false
+      failed_when: false
+
+    - name: Create SLURM accounts for each group
+      shell: |
+        sacctmgr -i add account {{ item.0.name }} Description="{{ item.0.description }}"
+      loop: "{{ slurm_groups | zip(account_check.results) | list }}"
+      when: item.1.stdout == ""
+      register: sacctmgr_account_result
+      failed_when: sacctmgr_account_result.rc != 0 and '"Nothing new added" not in sacctmgr_account_result.stderr'
+      changed_when: '"Nothing new added" not in sacctmgr_account_result.stderr'
+
+    - name: Check if users exist in SLURM accounts
+      shell: sacctmgr -n show assoc user={{ item.1 }} account={{ item.0.name }} format=user
+      loop: "{{ slurm_groups|subelements('members') }}"
+      when: item.1 != ""
+      register: user_check
+      changed_when: false
+      failed_when: false
+
+    - name: Add users to SLURM accounts
+      shell: |
+        sacctmgr -i add user {{ item.0.1 }} Account={{ item.0.0.name }}
+      loop: "{{ slurm_groups|subelements('members') | zip(user_check.results) | list }}"
+      when: item.0.1 != "" and (item.1.skipped is defined or item.1.stdout == "")
+      register: sacctmgr_user_result
+      failed_when: sacctmgr_user_result.rc != 0 and '"Nothing new added" not in sacctmgr_user_result.stderr'
+      changed_when: '"Nothing new added" not in sacctmgr_user_result.stderr'
+
+    - name: Verify SLURM associations
+      shell: sacctmgr show assoc format=account,user
+      register: slurm_assoc
+      changed_when: false
+
+    - name: Display SLURM associations
+      debug:
+        msg: "{{ slurm_assoc.stdout_lines }}"
+
+  handlers:
+    - name: restart slurmctld
+      service:
+        name: slurmctld
+        state: restarted
+
+  roles:
+    - epel
+    - slurmctld
+
+# Add a new play to distribute slurm.conf to all SLURM nodes
+- name: Distribute SLURM configuration to all SLURM nodes
+  hosts: slurm:!slurmctld
+  become: true
+  tasks:
+    - name: Ensure SLURM config directory exists
+      file:
+        path: /etc/slurm
+        state: directory
+        mode: "0755"
+        owner: slurm
+        group: slurm
+
+    - name: Fetch slurm.conf from controller
+      fetch:
+        src: /etc/slurm/slurm.conf
+        dest: /tmp/slurm.conf
+        flat: yes
+      delegate_to: "{{ groups['slurmctld'][0] }}"
+      run_once: true
+
+    - name: Copy slurm.conf to SLURM nodes
+      copy:
+        src: /tmp/slurm.conf
+        dest: /etc/slurm/slurm.conf
+        mode: "0644"
+        owner: slurm
+        group: slurm
+      notify: restart slurm services
+
+  handlers:
+    - name: restart slurm services
+      service:
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+        - "{{ 'slurmdbd' if 'slurmdbd' in group_names else 'slurmd' if 'compute' in group_names else 'slurm' }}"
+      when: item != ""
