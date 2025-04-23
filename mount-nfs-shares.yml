@@ -1,0 +1,82 @@
+---
+- name: Mount NFS Shares on Compute and Login Nodes
+  hosts: compute:login
+  become: yes
+  
+  vars_files:
+    - inventory/group_vars/all.yml
+    
+  tasks:
+    - name: Install NFS client packages
+      package:
+        name: 
+          - nfs-utils
+        state: present
+        
+    - name: Create mount points
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /apps
+        - /apps/software
+        - /apps/libraries
+        - /apps/data
+        - /scratch
+    
+    - name: Configure firewall for NFS client
+      firewalld:
+        service: "{{ item }}"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      loop:
+        - nfs
+        - nfs3
+        - mountd
+        - rpc-bind
+      when: ansible_facts.services['firewalld.service'] is defined and ansible_facts.services['firewalld.service'].state == 'running'
+    
+    - name: Reload firewall
+      command: firewall-cmd --reload
+      when: ansible_facts.services['firewalld.service'] is defined and ansible_facts.services['firewalld.service'].state == 'running'
+        
+    - name: Mount NFS shares
+      mount:
+        path: "{{ item.path }}"
+        src: "{{ nfs_server_host }}:{{ item.src }}"
+        fstype: nfs
+        opts: "{{ item.opts }}"
+        state: mounted
+      loop:
+        - { path: '/apps', src: '/apps', opts: 'ro,sync,hard,intr' }
+        - { path: '/apps/software', src: '/apps/software', opts: 'ro,sync,hard,intr' }
+        - { path: '/apps/libraries', src: '/apps/libraries', opts: 'ro,sync,hard,intr' }
+        - { path: '/apps/data', src: '/apps/data', opts: 'ro,sync,hard,intr' }
+        - { path: '/scratch', src: '/scratch', opts: 'rw,sync,hard,intr' }
+
+- name: Configure NFS Server Exports
+  hosts: nfs_servers
+  become: yes
+  
+  tasks:
+    - name: Configure firewall for NFS server
+      firewalld:
+        service: "{{ item }}"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      loop:
+        - nfs
+        - nfs3
+        - mountd
+        - rpc-bind
+      when: ansible_facts.services['firewalld.service'] is defined and ansible_facts.services['firewalld.service'].state == 'running'
+    
+    - name: Reload firewall
+      command: firewall-cmd --reload
+      when: ansible_facts.services['firewalld.service'] is defined and ansible_facts.services['firewalld.service'].state == 'running'
+      
+    - name: Refresh NFS exports
+      command: exportfs -a
