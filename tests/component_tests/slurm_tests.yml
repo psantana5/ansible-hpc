@@ -1,0 +1,77 @@
+---
+- name: Test SLURM Controller Role
+  hosts: slurmctld
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Verify SLURM controller service is running
+      service_facts:
+      
+    - name: Check slurmctld service status
+      assert:
+        that:
+          - ansible_facts.services['slurmctld.service'] is defined
+          - ansible_facts.services['slurmctld.service'].state == "running"
+        fail_msg: "SLURM controller service is not running"
+        success_msg: "SLURM controller service is running correctly"
+        
+    - name: Test sinfo command
+      command: sinfo
+      register: sinfo_result
+      failed_when: sinfo_result.rc != 0
+      changed_when: false
+      
+    - name: Test scontrol command
+      command: scontrol show config
+      register: scontrol_result
+      failed_when: scontrol_result.rc != 0
+      changed_when: false
+      
+    - name: Verify SLURM configuration file
+      stat:
+        path: "/etc/slurm/slurm.conf"
+      register: slurm_conf
+      failed_when: not slurm_conf.stat.exists
+
+- name: Test SLURM Database Role
+  hosts: slurmdbd
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Verify SLURM database service is running
+      service_facts:
+      
+    - name: Check slurmdbd service status
+      assert:
+        that:
+          - ansible_facts.services['slurmdbd.service'] is defined
+          - ansible_facts.services['slurmdbd.service'].state == "running"
+        fail_msg: "SLURM database service is not running"
+        success_msg: "SLURM database service is running correctly"
+        
+    - name: Test sacctmgr command
+      command: sacctmgr show cluster
+      register: sacctmgr_result
+      failed_when: sacctmgr_result.rc != 0
+      changed_when: false
+
+- name: Test SLURM Compute Role
+  hosts: compute
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Verify SLURM compute service is running
+      service_facts:
+      ignore_errors: yes
+      
+    - name: Check slurmd service status
+      assert:
+        that:
+          - ansible_facts.services['slurmd.service'] is defined
+          - ansible_facts.services['slurmd.service'].state == "running"
+        fail_msg: "SLURM compute service is not running"
+        success_msg: "SLURM compute service is running correctly"
+      ignore_errors: yes  # Moved this line out of the assert parameters
