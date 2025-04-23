@@ -1,9 +1,1 @@
----
-- name: Deploy HPC Cluster Reporting System
-  hosts: slurmctld
-  become: yes
-  vars:
-    admin_email: "admin@{{ base_domain }}"
-  roles:
-    - epel
-    - reporting
+playbooks/reporting/reporting.yml
