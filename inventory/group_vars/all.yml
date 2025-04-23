@@ -430,3 +430,23 @@ cpu_threshold: 30             # Threshold for high CPU usage warnings
 prometheus_port_proxmox: 9200         # Port for the Prometheus exporter
 metrics_file: /tmp/proxmox_power_metrics.prom  # Path to store metrics
 monitoring_interval: 60       # Interval in seconds between monitoring runs
+
+# NFS server configuration
+nfs_server_packages:
+  - nfs-utils
+  - rpcbind
+
+nfs_server_services:
+  - rpcbind
+  - nfs-server
+
+nfs_firewall_services:
+  - nfs
+  - rpc-bind
+  - mountd
+
+# NFS server tuning parameters
+nfs_tcp_slot_table_entries: 128
+nfs_udp_slot_table_entries: 128
+nfs_net_core_rmem_max: 16777216
+nfs_net_core_wmem_max: 16777216
