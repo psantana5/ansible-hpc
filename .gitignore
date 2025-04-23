@@ -1,0 +1,57 @@
+# Test results
+tests/results/
+tests/output/
+
+# Ansible retry files
+*.retry
+
+# Inventory files that might contain sensitive information
+inventory/hosts.yml
+inventory/host_vars/
+inventory/*.ini
+
+# Vault password files
+.vault_pass
+*.vault
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Log files
+*.log
+logs/
+
+# Credentials and secrets
+credentials/
+secrets/
+*secret*
+*password*
+*.key
+*.pem
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Python virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE specific files
+.idea/
+.vscode/
+*.sublime-*
+
+# Build artifacts
+build/
+dist/
