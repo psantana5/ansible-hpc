@@ -1,0 +1,12 @@
+---
+# Master playbook that imports all test playbooks
+- import_playbook: test_setup.yml
+- import_playbook: component_tests/dns_tests.yml
+- import_playbook: component_tests/ldap_tests.yml
+- import_playbook: component_tests/slurm_tests.yml
+- import_playbook: component_tests/nfs_tests.yml
+- import_playbook: component_tests/monitoring_tests.yml
+- import_playbook: component_tests/reporting_tests.yml
+- import_playbook: integration_tests/auth_integration_tests.yml
+- import_playbook: integration_tests/job_submission_tests.yml
+- import_playbook: integration_tests/monitoring_integration_tests.yml
