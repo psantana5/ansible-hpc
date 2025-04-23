@@ -1,0 +1,457 @@
+# inventory/group_vars/all.yml
+---
+# ============================================================
+# Global Variables for All Hosts
+# ============================================================
+# NOTE: Review and customize ALL values below for your specific environment.
+# NOTE: Use Ansible Vault for ALL sensitive values (passwords, keys).
+
+# ------------------------------------------------------------
+# General System Settings
+# ------------------------------------------------------------
+# ansible_user: your_ssh_user # Often defined per-host or defaulted by Ansible cfg
+system_timezone: "Europe/Madrid" # e.g., "UTC", "America/New_York"
+ntp_servers: # Used by Foreman role (Puppet agents) and potentially others
+  - 0.pool.ntp.org
+  - 1.pool.ntp.org
+  - 2.pool.ntp.org
+  - 3.pool.ntp.org
+
+# ------------------------------------------------------------
+# Network / DNS Configuration
+# ------------------------------------------------------------
+# Domain name used across various services (LDAP, DNS Zone, etc.)
+base_domain: "linkiafp.es" # CHANGEME - Your primary domain
+cluster_domain: "{{ base_domain }}" # Used in DNS templates
+
+# DNS Role specific (if using the 'dns' role)
+dns_domain: "{{ base_domain }}" # Often same as base_domain
+# Example for 192.168.1.0/24 reverse zone:
+dns_reverse_zone_network: "1.168.192.in-addr.arpa" # CHANGEME
+dns_reverse_zone_prefix: "192.168.1" # CHANGEME - Network prefix for reverse lookups
+cluster_network: "192.168.1.0/24" # Used in DNS templates for reverse zones
+dns_forwarders: # Optional: DNS servers to forward queries to
+  - 8.8.8.8
+  - 8.8.4.4
+dns_server_ip: "192.168.1.151" # Define if needed by templates (often derived from inventory)
+dns_allow_query: ["192.168.1.0/24", "localhost"] # CHANGEME - Networks allowed to query
+dns_allow_transfer: ["none"] # Define secondary DNS servers if applicable
+
+# ------------------------------------------------------------
+# Firewall Configuration
+# ------------------------------------------------------------
+firewall_ports_tcp:
+  - 22 # SSH
+  - 80 # HTTP
+  - 443 # HTTPS
+  - 389 # LDAP
+  - 636 # LDAPS
+  - 5647 # Katello (if installed/enabled via installer later)
+  - 8140 # Puppet Master Port (Foreman acts as master)
+  - 8443 # Dynflow / Smart Proxy HTTPS
+  - 9090 # Prometheus
+  - 9100 # Node Exporter
+  - 9101 # Slurm Exporter
+  - 3000 # Grafana
+
+# ------------------------------------------------------------
+# Repository Configuration
+# ------------------------------------------------------------
+epel_repo_package: "epel-release"
+
+# ------------------------------------------------------------
+# Foreman / Puppet Configuration
+# ------------------------------------------------------------
+foreman_hostname: "foreman01.{{ base_domain }}" # **VERIFY/CONFIRM THIS FQDN IS CORRECT**
+puppet_version: "7" # Match compatible Puppet version for Foreman
+foreman_version: "3.10" # Foreman version branch you intend to install
+signing_delay_seconds: 60 # Delay before attempting auto-sign
+
+# Foreman package and file paths
+foreman_installer_package: "foreman-installer"
+foreman_answers_file: "/etc/foreman-installer/scenarios.d/foreman-answers.yaml"
+puppet_conf_file: "/etc/puppetlabs/puppet/puppet.conf"
+puppet_agent_package: "puppet-agent"
+puppet_service_name: "puppet"
+
+# Repository URLs
+foreman_repo_url: "https://yum.theforeman.org/releases/{{ foreman_version }}/el{{ ansible_distribution_major_version | default('8') }}/x86_64/foreman-release.rpm"
+puppet_repo_url: "https://yum.puppet.com/puppet{{ puppet_version }}-release-el-{{ ansible_distribution_major_version | default('8') }}.noarch.rpm"
+
+# NTP Configuration
+ntp_package: "chrony"
+ntp_service_name: "chronyd"
+ntp_conf_file: "/etc/chrony.conf"
+
+# ------------------------------------------------------------
+# OpenLDAP Configuration (Server & Client)
+# ------------------------------------------------------------
+ldap_domain_components: "{{ base_domain.split('.') }}" # Splits "linkiafp.es" into ['linkiafp', 'es']
+ldap_base_dn: "dc={{ ldap_domain_components | join(',dc=') }}" # Generates dc=linkiafp,dc=es
+ldap_organization: "LinkiaFP" # Organization name
+ldap_root_dn: "cn=admin,{{ ldap_base_dn }}" # Standard admin DN
+ldap_root_password: "{{ vault_ldap_root_password }}" # From vault
+ldap_server_uri: "ldap://ldap01.{{ base_domain }}" # URI for clients (change ldap01 if needed)
+ldap_server_host: "ldap01.{{ base_domain }}" # Often derivable from URI or inventory
+# Dynamically set the LDAP server IP from the inventory
+# Correct the ldap_server variable definition
+ldap_server: "ldap01.{{ base_domain }}"  # Ensure the closing quote is present
+ldap_server_ip: "{{ hostvars['ldap01']['ansible_host'] }}"
+ldap_user_ou: "People" # Organizational Unit for users
+ldap_group_ou: "Groups" # Organizational Unit for groups
+ldap_domain: "{{ base_domain }}" # Used in ldap_vars.yml
+ldap_root_user: "admin" # Just the username part
+ldap_dc_string: "{{ ldap_domain_components | map('regex_replace', '^(.*)$', 'dc=\\1') | join(',') }}"
+
+# LDAP TLS Settings
+ldap_tls_enable: false # Set to true if using TLS/SSL
+ldap_tls_cert_file: "/etc/pki/tls/certs/ldap_server.crt" # Path on server
+ldap_tls_key_file: "/etc/pki/tls/private/ldap_server.key" # Path on server
+ldap_tls_cacert_file: "/etc/pki/tls/certs/ca.crt" # Path on server and clients
+ldap_tls_cert_path: "/etc/pki/tls/certs/ldapserver.crt" # Used in ldap_vars.yml
+ldap_tls_key_path: "/etc/pki/tls/private/ldapserver.key" # Used in ldap_vars.yml
+ldap_tls_key_owner: "ldap"
+ldap_tls_key_group: "ldap"
+ldap_tls_key_mode: "0640"
+ldap_tls_cert_owner: "root"
+ldap_tls_cert_group: "root"
+ldap_tls_cert_mode: "0644"
+
+# LDAP Indexes
+ldap_indexes:
+  - objectClass
+  - cn
+  - uid
+  - uidNumber
+  - gidNumber
+  - member
+  - mail
+  - givenName
+  - sn
+
+# LDAP Service Configuration
+ldap_start_service: true
+ldap_enable_service: true
+ldap_log_level: 256
+
+# LDAP User/Group and Paths
+ldap_user: ldap
+ldap_group: ldap
+ldap_uid: 55
+ldap_gid: 55
+ldap_home: /var/lib/ldap
+ldap_config_dir: /etc/openldap
+ldap_data_dir: "{{ ldap_home }}"
+ldap_slapd_d_dir: "{{ ldap_config_dir }}/slapd.d"
+
+# SSSD (LDAP Client) Configuration
+sssd_domains: "{{ base_domain }}" # Domain for SSSD configuration
+sssd_ldap_uri: "{{ ldap_server_uri }}"
+sssd_ldap_search_base: "{{ ldap_base_dn }}"
+sssd_ldap_tls_cacert: "{{ ldap_tls_cacert_file }}" # Path on clients (if using TLS)
+
+# ------------------------------------------------------------
+# Slurm Cluster Configuration
+# ------------------------------------------------------------
+slurm_cluster_name: "linkia_cluster" # CHANGEME - Name for your Slurm cluster
+slurm_version: "23.02.7" # Optional: Specify exact Slurm version if needed for install steps
+
+# Hostnames (ensure these match inventory group names/hosts)
+slurmctld_host: "slurm01.{{ base_domain }}" # Hostname of the controller node
+slurmdbd_host: "slurmdb01.{{ base_domain }}" # Hostname of the database node
+
+# SlurmDBD Database Configuration
+slurm_db_host: "localhost" # Usually localhost if DB is on same node as slurmdbd daemon
+slurmdb_port: 3306 # Default MariaDB/MySQL port
+slurm_db_name: "slurm_acct_db"
+slurm_db_user: "slurm"
+slurm_db_password: "{{ vault_slurmdbd_db_password }}" # From vault
+
+# Munge configuration
+munge_key_path: "/etc/munge/munge.key"
+
+# Slurm paths
+slurm_conf_path: "/etc/slurm/slurm.conf"
+slurm_log_dir: "/var/log/slurm"
+slurm_state_save_location: "/var/spool/slurmctld"
+
+# ------------------------------------------------------------
+# MariaDB/MySQL Configuration
+# ------------------------------------------------------------
+mysql_root_password: "{{ vault_mysql_root_password }}" # From vault
+mysql_bind_address: "127.0.0.1"
+mysql_port: 3306
+mysql_datadir: "/var/lib/mysql"
+ansible_mysql_user: root
+ansible_mysql_password: "{{ vault_mysql_root_password }}"
+ansible_mysql_host: localhost
+
+# ------------------------------------------------------------
+# Monitoring Configuration (Prometheus/Grafana/Exporters)
+# ------------------------------------------------------------
+# If using the 'monitoring' role with Docker Compose:
+monitoring_compose_dir: "/opt/monitoring" # Directory to store docker-compose.yml and data
+
+# Grafana specific (used by 'monitoring' role or standalone 'grafana' role)
+grafana_admin_user: "admin"
+grafana_admin_password: "{{ vault_grafana_admin_password }}" # From vault
+grafana_port: 3000 # Default Grafana port
+
+# Prometheus specific (used by 'monitoring' role or standalone 'prometheus' role)
+prometheus_port: 9090 # Default Prometheus port
+prometheus_config_path: "/etc/prometheus/prometheus.yml" # If standalone install
+prometheus_scrape_interval: "15s" # Default scrape interval
+
+# Node Exporter specific
+node_exporter_port: 9100 # Default port
+
+# Slurm Exporter specific (if used with monitoring)
+slurm_exporter_port: 9092 # Example port (check actual exporter used)
+
+# ------------------------------------------------------------
+# Docker Configuration (if used by 'monitoring' or other roles)
+# ------------------------------------------------------------
+docker_users: # Optional: List of users to add to the 'docker' group
+  - psantana
+
+# ------------------------------------------------------------
+# SSH Configuration
+# ------------------------------------------------------------
+ssh_port: 22
+ssh_permit_root_login: "yes"
+ssh_password_authentication: "yes"
+ssh_allow_groups: "sudo wheel"
+
+# ------------------------------------------------------------
+# Backup Configuration
+# ------------------------------------------------------------
+backup_dir: "/var/backups"
+backup_retention_days: 7
+# ------------------------------------------------------------
+# Disaster Recovery Configuration
+# ------------------------------------------------------------
+backup_strategy:
+  slurm_db_backup:
+    schedule: "0 1 * * *"  # Daily at 1 AM
+    retention_days: 30
+    destination: "/backup/slurm_db"
+    remote_copy: true
+    remote_destination: "backup.{{ base_domain }}:/backup/slurm_db"
+  ldap_backup:
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    retention_days: 30
+    destination: "/backup/ldap"
+  config_backup:
+    schedule: "0 3 * * 0"  # Weekly on Sunday at 3 AM
+    retention_days: 90
+    destination: "/backup/configs"
+    include_paths:
+      - "/etc/slurm"
+      - "/etc/openldap"
+      - "/etc/prometheus"
+      - "/etc/grafana"
+
+# High Availability Configuration
+ha_configuration:
+  enable_slurm_ha: true
+  slurm_backup_controller: "slurm02.{{ base_domain }}"
+  enable_ldap_replication: true
+  ldap_replica_servers:
+    - "ldap02.{{ base_domain }}"
+  enable_dns_secondary: true
+  dns_secondary_servers:
+    - "dns02.{{ base_domain }}"
+# SLURM Group Configuration
+slurm_groups:
+  - name: "HPC-admins"
+    description: "SLURM Cluster Administrators"
+    members:
+      - "psantana"
+      - "jsmith"
+      - "rjohnson"
+  - name: "cfes"
+    description: "Core Facility Earth Sciences"
+    members:
+      - "mgarcia"
+      - "dwilliams"
+      - "lbrown"
+      - "tlee"
+  - name: "quantum-physics"
+    description: "Quantum Physics Research Group"
+    members:
+      - "kfeynman"
+      - "sbohr"
+      - "hheisenberg"
+      - "ddirac"
+  - name: "particle-physics"
+    description: "Particle Physics Research Group"
+    members:
+      - "ehiggs"
+      - "mplanck"
+      - "aeinstein"
+      - "cyang"
+  - name: "astrophysics"
+    description: "Astrophysics Research Group"
+    members:
+      - "shawking"
+      - "ntyson"
+      - "csagan"
+      - "jkaku"
+  - name: "condensed-matter"
+    description: "Condensed Matter Physics Research Group"
+    members:
+      - "landerson"
+      - "bcooper"
+      - "jbardeen"
+      - "rfeynman"
+# ============================================================
+# End of Global Variables
+# ============================================================
+
+# ------------------------------------------------------------
+# Security Configuration
+# ------------------------------------------------------------
+security_compliance:
+  enable_selinux: true
+  enable_firewalld: true
+  enable_fail2ban: true
+  password_policy:
+    min_length: 12
+    require_special: true
+    require_numbers: true
+    max_age_days: 90
+  ssh_hardening:
+    disable_root_login: true
+    use_key_auth_only: true
+    allowed_users: ["psantana", "ansible"]
+  audit_logging: true
+  vulnerability_scanning: true
+
+# ------------------------------------------------------------
+# Performance Tuning
+# ------------------------------------------------------------
+performance_tuning:
+  # System-wide settings
+  sysctl_settings:
+    vm.swappiness: 10
+    vm.dirty_ratio: 20
+    vm.dirty_background_ratio: 5
+    net.core.somaxconn: 65535
+    net.ipv4.tcp_max_syn_backlog: 65535
+    net.core.netdev_max_backlog: 65535
+    
+  # SLURM performance settings
+  slurm_performance:
+    slurmctld_parameters: ["enable_configless"]
+    slurmd_parameters: ["numa"]
+    task_plugin: "task/affinity,task/cgroup"
+    proctrack_type: "proctrack/cgroup"
+    job_acct_gather_type: "jobacct_gather/linux"
+    job_acct_gather_freq: 30
+    
+  # Compute node optimizations
+  compute_node_settings:
+    cpu_governor: "performance"
+    transparent_hugepages: "always"
+    numa_balancing: 0
+    kernel_numa_balancing: 0
+    
+  # Infiniband/high-speed network settings (if applicable)
+  network_performance:
+    enable_rdma: true
+    rdma_cm_max_backlog: 2048
+    mlx4_max_reg_mem: 8589934592
+
+# ------------------------------------------------------------
+# ------------------------------------------------------------
+# Energy Efficiency Configuration
+# ------------------------------------------------------------
+energy_efficiency:
+  enable_power_saving: true
+  idle_node_power_down: true
+  idle_threshold_minutes: 30
+  power_up_on_job_submission: true
+  
+  # Power management settings
+  cpu_scaling_governor: "ondemand"  # Options: performance, powersave, ondemand
+  cpu_energy_perf_policy: "normal"  # Options: performance, normal, powersave
+  
+  # Scheduling policies to optimize energy usage
+  slurm_power_parameters:
+    - "idle_on_node_suspend=yes"
+    - "suspend_time=1800"  # 30 minutes
+    - "resume_timeout=300"  # 5 minutes
+    
+  # Monitoring of power consumption
+  enable_power_monitoring: true
+  power_metrics_collection:
+    interval_seconds: 60
+    retention_days: 90
+
+# ------------------------------------------------------------
+# Reporting Configuration
+# ------------------------------------------------------------
+# Email settings for automated reports
+admin_email: "admin@{{ base_domain }}"
+smtp_server: "smtp.gmail.com"
+smtp_port: 587
+smtp_use_tls: true
+smtp_username: "pausantanapi2@gmail.com"
+smtp_password: "{{ vault_smtp_password }}"
+smtp_from: "pausantanapi2@gmail.com"
+
+# Report scheduling
+daily_report_hour: 6
+daily_report_minute: 0
+weekly_report_hour: 7
+weekly_report_minute: 0
+weekly_report_day: 1  # Monday
+monthly_report_hour: 5
+monthly_report_minute: 0
+monthly_report_day: 1  # First day of month
+
+# Report retention
+report_retention_days: 90
+
+# Billing rates for cost reporting
+currency_symbol: "$"
+cpu_hour_rate: 0.05  # Cost per CPU hour
+gpu_hour_rate: 0.50  # Cost per GPU hour
+mem_gb_hour_rate: 0.01  # Cost per GB-hour of memory
+prometheus_ip: "{{ hostvars['services01']['ansible_host'] }}"  # Dynamically obtain IP from inventory
+ldap_tls_reqcert: "never"  # Options: never, allow, try, demand, hard
+
+# Default variables for proxmox_monitoring role
+proxmox_monitoring_port: 9200
+power_idle: 30                # Base power consumption in watts when idle
+power_vm_base: 5              # Base power consumption per VM in watts
+power_threshold: 50           # Threshold for high power consumption warnings
+cpu_threshold: 30             # Threshold for high CPU usage warnings
+prometheus_port_proxmox: 9200         # Port for the Prometheus exporter
+metrics_file: /tmp/proxmox_power_metrics.prom  # Path to store metrics
+monitoring_interval: 60       # Interval in seconds between monitoring runs
+
+# NFS server configuration
+nfs_server_packages:
+  - nfs-utils
+  - rpcbind
+
+nfs_server_services:
+  - rpcbind
+  - nfs-server
+
+nfs_firewall_services:
+  - nfs
+  - rpc-bind
+  - mountd
+
+# NFS server tuning parameters
+nfs_tcp_slot_table_entries: 128
+nfs_udp_slot_table_entries: 128
+nfs_net_core_rmem_max: 16777216
+nfs_net_core_wmem_max: 16777216
+
+# NFS server configuration
+nfs_server_host: "{{ hostvars[groups['nfs_servers'][0]]['ansible_host'] | default('192.168.1.142') }}"
+autofs_mount_home: true
+autofs_mount_apps: true
