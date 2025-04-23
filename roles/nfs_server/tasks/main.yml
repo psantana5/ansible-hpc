@@ -1,0 +1,45 @@
+---
+# NFS Server installation role for Rocky Linux 8/9
+# This role only installs NFS server components, not configures them
+
+- name: Install NFS server packages
+  package:
+    name: "{{ nfs_server_packages }}"
+    state: present
+
+- name: Enable required services
+  systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  loop: "{{ nfs_server_services }}"
+
+- name: Configure firewall for NFS
+  firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop: "{{ nfs_firewall_services }}"
+  when: ansible_facts.services['firewalld.service'] is defined and ansible_facts.services['firewalld.service'].state == 'running'
+
+- name: Ensure NFS directories have appropriate permissions
+  file:
+    path: /var/lib/nfs
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Set NFS server tuning parameters
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  loop:
+    - { key: 'sunrpc.tcp_slot_table_entries', value: '{{ nfs_tcp_slot_table_entries }}' }
+    - { key: 'sunrpc.udp_slot_table_entries', value: '{{ nfs_udp_slot_table_entries }}' }
+    - { key: 'net.core.rmem_max', value: '{{ nfs_net_core_rmem_max }}' }
+    - { key: 'net.core.wmem_max', value: '{{ nfs_net_core_wmem_max }}' }
+  when: ansible_distribution_major_version in ['8', '9']
