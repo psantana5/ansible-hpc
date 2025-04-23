@@ -1,0 +1,14 @@
+# /etc/exports: NFS exports for HPC cluster
+# Format: <directory> <host or network>(<options>)
+
+# Home directories
+/home           *(rw,sync,no_subtree_check,no_root_squash)
+
+# HPC Applications
+/apps           *(ro,sync,no_subtree_check)
+/apps/software  *(ro,sync,no_subtree_check)
+/apps/libraries *(ro,sync,no_subtree_check)
+/apps/data      *(ro,sync,no_subtree_check)
+
+# Shared scratch space
+/scratch        *(rw,sync,no_subtree_check,no_root_squash)
