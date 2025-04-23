@@ -1,0 +1,47 @@
+---
+- name: Test Job Submission Integration
+  hosts: login
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Create test job script
+      copy:
+        dest: "/tmp/test_job.sh"
+        content: |
+          #!/bin/bash
+          #SBATCH --job-name=test_job
+          #SBATCH --output=/tmp/test_job_%j.out
+          #SBATCH --error=/tmp/test_job_%j.err
+          #SBATCH --time=00:05:00
+          #SBATCH --ntasks=1
+          
+          hostname
+          sleep 10
+          echo "Test job completed successfully"
+        mode: '0755'
+        
+    - name: Submit test job
+      command: sbatch /tmp/test_job.sh
+      register: sbatch_result
+      failed_when: sbatch_result.rc != 0 or "Submitted batch job" not in sbatch_result.stdout
+      changed_when: false
+      
+    - name: Get job ID
+      set_fact:
+        job_id: "{{ sbatch_result.stdout | regex_search('\\d+') }}"
+        
+    - name: Wait for job to complete
+      command: scontrol show job {{ job_id }}
+      register: job_status
+      # Fixed quoting...smh
+      until: job_status.stdout is search("JobState=COMPLETED")
+      retries: 30
+      delay: 10
+      changed_when: false
+      
+    - name: Verify job output
+      command: cat /tmp/test_job_{{ job_id }}.out
+      register: job_output
+      failed_when: job_output.rc != 0 or "Test job completed successfully" not in job_output.stdout
+      changed_when: false
