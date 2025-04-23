@@ -1,0 +1,44 @@
+---
+- name: Test Reporting Role
+  hosts: slurmctld
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Verify reporting scripts exist
+      stat:
+        path: "/opt/reporting/{{ item }}"
+      loop:
+        - daily_usage_report.py
+        - weekly_efficiency_report.py
+        - monthly_billing_report.py
+      register: report_scripts
+      ignore_errors: yes
+      
+    - name: Record script existence test results
+      set_fact:
+        script_existence_status: "{{ 'PASSED' if report_scripts.results | selectattr('stat.exists', 'defined') | selectattr('stat.exists') | list | length == 3 else 'FAILED: Some reporting scripts do not exist' }}"
+      ignore_errors: yes
+
+      #We will not check if the scripts work individually from here as we have another playbook that does it, test_reporting.yml. (python scripts are Jinja templates, will not work invoking them via python3)
+    - name: Verify output directory exists
+      stat:
+        path: "/opt/reporting/output"
+      register: output_dir
+      ignore_errors: yes
+      
+    - name: Summarize reporting tests
+      debug:
+        msg: |
+          Reporting Tests Summary:
+          - Script Existence: {{ script_existence_status }}
+      ignore_errors: yes
+      
+    - name: Write reporting test results to file
+      delegate_to: localhost
+      copy:
+        content: |
+          Reporting Tests Summary:
+          - Script Existence: {{ script_existence_status }}
+        dest: "/home/psantana/playbooks-slurm/tests/results/{{ hostvars['localhost']['test_run_id'] }}/reporting_tests.txt"
+      ignore_errors: yes
