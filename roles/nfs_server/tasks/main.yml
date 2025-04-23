@@ -31,6 +31,30 @@
     owner: root
     group: root
 
+- name: Create HPC application directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - /apps
+    - /apps/software
+    - /apps/libraries
+    - /apps/data
+    - /scratch
+    - /home
+
+- name: Configure NFS exports
+  template:
+    src: exports.j2
+    dest: /etc/exports
+    owner: root
+    group: root
+    mode: '0644'
+  notify: reload nfs exports
+
 - name: Set NFS server tuning parameters
   sysctl:
     name: "{{ item.key }}"
