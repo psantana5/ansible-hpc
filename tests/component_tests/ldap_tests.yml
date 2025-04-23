@@ -1,0 +1,112 @@
+---
+- name: Test OpenLDAP Role
+  hosts: ldap_servers
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Include LDAP variables
+      include_vars:
+        file: "{{ item }}"
+      with_first_found:
+        - "inventory/group_vars/ldap/main.yml"
+        - "inventory/group_vars/all/main.yml"
+      ignore_errors: yes
+      
+    - name: Verify LDAP service is running
+      service_facts:
+      ignore_errors: yes
+      
+    - name: Check slapd service status
+      block:
+        - name: Assert slapd service is running
+          assert:
+            that:
+              - ansible_facts.services['slapd.service'] is defined
+              - ansible_facts.services['slapd.service'].state == "running"
+            fail_msg: "LDAP service (slapd) is not running"
+            success_msg: "LDAP service is running correctly"
+      rescue:
+        - name: Record LDAP service failure
+          set_fact:
+            ldap_service_status: "FAILED: LDAP service (slapd) is not running or not properly configured"
+      always:
+        - name: Record LDAP service test result
+          set_fact:
+            ldap_service_status: "{{ ldap_service_status | default('PASSED: LDAP service is running correctly') }}"
+      ignore_errors: yes
+      
+    - name: Set LDAP base DN
+      set_fact:
+        ldap_base_dn: "{{ ldap_base_dn | default('dc=' + ldap_domain | default('example.com') | regex_replace('\\.', ',dc=')) }}"
+      ignore_errors: yes
+      
+    - name: Display LDAP base DN for debugging
+      debug:
+        msg: "Using LDAP base DN: {{ ldap_base_dn }}"
+      ignore_errors: yes
+      
+    - name: Test anonymous LDAP bind
+      command: ldapsearch -x -b "{{ ldap_base_dn }}" -H ldap://localhost
+      register: ldap_anon_result
+      changed_when: false
+      ignore_errors: yes
+      
+    - name: Record anonymous bind test result
+      set_fact:
+        ldap_anon_status: "{{ 'PASSED' if ldap_anon_result.rc == 0 else 'FAILED: Anonymous LDAP bind failed' }}"
+      ignore_errors: yes
+      
+    - name: Test authenticated LDAP search
+      command: >
+        ldapsearch -x -D "cn={{ ldap_admin_username | default('admin') }},{{ ldap_base_dn }}" 
+        -w "{{ ldap_admin_password | default('password') }}" 
+        -b "{{ ldap_base_dn }}" 
+        -H ldap://localhost
+      register: ldap_auth_result
+      changed_when: false
+      no_log: true
+      ignore_errors: yes
+      
+    - name: Record authenticated search test result
+      set_fact:
+        ldap_auth_status: "{{ 'PASSED' if ldap_auth_result.rc == 0 else 'FAILED: Authenticated LDAP search failed' }}"
+      ignore_errors: yes
+      
+    - name: Verify LDAP groups exist
+      command: >
+        ldapsearch -x -D "cn={{ ldap_admin_username | default('admin') }},{{ ldap_base_dn }}" 
+        -w "{{ ldap_admin_password | default('password') }}" 
+        -b "ou=Groups,{{ ldap_base_dn }}" 
+        -H ldap://localhost
+      register: ldap_groups
+      changed_when: false
+      no_log: true
+      ignore_errors: yes
+      
+    - name: Record groups test result
+      set_fact:
+        ldap_groups_status: "{{ 'PASSED' if ldap_groups.rc == 0 else 'FAILED: LDAP groups check failed' }}"
+      ignore_errors: yes
+      
+    - name: Summarize LDAP tests
+      debug:
+        msg: |
+          LDAP Tests Summary:
+          - Service Status: {{ ldap_service_status }}
+          - Anonymous Bind: {{ ldap_anon_status }}
+          - Authenticated Search: {{ ldap_auth_status }}
+          - Groups Check: {{ ldap_groups_status }}
+      ignore_errors: yes
+      
+    - name: Write LDAP test results to file
+      delegate_to: localhost
+      copy:
+        content: |
+          LDAP Tests Summary:
+          - Service Status: {{ ldap_service_status }}
+          - Anonymous Bind: {{ ldap_anon_status }}
+          - Authenticated Search: {{ ldap_auth_status }}
+          - Groups Check: {{ ldap_groups_status }}
+        dest: "/home/psantana/playbooks-slurm/tests/results/{{ hostvars['localhost']['test_run_id'] }}/ldap_tests.txt"
+      ignore_errors: yes
