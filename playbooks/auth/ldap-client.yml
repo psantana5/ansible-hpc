@@ -4,7 +4,7 @@
   become: yes
 
   vars_files:
-    - inventory/group_vars/all.yml
+    - inventory/group_vars/all/main.yml
     - inventory/group_vars/vault/vault.yml
   tasks:
     # Add LDAP server to hosts file

@@ -3,7 +3,7 @@
   hosts: slurmctld
   become: true
   vars_files:
-    - inventory/group_vars/all.yml
+    - inventory/group_vars/all/main.yml
     - inventory/group_vars/vault/vault.yml
   tasks:
     - name: Check if slurm.conf exists
