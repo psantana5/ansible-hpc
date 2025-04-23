@@ -1,11 +1,1 @@
----
-- name: Install NFS Server
-  hosts: nfs_servers
-  become: yes
-  
-  vars_files:
-    - inventory/group_vars/all.yml
-    
-  roles:
-    - epel
-    - nfs_server
+playbooks/core/nfs-server.yml
