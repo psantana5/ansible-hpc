@@ -1,0 +1,24 @@
+---
+# Test environment variables
+test_environment: "test"
+test_domain: "test.hpc.local"
+
+# Test user credentials
+test_admin_user: "testadmin"
+test_admin_password: "TestPassword123!"
+
+# Test nodes
+test_compute_node: "compute01"
+test_login_node: "login01"
+test_controller_node: "slurm01"
+
+# Test job parameters
+test_job_script: "/home/psantana/playbooks-slurm/tests/resources/test_job.sh"
+test_job_output: "/tmp/test_job_output.txt"
+
+# Test timeouts (in seconds)
+dns_test_timeout: 30
+ldap_test_timeout: 60
+slurm_test_timeout: 120
+nfs_test_timeout: 30
+monitoring_test_timeout: 60
