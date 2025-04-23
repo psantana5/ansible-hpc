@@ -1,10 +1,1 @@
----
-- name: Deploy Slurm Power Monitoring
-  hosts: slurm
-  become: yes
-  
-  vars_files:
-    - inventory/group_vars/all.yml
-    
-  roles:
-    - slurm_power_monitoring
+playbooks/monitoring/slurm-power-monitoring.yml
