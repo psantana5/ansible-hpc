@@ -1,0 +1,83 @@
+---
+- name: Test DNS Role
+  hosts: dns_servers
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Verify DNS service is running
+      service_facts:
+      ignore_errors: yes
+      
+    - name: Check named service status
+      block:
+        - name: Assert named service is running
+          assert:
+            that:
+              - ansible_facts.services['named.service'] is defined
+              - ansible_facts.services['named.service'].state == "running"
+            fail_msg: "DNS service (named) is not running"
+            success_msg: "DNS service is running correctly"
+      rescue:
+        - name: Record DNS service failure
+          set_fact:
+            dns_service_status: "FAILED: DNS service (named) is not running or not properly configured"
+      always:
+        - name: Record DNS service test result
+          set_fact:
+            dns_service_status: "{{ dns_service_status | default('PASSED: DNS service is running correctly') }}"
+      
+    - name: Test DNS resolution for controller node
+      command: "dig +short {{ hostvars['slurm01']['ansible_host'] }}"
+      register: dig_result
+      changed_when: false
+      ignore_errors: yes
+      
+    - name: Record DNS resolution test result
+      set_fact:
+        dns_resolution_status: "{{ 'PASSED' if dig_result.stdout != '' else 'FAILED: DNS resolution for controller node failed' }}"
+      ignore_errors: yes
+      
+    - name: Test reverse DNS lookup
+      command: "dig +short -x {{ hostvars['slurm01']['ansible_host'] }}"
+      register: reverse_result
+      changed_when: false
+      ignore_errors: yes
+      
+    - name: Record reverse DNS test result
+      set_fact:
+        reverse_dns_status: "{{ 'PASSED' if reverse_result.stdout != '' else 'FAILED: Reverse DNS lookup failed' }}"
+      ignore_errors: yes
+      
+    - name: Verify zone files exist
+      stat:
+        path: "/var/named/{{ base_domain }}.zone"
+      register: zone_file
+      ignore_errors: yes
+      
+    - name: Record zone file test result
+      set_fact:
+        zone_file_status: "{{ 'PASSED' if zone_file.stat.exists|default(false) else 'FAILED: Zone file does not exist' }}"
+      ignore_errors: yes
+      
+    - name: Summarize DNS tests
+      debug:
+        msg: |
+          DNS Tests Summary:
+          - Service Status: {{ dns_service_status }}
+          - DNS Resolution: {{ dns_resolution_status }}
+          - Reverse DNS: {{ reverse_dns_status }}
+          - Zone Files: {{ zone_file_status }}
+      ignore_errors: yes
+      
+    - name: Write DNS test results to file
+      delegate_to: localhost
+      copy:
+        content: |
+          DNS Tests Summary:
+          - Service Status: {{ dns_service_status }}
+          - DNS Resolution: {{ dns_resolution_status }}
+          - Reverse DNS: {{ reverse_dns_status }}
+          - Zone Files: {{ zone_file_status }}
+        dest: "/home/psantana/playbooks-slurm/tests/results/{{ hostvars['localhost']['test_run_id'] }}/dns_tests.txt"
+      ignore_errors: yes
