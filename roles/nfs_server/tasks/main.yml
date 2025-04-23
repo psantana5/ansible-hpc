@@ -1,6 +1,6 @@
 ---
 # NFS Server installation role for Rocky Linux 8/9
-# This role only installs NFS server components, not configures them
+# This role only installs NFS server components, not configures them. Please refer to the global variables file when changing any of the settings.
 
 - name: Install NFS server packages
   package:

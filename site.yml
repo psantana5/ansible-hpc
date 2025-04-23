@@ -39,3 +39,17 @@
   become: true
   roles:
     - reporting
+
+- name: Configure NFS Server
+  hosts: nfs_server
+  become: true
+  roles:
+    - role: nfs
+      tags: nfs
+      
+- name: Configure AutoFS on clients
+  hosts: slurm:login
+  become: true
+  roles:
+    - role: autofs
+      tags: autofs

@@ -450,3 +450,10 @@ nfs_tcp_slot_table_entries: 128
 nfs_udp_slot_table_entries: 128
 nfs_net_core_rmem_max: 16777216
 nfs_net_core_wmem_max: 16777216
+
+# Add these AutoFS variables to your existing all.yml file
+
+# AutoFS configuration
+nfs_server_host: "filer01.{{ base_domain }}"
+autofs_mount_home: true
+autofs_mount_apps: true
