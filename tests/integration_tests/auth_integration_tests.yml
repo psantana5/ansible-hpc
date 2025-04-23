@@ -1,0 +1,26 @@
+---
+- name: Test Authentication Integration
+  hosts: login
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Test LDAP user authentication
+      command: id "{{ test_user }}"
+      register: id_result
+      failed_when: id_result.rc != 0 or test_user not in id_result.stdout
+      changed_when: false
+      
+    - name: Test group membership
+      command: groups "{{ test_user }}"
+      register: groups_result
+      failed_when: groups_result.rc != 0 or test_group not in groups_result.stdout
+      changed_when: false
+      
+    - name: Test SSH access with LDAP credentials
+      command: >
+        ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=yes
+        {{ test_user }}@localhost echo "Authentication successful"
+      register: ssh_result
+      failed_when: ssh_result.rc != 0 or "Authentication successful" not in ssh_result.stdout
+      changed_when: false
