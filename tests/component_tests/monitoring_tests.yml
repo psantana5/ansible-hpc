@@ -1,0 +1,70 @@
+---
+- name: Test Monitoring Stack
+  hosts: monitoring_servers
+  become: yes
+  gather_facts: yes
+  
+  tasks: 
+    - name: Test Prometheus API
+      uri:
+        url: "http://localhost:9090/api/v1/status/config"
+        return_content: yes
+      register: prometheus_api
+      ignore_errors: yes
+      
+    - name: Record Prometheus API test result
+      set_fact:
+        prometheus_api_status: "{{ 'PASSED' if prometheus_api.status|default(0) == 200 else 'FAILED: Prometheus API not responding' }}"
+      ignore_errors: yes
+      
+    - name: Test Grafana API
+      uri:
+        url: "http://localhost:3000/api/health"
+        return_content: yes
+      register: grafana_api
+      ignore_errors: yes
+      
+    - name: Record Grafana API test result
+      set_fact:
+        grafana_api_status: "{{ 'PASSED' if grafana_api.status|default(0) == 200 else 'FAILED: Grafana API not responding' }}"
+      ignore_errors: yes
+      
+    - name: Verify Prometheus targets are up
+      uri:
+        url: "http://localhost:9090/api/v1/targets"
+        return_content: yes
+        validate_certs: no
+      register: prometheus_targets
+      ignore_errors: yes
+      
+    - name: Record Prometheus targets test result
+      set_fact:
+        prometheus_targets_status: >-
+          {% if prometheus_targets.status|default(0) == 200 and 
+                prometheus_targets.json is defined and 
+                prometheus_targets.json.data.activeTargets|length > 0 %}
+          PASSED: {{ prometheus_targets.json.data.activeTargets|selectattr('health', 'equalto', 'up')|list|length }} targets up
+          {% else %}
+          FAILED: No active Prometheus targets or API call failed
+          {% endif %}
+      ignore_errors: yes
+      
+    - name: Summarize monitoring tests
+      debug:
+        msg: |
+          Monitoring Stack Tests Summary:
+          - Prometheus API: {{ prometheus_api_status }}
+          - Grafana API: {{ grafana_api_status }}
+          - Prometheus Targets: {{ prometheus_targets_status }}
+      ignore_errors: yes
+      
+    - name: Write monitoring test results to file
+      delegate_to: localhost
+      copy:
+        content: |
+          Monitoring Stack Tests Summary:
+          - Prometheus API: {{ prometheus_api_status }}
+          - Grafana API: {{ grafana_api_status }}
+          - Prometheus Targets: {{ prometheus_targets_status }}
+        dest: "/home/psantana/playbooks-slurm/tests/results/{{ hostvars['localhost']['test_run_id'] }}/monitoring_tests.txt"
+      ignore_errors: yes
