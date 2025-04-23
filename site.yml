@@ -1,55 +1,47 @@
 ---
-- name: Configure Core Infrastructure (DNS, LDAP)
-  hosts: dns_servers, ldap_servers # Adjust groups as per your inventory
-  become: true
-  roles:
-    - role: dns # Assuming you have groups like [dns_servers]
-      when: "'dns_servers' in group_names"
-    - role: openldap # Assuming you have groups like [ldap_servers]
-      when: "'ldap_servers' in group_names"
+# Main playbook for HPC Cluster Deployment
+# This is the entry point for the entire deployment
 
-- name: Configure Monitoring Stack
-  hosts: monitoring_servers # Adjust group as per your inventory
-  become: true
-  roles:
-    - role: monitoring # Or grafana, prometheus, node_exporter individually
+- name: Include core infrastructure playbooks
+  import_playbook: playbooks/core/dns.yml
+  tags: dns
 
-- name: Configure Foreman Server and Puppet Agents
-  hosts: all # Target all hosts; the role logic handles server vs agent tasks
-  become: true
-  roles:
-    - role: foreman
-      # Can override role defaults here if needed, e.g.:
-      # foreman_version: "3.9"
-      # But using inventory group_vars is generally preferred
+- name: Include firewall configuration
+  import_playbook: playbooks/core/firewall.yml
+  tags: firewall
 
-- name: Configure Slurm Cluster
-  hosts: slurm_controller, slurm_dbd_server, slurm_compute # Adjust groups
-  become: true
-  roles:
-    - role: slurmdbd
-      when: "'slurm_dbd_server' in group_names"
-    - role: slurmctld
-      when: "'slurm_controller' in group_names"
-    - role: compute # Slurm compute node role
-      when: "'slurm_compute' in group_names"
+- name: Include NFS server setup
+  import_playbook: playbooks/core/nfs-server.yml
+  tags: nfs
 
-- name: Deploy Reporting Tools
-  hosts: slurmctld
-  become: true
-  roles:
-    - reporting
+- name: Include authentication playbooks
+  import_playbook: playbooks/auth/openldap.yml
+  tags: ldap
 
-- name: Configure NFS Server
-  hosts: nfs_server
-  become: true
-  roles:
-    - role: nfs
-      tags: nfs
-      
-- name: Configure AutoFS on clients
-  hosts: slurm:login
-  become: true
-  roles:
-    - role: autofs
-      tags: autofs
+- name: Include LDAP client configuration
+  import_playbook: playbooks/auth/ldap-client.yml
+  tags: ldap-client
+
+- name: Include SLURM database setup
+  import_playbook: playbooks/slurm/slurmdbd.yml
+  tags: slurm-db
+
+- name: Include SLURM controller setup
+  import_playbook: playbooks/slurm/slurmctld.yml
+  tags: slurm-controller
+
+- name: Include compute node setup
+  import_playbook: playbooks/slurm/compute.yml
+  tags: compute
+
+- name: Include login node setup
+  import_playbook: playbooks/slurm/login.yml
+  tags: login
+
+- name: Include monitoring setup
+  import_playbook: playbooks/monitoring/monitoring.yml
+  tags: monitoring
+
+- name: Include reporting setup
+  import_playbook: playbooks/reporting/reporting.yml
+  tags: reporting
