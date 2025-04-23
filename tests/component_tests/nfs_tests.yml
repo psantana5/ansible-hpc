@@ -1,0 +1,144 @@
+---
+- name: Test NFS Server Role
+  hosts: nfs_servers
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Verify NFS service is running
+      service_facts:
+      ignore_errors: yes
+      
+    - name: Check NFS server service status
+      block:
+        - name: Assert NFS server service is running
+          assert:
+            that:
+              - ansible_facts.services['nfs-server.service'] is defined
+              - ansible_facts.services['nfs-server.service'].state == "running"
+            fail_msg: "NFS server service is not running"
+            success_msg: "NFS server service is running correctly"
+      rescue:
+        - name: Record NFS service failure
+          set_fact:
+            nfs_service_status: "FAILED: NFS server service is not running or not properly configured"
+      always:
+        - name: Record NFS service test result
+          set_fact:
+            nfs_service_status: "{{ nfs_service_status | default('PASSED: NFS server service is running correctly') }}"
+      ignore_errors: yes
+      
+    - name: Test exportfs command
+      command: exportfs -v
+      register: exportfs_result
+      changed_when: false
+      ignore_errors: yes
+      
+    - name: Record exportfs test result
+      set_fact:
+        exportfs_status: "{{ 'PASSED' if exportfs_result.rc == 0 else 'FAILED: exportfs command failed' }}"
+      ignore_errors: yes
+      
+    - name: Verify exports file
+      stat:
+        path: "/etc/exports"
+      register: exports_file
+      ignore_errors: yes
+      
+    - name: Record exports file test result
+      set_fact:
+        exports_file_status: "{{ 'PASSED' if exports_file.stat.exists|default(false) else 'FAILED: exports file does not exist' }}"
+      ignore_errors: yes
+      
+    - name: Verify exported directories exist
+      stat:
+        path: "{{ item }}"
+      loop:
+        - /apps
+        - /apps/software
+        - /apps/libraries
+        - /apps/data
+        - /scratch
+      register: export_dirs
+      ignore_errors: yes
+      
+    - name: Record export directories test results
+      set_fact:
+        export_dirs_status: "{{ 'PASSED' if export_dirs.results|selectattr('stat.exists', 'defined')|selectattr('stat.exists')|list|length == export_dirs.results|length else 'FAILED: Some export directories do not exist' }}"
+      ignore_errors: yes
+      
+    - name: Summarize NFS server tests
+      debug:
+        msg: |
+          NFS Server Tests Summary:
+          - Service Status: {{ nfs_service_status }}
+          - Exportfs Command: {{ exportfs_status }}
+          - Exports File: {{ exports_file_status }}
+          - Export Directories: {{ export_dirs_status }}
+      ignore_errors: yes
+      
+    - name: Write NFS server test results to file
+      delegate_to: localhost
+      copy:
+        content: |
+          NFS Server Tests Summary:
+          - Service Status: {{ nfs_service_status }}
+          - Exportfs Command: {{ exportfs_status }}
+          - Exports File: {{ exports_file_status }}
+          - Export Directories: {{ export_dirs_status }}
+        dest: "/home/psantana/playbooks-slurm/tests/results/{{ hostvars['localhost']['test_run_id'] }}/nfs_server_tests.txt"
+      ignore_errors: yes
+      
+- name: Test NFS Client Mounts
+  hosts: compute:login
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Verify NFS mounts are active
+      command: mount
+      register: mount_result
+      changed_when: false
+      ignore_errors: yes
+      
+    - name: Set NFS server host variable
+      set_fact:
+        nfs_server_host: "{{ nfs_server_host | default(groups['nfs_servers'][0]) }}"
+      ignore_errors: yes
+      
+    - name: Record NFS mounts test result
+      set_fact:
+        nfs_mounts_status: "{{ 'PASSED' if nfs_server_host in mount_result.stdout else 'FAILED: NFS mounts not active' }}"
+      ignore_errors: yes
+      
+    - name: Test access to NFS shares
+      command: ls -la {{ item }}
+      loop:
+        - /apps
+        - /scratch
+      register: ls_result
+      changed_when: false
+      ignore_errors: yes
+      
+    - name: Record NFS access test results
+      set_fact:
+        nfs_access_status: "{{ 'PASSED' if ls_result.results|selectattr('rc', 'equalto', 0)|list|length == ls_result.results|length else 'FAILED: Cannot access some NFS shares' }}"
+      ignore_errors: yes
+      
+    - name: Summarize NFS client tests
+      debug:
+        msg: |
+          NFS Client Tests Summary:
+          - NFS Mounts: {{ nfs_mounts_status }}
+          - NFS Access: {{ nfs_access_status }}
+      ignore_errors: yes
+      
+    - name: Write NFS client test results to file
+      delegate_to: localhost
+      copy:
+        content: |
+          NFS Client Tests Summary:
+          - NFS Mounts: {{ nfs_mounts_status }}
+          - NFS Access: {{ nfs_access_status }}
+        dest: "/home/psantana/playbooks-slurm/tests/results/{{ hostvars['localhost']['test_run_id'] }}/nfs_client_tests_{{ inventory_hostname }}.txt"
+      ignore_errors: yes
