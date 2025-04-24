@@ -458,3 +458,8 @@ net.core.netdev_max_backlog: 250000
 nfs_server_host: "{{ hostvars[groups['nfs_servers'][0]]['ansible_host'] | default('192.168.1.142') }}"
 autofs_mount_home: true
 autofs_mount_apps: true
+
+# Spack configuration
+spack_install_dir: /opt/spack
+spack_git_repo: https://github.com/spack/spack.git
+spack_version: develop
