@@ -4,6 +4,27 @@
     name: git
     state: present
 
+- name: Install Spack dependencies and CPU detection tools
+  package:
+    name:
+      - git
+      - gcc
+      - gcc-c++
+      - make
+      - patch
+      - tar
+      - bzip2
+      - gzip
+      - unzip
+      - python3
+      - python3-devel
+      - curl
+      - findutils
+      - which
+      - hwloc
+      - util-linux
+    state: present
+
 - name: Create Spack installation directory
   file:
     path: "{{ spack_install_dir }}"
@@ -12,6 +33,22 @@
     group: root
     mode: "0755"
 
+- name: Create Spack stage directory
+  file:
+    path: "{{ spack_install_dir }}/var/spack/stage"
+    state: directory
+    owner: root
+    group: root
+    mode: "0777"
+  
+- name: Create Spack cache directory
+  file:
+    path: "{{ spack_install_dir }}/var/spack/cache"
+    state: directory
+    owner: root
+    group: root
+    mode: "0777"
+
 - name: Clone Spack repository
   git:
     repo: "{{ spack_git_repo }}"
@@ -19,12 +56,250 @@
     version: "{{ spack_version }}"
     update: yes
 
+- name: Detect CPU architecture details
+  shell: |
+    lscpu | grep -E 'Model name|Flags' > /tmp/cpu_info.txt
+    cat /proc/cpuinfo | grep -m1 'model name' | cut -d':' -f2 | xargs > /tmp/cpu_model.txt
+    cat /proc/cpuinfo | grep -m1 'flags' | cut -d':' -f2 > /tmp/cpu_flags.txt
+    
+    # Determine optimal compiler flags based on CPU features
+    FLAGS="-march=native -mtune=native -O3"
+    if grep -q "avx512" /tmp/cpu_flags.txt; then
+      FLAGS="$FLAGS -mavx512f"
+    elif grep -q "avx2" /tmp/cpu_flags.txt; then
+      FLAGS="$FLAGS -mavx2"
+    elif grep -q "avx" /tmp/cpu_flags.txt; then
+      FLAGS="$FLAGS -mavx"
+    fi
+    echo $FLAGS > /tmp/optimal_flags.txt
+    
+    # Get CPU microarchitecture
+    if grep -q "Intel" /tmp/cpu_model.txt; then
+      if grep -q "Skylake" /tmp/cpu_model.txt; then
+        echo "skylake" > /tmp/cpu_arch.txt
+      elif grep -q "Broadwell" /tmp/cpu_model.txt; then
+        echo "broadwell" > /tmp/cpu_arch.txt
+      elif grep -q "Haswell" /tmp/cpu_model.txt; then
+        echo "haswell" > /tmp/cpu_arch.txt
+      elif grep -q "Cascade Lake" /tmp/cpu_model.txt; then
+        echo "cascadelake" > /tmp/cpu_arch.txt
+      elif grep -q "Ice Lake" /tmp/cpu_model.txt; then
+        echo "icelake" > /tmp/cpu_arch.txt
+      else
+        echo "x86_64" > /tmp/cpu_arch.txt
+      fi
+    elif grep -q "AMD" /tmp/cpu_model.txt; then
+      if grep -q "Zen" /tmp/cpu_model.txt; then
+        echo "zen" > /tmp/cpu_arch.txt
+      elif grep -q "Zen2" /tmp/cpu_model.txt; then
+        echo "zen2" > /tmp/cpu_arch.txt
+      elif grep -q "Zen3" /tmp/cpu_model.txt; then
+        echo "zen3" > /tmp/cpu_arch.txt
+      else
+        echo "x86_64" > /tmp/cpu_arch.txt
+      fi
+    else
+      echo "x86_64" > /tmp/cpu_arch.txt
+    fi
+  args:
+    executable: /bin/bash
+  register: cpu_detection
+
+- name: Set CPU architecture facts
+  set_fact:
+    cpu_model: "{{ ansible_processor[1] }}"
+    cpu_arch: "{{ 'x86_64' if ansible_architecture == 'x86_64' else ansible_architecture }}"
+    cpu_flags: "-march=native -mtune=native -O3"
+
+- name: Read CPU model from file
+  shell: "cat /tmp/cpu_model.txt"
+  register: cpu_model_result
+  ignore_errors: yes
+  changed_when: false
+
+- name: Read CPU flags from file
+  shell: "cat /tmp/optimal_flags.txt"
+  register: cpu_flags_result
+  ignore_errors: yes
+  changed_when: false
+
+- name: Read CPU architecture from file
+  shell: "cat /tmp/cpu_arch.txt"
+  register: cpu_arch_result
+  ignore_errors: yes
+  changed_when: false
+
+- name: Update CPU facts if files exist
+  set_fact:
+    cpu_model: "{{ cpu_model_result.stdout | trim }}"
+    cpu_flags: "{{ cpu_flags_result.stdout | trim }}"
+    cpu_arch: "{{ cpu_arch_result.stdout | trim }}"
+  when: 
+    - cpu_model_result is defined
+    - cpu_model_result.stdout is defined
+    - cpu_flags_result is defined
+    - cpu_flags_result.stdout is defined
+    - cpu_arch_result is defined
+    - cpu_arch_result.stdout is defined
+
+- name: Create Spack configuration directories
+  file:
+    path: "{{ spack_install_dir }}/etc/spack"
+    state: directory
+    mode: "0755"
+
+- name: Configure Spack for architecture-specific optimizations
+  template:
+    src: config.yaml.j2
+    dest: "{{ spack_install_dir }}/etc/spack/config.yaml"
+    mode: "0644"
+  vars:
+    hostname: "{{ ansible_hostname }}"
+
+- name: Configure Spack packages with architecture-specific settings
+  template:
+    src: packages.yaml.j2
+    dest: "{{ spack_install_dir }}/etc/spack/packages.yaml"
+    mode: "0644"
+
+- name: Configure Spack compilers with optimized flags
+  template:
+    src: compilers.yaml.j2
+    dest: "{{ spack_install_dir }}/etc/spack/compilers.yaml"
+    mode: "0644"
+  vars:
+    cpu_flags: "{{ lookup('file', '/tmp/optimal_flags.txt') | trim }}"
+
 - name: Ensure Spack environment is sourced system-wide
   copy:
     dest: /etc/profile.d/spack.sh
     content: |
       export SPACK_ROOT={{ spack_install_dir }}
       . {{ spack_install_dir }}/share/spack/setup-env.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create architecture verification documentation
+  copy:
+    dest: "{{ spack_install_dir }}/ARCHITECTURE_CHECKS.md"
+    content: |
+      # Spack Architecture-Specific Optimization Verification
+      
+      This document explains how to verify that Spack is correctly configured for 
+      architecture-specific optimizations on this system.
+      
+      ## Detected Architecture Information
+      
+      - CPU Model: {{ cpu_model }}
+      - Architecture Target: {{ cpu_arch }}
+      - Compiler Flags: {{ cpu_flags }}
+      
+      ## Verification Commands
+      
+      Run the following commands to verify the architecture-specific configuration:
+      
+      ### 1. Check the detected architecture
+      
+      ```bash
+      source {{ spack_install_dir }}/share/spack/setup-env.sh
+      spack arch
+      ```
+      
+      This shows the complete architecture specification Spack is using.
+      
+      ### 2. View available targets for your system
+      
+      ```bash
+      source {{ spack_install_dir }}/share/spack/setup-env.sh
+      spack arch --known-targets
+      ```
+      
+      This displays all microarchitecture targets Spack recognizes for your system.
+      
+      ### 3. Check compiler flags being used
+      
+      ```bash
+      source {{ spack_install_dir }}/share/spack/setup-env.sh
+      spack compiler info gcc
+      ```
+      
+      This shows the compiler configuration, including optimization flags.
+      
+      ### 4. Examine the Spack configuration files
+      
+      ```bash
+      cat {{ spack_install_dir }}/etc/spack/config.yaml
+      cat {{ spack_install_dir }}/etc/spack/packages.yaml
+      cat {{ spack_install_dir }}/etc/spack/compilers.yaml
+      ```
+      
+      These files show the architecture-specific settings that were applied.
+      
+      ### 5. Test a package installation with verbose output
+      
+      ```bash
+      source {{ spack_install_dir }}/share/spack/setup-env.sh
+      spack install --verbose openmpi
+      ```
+      
+      The verbose output shows the exact compiler flags used during compilation.
+      
+      ### 6. Check how a specific package would be built
+      
+      ```bash
+      source {{ spack_install_dir }}/share/spack/setup-env.sh
+      spack spec -I openmpi
+      ```
+      
+      This shows the complete specification for how OpenMPI would be built.
+      
+      ## Interpreting Results
+      
+      - The architecture should match your CPU ({{ cpu_arch }})
+      - Compiler flags should include architecture-specific optimizations ({{ cpu_flags }})
+      - Package specs should show these optimizations are being applied
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Create verification script
+  copy:
+    dest: "{{ spack_install_dir }}/bin/verify-arch-optimizations.sh"
+    content: |
+      #!/bin/bash
+      # Script to verify Spack architecture-specific optimizations
+      
+      source {{ spack_install_dir }}/share/spack/setup-env.sh
+      
+      echo "=== Spack Architecture Verification ==="
+      echo ""
+      
+      echo "1. Current architecture:"
+      spack arch
+      echo ""
+      
+      echo "2. Available targets:"
+      spack arch --known-targets
+      echo ""
+      
+      echo "3. Compiler configuration:"
+      spack compiler info gcc
+      echo ""
+      
+      echo "4. How OpenMPI would be built:"
+      spack spec -I openmpi
+      echo ""
+      
+      echo "5. Configuration files:"
+      echo "--- config.yaml ---"
+      cat {{ spack_install_dir }}/etc/spack/config.yaml
+      echo ""
+      echo "--- packages.yaml ---"
+      cat {{ spack_install_dir }}/etc/spack/packages.yaml
+      echo ""
+      
+      echo "=== Verification Complete ==="
     owner: root
     group: root
     mode: "0755"
