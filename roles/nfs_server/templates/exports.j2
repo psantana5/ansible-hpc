@@ -1,14 +1,24 @@
 # /etc/exports: NFS exports for HPC cluster
 # Format: <directory> <host or network>(<options>)
+#
+# Guidelines:
+# - Use a specific subnet instead of '*' for better security
+# - Use 'sync' for data integrity (except for /apps, where 'async' improves performance)
+# - 'no_subtree_check' avoids issues when moving files within exported directories
+# - Use 'no_root_squash' only when root access is required on the client side (e.g., /scratch)
+# - Use 'root_squash' for read-only exports to improve security
 
-# Home directories
-/home           *(rw,sync,no_subtree_check,no_root_squash)
+# Please define the cluster's network subnet here
+# Example: 192.168.1.0/24
 
-# HPC Applications
-/apps           *(ro,sync,no_subtree_check)
-/apps/software  *(ro,sync,no_subtree_check)
-/apps/libraries *(ro,sync,no_subtree_check)
-/apps/data      *(ro,sync,no_subtree_check)
+# Home directories (read-write, allow root access from clients)
+/home           192.168.1.0/24(rw,sync,no_subtree_check,no_root_squash)
 
-# Shared scratch space
-/scratch        *(rw,sync,no_subtree_check,no_root_squash)
+# HPC Applications (read-only, async for performance, root access squashed)
+/apps           192.168.1.0/24(ro,async,no_subtree_check,root_squash)
+/apps/software  192.168.1.0/24(ro,async,no_subtree_check,root_squash)
+/apps/libraries 192.168.1.0/24(ro,async,no_subtree_check,root_squash)
+/apps/data      192.168.1.0/24(ro,async,no_subtree_check,root_squash)
+
+# Shared scratch space (read-write, allow root access from clients)
+/scratch        192.168.1.0/24(rw,sync,no_subtree_check,no_root_squash)
