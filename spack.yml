@@ -1,0 +1,10 @@
+---
+- name: Deploy Spack to compute and login nodes
+  vars_files:
+    - inventory/group_vars/all/all.yml
+  hosts:
+    - compute
+    - login
+  become: yes
+  roles:
+    - spack
