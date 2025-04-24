@@ -1,0 +1,17 @@
+compilers:
+- compiler:
+    spec: gcc@system
+    paths:
+      cc: /usr/bin/gcc
+      cxx: /usr/bin/g++
+      f77: /usr/bin/gfortran
+      fc: /usr/bin/gfortran
+    flags:
+      cflags: "{{ cpu_flags }}"
+      cxxflags: "{{ cpu_flags }}"
+      fflags: "{{ cpu_flags }}"
+    operating_system: {{ ansible_distribution | lower }}{{ ansible_distribution_major_version }}
+    target: {{ cpu_arch }}
+    modules: []
+    environment: {}
+    extra_rpaths: []
