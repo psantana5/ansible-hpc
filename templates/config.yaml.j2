@@ -1,0 +1,29 @@
+# Spack configuration for {{ hostname }}
+config:
+  # Use a shared stage directory with proper permissions
+  build_stage: /tmp/spack-stage
+  # Optimize for this specific host
+  install_tree:
+    root: $spack/opt/spack
+    padded_length: 128
+  # Use architecture-specific optimizations
+  build_jobs: {{ ansible_processor_vcpus }}
+  # Architecture-specific settings
+  architectures:
+    # Ensure we're using the specific architecture of this host
+    target: {{ ansible_architecture }}:{{ cpu_arch }}
+  # Allow non-root users to use Spack
+  allow_root: true
+  # Ensure build directories are accessible
+  build_stage_roots:
+    - /tmp/spack-stage
+  # Enable microarchitecture-specific optimizations
+  packages:
+    all:
+      target: [{{ cpu_arch }}]
+      variants: +optimization
+  # Compiler flags for optimization
+  compiler_flags:
+    cflags: {{ cpu_flags }}
+    cxxflags: {{ cpu_flags }}
+    fflags: {{ cpu_flags }}
