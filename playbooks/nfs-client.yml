@@ -1,0 +1,2 @@
+---
+#Indeed, this file is empty. For some reason, the Spack role fails if this file is not present, even if empty. Please, do not remove it. (If you do, work around a solution!)
