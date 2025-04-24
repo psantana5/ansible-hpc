@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: spack
+  description: Install and configure Spack package manager
+  author: Pau Santana
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+    - name: EL
+      versions: [8, 9]
+  galaxy_tags:
+    - spack
+    - hpc
+    - package_manager
+    - scientific
+dependencies: []
