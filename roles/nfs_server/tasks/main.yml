@@ -64,6 +64,25 @@
   loop:
     - { key: 'sunrpc.tcp_slot_table_entries', value: '{{ nfs_tcp_slot_table_entries }}' }
     - { key: 'sunrpc.udp_slot_table_entries', value: '{{ nfs_udp_slot_table_entries }}' }
+    - { key: 'net.ipv4.tcp_rmem', value: '{{ nfs_net_ipv4_tcp_rmem }}' }
+    - { key: 'net.ipv4.tcp_wmem', value: '{{ nfs_net_ipv4_tcp_wmem }}' }
     - { key: 'net.core.rmem_max', value: '{{ nfs_net_core_rmem_max }}' }
     - { key: 'net.core.wmem_max', value: '{{ nfs_net_core_wmem_max }}' }
+    - { key: 'net.core.netdev_max_backlog', value: '{{ net.core.netdev_max_backlog }}' }
   when: ansible_distribution_major_version in ['8', '9']
+
+- name: Deploy optimized NFS server configuration
+  template:
+    src: nfs.conf.j2
+    dest: /etc/nfs.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart nfs-server
+
+- name: Block UDP for mountd (force TCP)
+  lineinfile:
+    path: /etc/sysconfig/nfs
+    line: 'MOUNTD_OPTIONS="--no-udp"'
+    create: yes
+  notify: Restart nfs-server
