@@ -3,7 +3,7 @@
   hosts: slurmctld
   become: true
   vars_files:
-    - /home/psantana/playbooks-slurm/inventory/group_vars/all.yml
+    - /home/psantana/playbooks-slurm/inventory/group_vars/all/main.yml
   vars:
     test_errors: []
   tasks:

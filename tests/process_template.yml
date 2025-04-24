@@ -3,7 +3,7 @@
   hosts: slurm01
   gather_facts: yes
   vars_files:
-    - "/home/psantana/playbooks-slurm/inventory/group_vars/all.yml"
+    - "/home/psantana/playbooks-slurm/inventory/group_vars/all/main.yml"
   vars:
     report_date: "{{ ansible_date_time.date }}"
     total_jobs: 1000

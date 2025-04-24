@@ -65,7 +65,6 @@
   tasks:
     - name: Verify SLURM compute service is running
       service_facts:
-      ignore_errors: yes
       
     - name: Check slurmd service status
       assert:
@@ -74,4 +73,4 @@
           - ansible_facts.services['slurmd.service'].state == "running"
         fail_msg: "SLURM compute service is not running"
         success_msg: "SLURM compute service is running correctly"
-      ignore_errors: yes  # Moved this line out of the assert parameters
+        ignore_errors: yes

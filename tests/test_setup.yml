@@ -7,23 +7,12 @@
     - name: Include test variables
       include_vars:
         file: test_vars.yml
-      ignore_errors: yes
       
     - name: Set global test facts
       set_fact:
         test_started_at: "{{ ansible_date_time.iso8601 }}"
         test_run_id: "{{ lookup('pipe', 'date +%Y%m%d%H%M%S') }}"
-        test_results: []
-      ignore_errors: yes
       
     - name: Display test run information
       debug:
         msg: "Starting test run ID: {{ test_run_id }} at {{ test_started_at }}"
-      ignore_errors: yes
-      
-    - name: Create test results directory
-      file:
-        path: "/home/psantana/playbooks-slurm/tests/results/{{ test_run_id }}"
-        state: directory
-        mode: '0755'
-      ignore_errors: yes

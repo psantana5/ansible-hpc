@@ -2,7 +2,7 @@
 - name: Verify SLURM installation
   hosts: test_nodes
   vars_files:
-    - ../inventory/group_vars/all.yml
+    - ../inventory/group_vars/all/main.yml
   tasks:
     - name: Check SLURM controller service
       command: systemctl status slurmctld

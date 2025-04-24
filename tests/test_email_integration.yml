@@ -3,7 +3,7 @@
   hosts: localhost
   gather_facts: no
   vars_files:
-    - ../inventory/group_vars/all.yml
+    - ../inventory/group_vars/all/main.yml
     - ../inventory/group_vars/vault/vault.yml
   tasks:
     - name: Ensure test directory exists

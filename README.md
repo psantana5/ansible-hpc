@@ -115,7 +115,7 @@ To ensure a correct deployment, follow this order:
 
 ## ⚙️ Configuration
 
-All configuration is centralized in `inventory/group_vars/all.yml` and includes:
+All configuration is centralized in `inventory/group_vars/all/main.yml` and includes:
 
 - Network and domain settings
 - SLURM cluster configuration

@@ -34,8 +34,7 @@
     - name: Wait for job to complete
       command: scontrol show job {{ job_id }}
       register: job_status
-      # Fixed quoting...smh
-      until: job_status.stdout is search("JobState=COMPLETED")
+      until: "'JobState=COMPLETED'" in job_status.stdout
       retries: 30
       delay: 10
       changed_when: false
