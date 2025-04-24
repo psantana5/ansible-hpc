@@ -1,0 +1,30 @@
+---
+- name: Ensure git is installed (required for Spack)
+  package:
+    name: git
+    state: present
+
+- name: Create Spack installation directory
+  file:
+    path: "{{ spack_install_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Clone Spack repository
+  git:
+    repo: "{{ spack_git_repo }}"
+    dest: "{{ spack_install_dir }}"
+    version: "{{ spack_version }}"
+    update: yes
+
+- name: Ensure Spack environment is sourced system-wide
+  copy:
+    dest: /etc/profile.d/spack.sh
+    content: |
+      export SPACK_ROOT={{ spack_install_dir }}
+      . {{ spack_install_dir }}/share/spack/setup-env.sh
+    owner: root
+    group: root
+    mode: "0755"
