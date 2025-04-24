@@ -1,0 +1,24 @@
+packages:
+  all:
+    compiler: [gcc]
+    providers:
+      mpi: [openmpi]
+      blas: [openblas]
+      lapack: [openblas]
+    target: [{{ cpu_arch }}]
+    
+  # CPU-specific optimizations for {{ cpu_model }}
+  openmpi:
+    variants: +thread_multiple +legacylaunchers
+    
+  openblas:
+    variants: threads=openmp
+    
+  fftw:
+    variants: +mpi +openmp precision=double,float
+    
+  hdf5:
+    variants: +mpi +hl
+    
+  python:
+    variants: +optimizations
