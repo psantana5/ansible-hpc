@@ -13,10 +13,7 @@ This repository provides a comprehensive, modular Ansible-based automation suite
 - **Monitoring and Reporting:** Integrates Prometheus, Grafana, and custom reporting scripts for operational visibility.
 
 ## Directory Structure
-
- ```
 ```
-
 playbooks-slurm/
 ├── ansible.cfg
 ├── inventory/
@@ -51,6 +48,7 @@ playbooks-slurm/
 ├── site.yml
 ├── spack.yml
 └── ... (other files)
+```
 ## Major Components
 
 ### SLURM
