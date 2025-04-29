@@ -1,0 +1,72 @@
+name: YAML Lint
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  yaml-lint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install yamllint
+        run: |
+          python -m pip install --upgrade pip
+          pip install yamllint
+      
+      - name: Create custom yamllint config
+        run: |
+          cat > .yamllint <<EOF
+          extends: relaxed
+          
+          rules:
+            line-length: disable
+            indentation: 
+              spaces: 2
+              indent-sequences: consistent
+            truthy:
+              allowed-values: ['true', 'false', 'yes', 'no']
+          EOF
+      
+      - name: Run YAML lint and log issues
+        run: |
+          echo "YAML Linting Results:" > yaml_lint_results.log
+          echo "======================" >> yaml_lint_results.log
+          echo "" >> yaml_lint_results.log
+          
+          # Find all YAML files and run yamllint on each
+          find . -type f \( -name "*.yml" -o -name "*.yaml" \) -not -path "*/\.*" | sort | while read file; do
+            echo "Linting $file..."
+            RESULT=$(yamllint -f parsable "$file" 2>&1 || true)
+            
+            if [ -n "$RESULT" ]; then
+              echo "Issues found in $file:" >> yaml_lint_results.log
+              echo "$RESULT" >> yaml_lint_results.log
+              echo "" >> yaml_lint_results.log
+            fi
+          done
+          
+          echo "Linting completed. Check yaml_lint_results.log for details."
+          
+          # Output summary to console
+          echo "Files with linting issues:"
+          grep -B 1 ":" yaml_lint_results.log | grep "Issues found" || echo "No issues found!"
+      
+      - name: Upload lint results
+        uses: actions/upload-artifact@v3
+        with:
+          name: yaml-lint-results
+          path: yaml_lint_results.log
