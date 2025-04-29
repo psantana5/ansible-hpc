@@ -65,6 +65,37 @@ jobs:
           echo "Files with linting issues:"
           grep -B 1 ":" yaml_lint_results.log | grep "Issues found" || echo "No issues found!"
       
+      - name: Auto-fix common YAML issues
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Attempting to auto-fix common YAML issues..."
+          
+          # Fix trailing spaces and ensure newline at end of file
+          find . -type f \( -name "*.yml" -o -name "*.yaml" \) -not -path "*/\.*" | while read file; do
+            # Remove trailing whitespace
+            sed -i 's/[[:space:]]*$//' "$file"
+            
+            # Ensure file ends with newline
+            [ -n "$(tail -c 1 "$file")" ] && echo >> "$file"
+            
+            # Convert CRLF to LF (Windows to Unix line endings)
+            sed -i 's/\r$//' "$file"
+            
+            echo "Fixed formatting in $file"
+          done
+          
+          echo "Auto-fix completed. Re-running lint to verify fixes..."
+          
+          # Re-run lint to verify fixes
+          find . -type f \( -name "*.yml" -o -name "*.yaml" \) -not -path "*/\.*" | sort | while read file; do
+            RESULT=$(yamllint -f parsable "$file" 2>&1 || true)
+            if [ -n "$RESULT" ]; then
+              echo "Issues still present in $file after auto-fix:"
+              echo "$RESULT"
+              echo ""
+            fi
+          done
+      
       - name: Upload lint results
         uses: actions/upload-artifact@v4
         with:
