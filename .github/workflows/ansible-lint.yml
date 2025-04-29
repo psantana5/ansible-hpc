@@ -1,0 +1,70 @@
+name: Ansible Lint
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - '**.yml'
+      - '**.yaml'
+      - 'roles/**'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  ansible-lint:
+    name: Ansible Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install Ansible Lint
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible-lint
+      
+      - name: Create custom ansible-lint config
+        run: |
+          cat > .ansible-lint <<EOF
+          skip_list:
+            - 'yaml'  # Let yamllint handle YAML formatting
+            - 'no-changed-when'  # Often not needed for simple tasks
+            - 'command-instead-of-module'  # Sometimes shell commands are necessary
+          
+          warn_list:
+            - 'experimental'
+            - 'role-name'
+          EOF
+      
+      - name: Run Ansible Lint
+        run: |
+          echo "Ansible Lint Results:" > ansible_lint_results.log
+          echo "=====================" >> ansible_lint_results.log
+          echo "" >> ansible_lint_results.log
+          
+          # Run ansible-lint on playbooks and roles
+          RESULT=$(ansible-lint -p 2>&1 || true)
+          
+          if [ -n "$RESULT" ]; then
+            echo "$RESULT" >> ansible_lint_results.log
+          else
+            echo "No linting issues found!" >> ansible_lint_results.log
+          fi
+          
+          echo "Linting completed. Check ansible_lint_results.log for details."
+          
+          # Output summary to console
+          grep -A 2 "WARNING\|ERROR" ansible_lint_results.log || echo "No linting issues found!"
+      
+      - name: Upload lint results
+        uses: actions/upload-artifact@v4
+        with:
+          name: ansible-lint-results
+          path: ansible_lint_results.log

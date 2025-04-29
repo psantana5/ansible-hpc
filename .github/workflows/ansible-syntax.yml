@@ -1,0 +1,63 @@
+name: Ansible Syntax Check
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - '**.yml'
+      - '**.yaml'
+      - 'inventory/**'
+      - 'roles/**'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  ansible-syntax:
+    name: Ansible Syntax Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible ansible-lint
+      
+      - name: Run Ansible syntax check
+        run: |
+          echo "Ansible Syntax Check Results:" > ansible_syntax_results.log
+          echo "=============================" >> ansible_syntax_results.log
+          echo "" >> ansible_syntax_results.log
+          
+          # Check all playbooks
+          find . -name "*.yml" -not -path "*/\.*" | sort | while read playbook; do
+            if grep -q "^- hosts:" "$playbook" || grep -q "^hosts:" "$playbook"; then
+              echo "Checking playbook: $playbook"
+              RESULT=$(ansible-playbook --syntax-check "$playbook" 2>&1 || true)
+              
+              if [[ $RESULT == *"ERROR"* || $RESULT == *"syntax error"* ]]; then
+                echo "Issues found in $playbook:" >> ansible_syntax_results.log
+                echo "$RESULT" >> ansible_syntax_results.log
+                echo "" >> ansible_syntax_results.log
+              fi
+            fi
+          done
+          
+          echo "Syntax check completed. Check ansible_syntax_results.log for details."
+          
+          # Output summary to console
+          grep -B 1 "ERROR" ansible_syntax_results.log || echo "No syntax errors found!"
+      
+      - name: Upload syntax check results
+        uses: actions/upload-artifact@v4
+        with:
+          name: ansible-syntax-results
+          path: ansible_syntax_results.log

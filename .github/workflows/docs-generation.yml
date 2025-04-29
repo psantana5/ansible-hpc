@@ -1,0 +1,90 @@
+name: Documentation Generation
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'roles/**/README.md'
+  workflow_dispatch:
+
+jobs:
+  build-docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mkdocs mkdocs-material pymdown-extensions
+      
+      - name: Setup mkdocs
+        run: |
+          if [ ! -f "mkdocs.yml" ]; then
+            cat > mkdocs.yml <<EOF
+          site_name: SLURM Playbooks Documentation
+          theme:
+            name: material
+            palette:
+              primary: indigo
+              accent: indigo
+          markdown_extensions:
+            - pymdownx.highlight
+            - pymdownx.superfences
+            - pymdownx.inlinehilite
+            - pymdownx.tabbed
+            - pymdownx.critic
+          nav:
+            - Home: index.md
+            - Architecture: architecture.md
+            - Roles:
+                - Overview: roles/index.md
+          EOF
+            
+            mkdir -p docs/roles
+            
+            # Create index.md if it doesn't exist
+            if [ ! -f "docs/index.md" ]; then
+              cp README.md docs/index.md
+            fi
+            
+            # Create roles index
+            echo "# Roles Documentation" > docs/roles/index.md
+            echo "" >> docs/roles/index.md
+            echo "This section contains documentation for all roles in the repository." >> docs/roles/index.md
+            echo "" >> docs/roles/index.md
+            
+            # Add links to each role
+            for role_dir in roles/*/; do
+              role_name=$(basename "$role_dir")
+              echo "- [$role_name]($role_name.md)" >> docs/roles/index.md
+              
+              # Create role documentation from README if it exists
+              if [ -f "$role_dir/README.md" ]; then
+                cp "$role_dir/README.md" "docs/roles/$role_name.md"
+              else
+                echo "# $role_name" > "docs/roles/$role_name.md"
+                echo "" >> "docs/roles/$role_name.md"
+                echo "Documentation for this role is not available." >> "docs/roles/$role_name.md"
+              fi
+            done
+          fi
+      
+      - name: Build documentation
+        run: mkdocs build
+      
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: site/
