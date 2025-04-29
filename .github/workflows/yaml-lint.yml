@@ -66,7 +66,7 @@ jobs:
           grep -B 1 ":" yaml_lint_results.log | grep "Issues found" || echo "No issues found!"
       
       - name: Upload lint results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: yaml-lint-results
           path: yaml_lint_results.log
