@@ -1,0 +1,75 @@
+---
+- name: Fix NFS Server Spack exports
+  hosts: nfs_servers
+  become: true
+  tasks:
+    - name: Check if SELinux is enforcing
+      command: getenforce
+      register: selinux_status
+      changed_when: false
+      
+    - name: Set SELinux to permissive temporarily if enforcing
+      command: setenforce 0
+      when: selinux_status.stdout == "Enforcing"
+      
+    - name: Ensure Spack directory exists with proper permissions
+      file:
+        path: /apps/spack
+        state: directory
+        mode: '0777'
+        owner: root
+        group: root
+        
+    - name: Remove any existing partial Spack installation
+      file:
+        path: /apps/spack
+        state: absent
+        
+    - name: Recreate Spack directory
+      file:
+        path: /apps/spack
+        state: directory
+        mode: '0777'
+        owner: root
+        group: root
+        
+    - name: Clone Spack repository
+      git:
+        repo: "https://github.com/spack/spack.git"
+        dest: /apps/spack
+        version: develop
+        depth: 1
+      
+    - name: Set permissions on Spack directory
+      file:
+        path: /apps/spack
+        state: directory
+        mode: '0777'
+        owner: root
+        group: root
+        recurse: yes
+        
+    - name: Update exports file with proper permissions
+      lineinfile:
+        path: /etc/exports
+        regexp: '^/apps/spack'
+        line: '/apps/spack *(rw,sync,no_root_squash,no_subtree_check,insecure)'
+        state: present
+      register: exports_updated
+      
+    - name: Restart NFS server
+      service:
+        name: nfs-server
+        state: restarted
+        
+    - name: Re-export NFS shares
+      command: exportfs -ra
+      
+    - name: Verify exports
+      command: exportfs -v
+      register: export_list
+      changed_when: false
+      
+    - name: Display export list
+      debug:
+        var: export_list.stdout_lines

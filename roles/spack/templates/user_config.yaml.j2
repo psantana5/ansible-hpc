@@ -1,0 +1,31 @@
+# User-specific Spack configuration for {{ hostname | default('this host') }}
+config:
+  # Use a user-specific install location
+  install_tree:
+    root: ~/.spack/opt
+    padded_length: 128
+  # Use architecture-specific optimizations
+  build_jobs: {{ ansible_processor_vcpus }}
+  # Architecture-specific settings
+  architectures:
+    # Ensure we're using the specific architecture of this host
+    target: {{ ansible_architecture }}:{{ cpu_arch | default('x86_64') }}
+  # User-specific build stage
+  build_stage: ~/.spack/stage
+  # Enable microarchitecture-specific optimizations
+  packages:
+    all:
+      target: [{{ cpu_arch | default('x86_64') }}]
+      variants: +optimization
+  # Compiler flags for optimization
+  compiler_flags:
+    cflags: {{ cpu_flags | default('-O2 -march=native') }}
+    cxxflags: {{ cpu_flags | default('-O2 -march=native') }}
+    fflags: {{ cpu_flags | default('-O2 -march=native') }}
+  # Allow non-root users to use Spack effectively
+  build_stage_roots:
+    - ~/.spack/stage
+  compiler_flags:
+    cflags: {{ cpu_flags | default('-O2 -march=native') }}
+    cxxflags: {{ cpu_flags | default('-O2 -march=native') }}
+    fflags: {{ cpu_flags | default('-O2 -march=native') }}

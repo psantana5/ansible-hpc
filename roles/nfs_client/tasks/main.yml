@@ -1,0 +1,51 @@
+---
+# Install NFS client packages
+- name: Install NFS client packages
+  package:
+    name:
+      - nfs-utils
+      - rpcbind
+    state: present
+
+# Ensure mount points exist
+- name: Ensure mount points exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /apps
+    - /scratch
+    - /home
+    - /opt/spack
+
+# Back up existing local Spack if it exists
+- name: Check if local Spack exists
+  stat:
+    path: /opt/spack
+  register: local_spack
+
+- name: Backup existing Spack installation if it exists
+  command: mv /opt/spack /opt/spack.local.bak
+  args:
+    removes: /opt/spack
+  when: local_spack.stat.exists and local_spack.stat.isdir
+
+# Mount Spack directory
+- name: Mount Spack directory
+  mount:
+    path: /opt/spack
+    src: "{{ nfs_server_host }}:/apps/spack"
+    fstype: nfs
+    opts: rw,sync,hard,intr,rsize=1048576,wsize=1048576,noatime,nodiratime
+    state: mounted
+
+# Create Spack environment file for users
+- name: Create Spack environment file
+  copy:
+    dest: /etc/profile.d/spack.sh
+    content: |
+      # Use the centralized Spack installation
+      export SPACK_ROOT=/opt/spack
+      . $SPACK_ROOT/share/spack/setup-env.sh
+    mode: '0644'

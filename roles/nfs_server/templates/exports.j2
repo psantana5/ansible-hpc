@@ -22,3 +22,6 @@
 
 # Shared scratch space (read-write, allow root access from clients)
 /scratch        192.168.1.0/24(rw,sync,no_subtree_check,no_root_squash)
+
+# Add this line to your exports.j2 template
+/apps/spack    192.168.1.0/24(rw,sync,no_root_squash,no_subtree_check)

@@ -1,0 +1,57 @@
+---
+- name: Fix NFS Client Spack mount
+  hosts: compute
+  become: true
+  become_method: sudo
+  # Add this line to prompt for the sudo password
+  vars_prompt:
+    - name: "ansible_sudo_pass"
+      prompt: "Sudo password"
+      private: yes
+  
+  tasks:
+    - name: Force unmount Spack directory
+      command: umount -f /opt/spack
+      ignore_errors: yes
+      
+    - name: Remove any existing Spack directory
+      file:
+        path: /opt/spack
+        state: absent
+
+    - name: Ensure mount point has proper permissions
+      file:
+        path: /opt/spack
+        state: directory
+        mode: '0777'
+        owner: root
+        group: root
+
+    - name: Remount Spack directory with explicit rw option
+      mount:
+        path: /opt/spack
+        src: "{{ nfs_server_host }}:/apps/spack"
+        fstype: nfs
+        opts: "rw,sync,hard,intr,noatime,nodiratime,nfsvers=3"
+        state: mounted
+
+    - name: Check mount status
+      shell: mount | grep /opt/spack || echo "Not mounted"
+      register: mount_status
+      changed_when: false
+      
+    - name: Display mount status
+      debug:
+        var: mount_status.stdout_lines
+
+    - name: Create test file to verify write permissions
+      file:
+        path: /opt/spack/test_write_permission
+        state: touch
+        mode: '0644'
+      register: write_test
+      ignore_errors: yes
+
+    - name: Display write test results
+      debug:
+        var: write_test

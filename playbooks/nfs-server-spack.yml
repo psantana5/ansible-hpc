@@ -1,0 +1,30 @@
+---
+- name: Configure NFS Server for Spack
+  hosts: nfs_servers
+  become: true
+  tasks:
+    - name: Create Spack directory on NFS server
+      file:
+        path: /apps/spack
+        state: directory
+        mode: '0775'
+        owner: root
+        group: root
+
+    - name: Add Spack directory to exports
+      lineinfile:
+        path: /etc/exports
+        line: '/apps/spack *(rw,sync,no_root_squash,no_subtree_check)'
+        state: present
+      register: exports_updated
+
+    - name: Re-export NFS shares if exports were updated
+      command: exportfs -ra
+      when: exports_updated.changed
+
+    - name: Clone Spack repository to NFS share
+      git:
+        repo: "{{ spack_git_repo }}"
+        dest: /apps/spack
+        version: "{{ spack_version }}"
+        update: yes

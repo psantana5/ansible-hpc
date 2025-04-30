@@ -1,0 +1,6 @@
+# Spack environment setup
+export SPACK_ROOT={{ spack_install_dir }}
+. $SPACK_ROOT/share/spack/setup-env.sh
+
+# Set architecture-specific environment variables
+export SPACK_ARCH=$(spack arch -t)

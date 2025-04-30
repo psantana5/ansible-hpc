@@ -43,8 +43,17 @@
     - /apps/software
     - /apps/libraries
     - /apps/data
+    - /apps/spack
     - /scratch
     - /home
+
+- name: Create Spack directory with appropriate permissions
+  file:
+    path: /apps/spack
+    state: directory
+    mode: '0775'
+    owner: root
+    group: root
 
 - name: Configure NFS exports
   template:

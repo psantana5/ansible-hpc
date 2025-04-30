@@ -1,10 +1,19 @@
 ---
-- name: Deploy Spack to compute and login nodes
+- name: Deploy Spack with Architecture-Optimized Scientific Software
   vars_files:
-    - inventory/group_vars/all/all.yml
+    - inventory/group_vars/all/main.yml
   hosts:
     - compute
     - login
   become: yes
+  
   roles:
     - spack
+  
+  post_tasks:
+    - name: Create module files for installed packages
+      shell: |
+        source {{ spack_install_dir }}/share/spack/setup-env.sh
+        spack module tcl refresh --delete-tree -y
+      args:
+        executable: /bin/bash

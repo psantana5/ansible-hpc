@@ -25,29 +25,33 @@
       - util-linux
     state: present
 
+- name: Check if Spack is mounted from NFS
+  shell: mount | grep "/opt/spack" | grep -q "nfs"
+  register: spack_nfs_check
+  ignore_errors: yes
+  changed_when: false
+
+# Skip directory creation and git clone if Spack is NFS mounted
 - name: Create Spack installation directory
   file:
     path: "{{ spack_install_dir }}"
     state: directory
-    owner: root
-    group: root
-    mode: "0755"
+    mode: '0755'
+  when: spack_nfs_check.rc != 0
 
 - name: Create Spack stage directory
   file:
     path: "{{ spack_install_dir }}/var/spack/stage"
     state: directory
-    owner: root
-    group: root
-    mode: "0777"
-  
+    mode: '0755'
+  when: spack_nfs_check.rc != 0
+
 - name: Create Spack cache directory
   file:
     path: "{{ spack_install_dir }}/var/spack/cache"
     state: directory
-    owner: root
-    group: root
-    mode: "0777"
+    mode: '0755'
+  when: spack_nfs_check.rc != 0
 
 - name: Clone Spack repository
   git:
@@ -55,6 +59,37 @@
     dest: "{{ spack_install_dir }}"
     version: "{{ spack_version }}"
     update: yes
+  when: spack_nfs_check.rc != 0
+
+# Create user-specific Spack configuration
+- name: Create user-specific Spack configuration directories
+  file:
+    path: "/home/{{ item }}/.spack"
+    state: directory
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: '0755'
+  with_items:
+    - psantana
+    # Add other users as needed
+
+- name: Create user-specific Spack config.yaml
+  template:
+    src: user_config.yaml.j2
+    dest: "/home/{{ item }}/.spack/config.yaml"
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: '0644'
+  with_items:
+    - psantana
+    # Add other users as needed
+
+# Create Spack environment setup script
+- name: Create Spack environment setup script
+  template:
+    src: spack.sh.j2
+    dest: /etc/profile.d/spack.sh
+    mode: '0644'
 
 - name: Detect CPU architecture details
   shell: |
