@@ -1,3 +1,0 @@
-{% for host in groups['compute'] %}
-{{ host }} slots={{ hostvars[host]['ansible_processor_vcpus'] | default(ansible_processor_vcpus) }}
-{% endfor %}
