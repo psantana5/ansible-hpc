@@ -4,42 +4,36 @@
 # -------------------------------------------------------
 # 1. Install dependencies
 # -------------------------------------------------------
-- name: Install required packages
-  dnf:
-    name: "{{ hpl_dependencies }}"
-    state: present
+- name: Install required packages using shell
+  shell: |
+    dnf install -y {{ hpl_dependencies | join(' ') }}
   tags: [packages, dependencies]
 
-- name: Install MPI packages
-  dnf:
-    name: "{{ mpi_packages }}"
-    state: present
+- name: Install MPI packages using shell
+  shell: |
+    dnf install -y {{ mpi_packages | join(' ') }}
   when: not mpi_installed
   tags: [packages, mpi]
 
-- name: Install BLAS/LAPACK packages
-  dnf:
-    name: "{{ blas_packages }}"
-    state: present
-  tags: [packages, blas]
-
-# Add this before the BLAS installation task
-- name: Install EPEL repository
-  dnf:
-    name: epel-release
-    state: present
+- name: Install EPEL repository using shell
+  shell: |
+    dnf install -y epel-release
   when: ansible_os_family == "RedHat"
   tags: [packages, dependencies]
+
+- name: Install BLAS/LAPACK packages using shell
+  shell: |
+    dnf install -y {{ blas_packages | join(' ') }}
+  tags: [packages, blas]
 
 # -------------------------------------------------------
 # 2. Set up passwordless SSH between nodes
 # -------------------------------------------------------
-- name: Create SSH key for root
-  openssh_keypair:
-    path: "{{ ssh_key_file }}"
-    type: "{{ ssh_key_type }}"
-    size: "{{ ssh_key_bits }}"
-    state: present
+- name: Create SSH key for root using shell
+  shell: |
+    if [ ! -f {{ ssh_key_file }} ]; then
+      ssh-keygen -t {{ ssh_key_type }} -b {{ ssh_key_bits }} -f {{ ssh_key_file }} -N ""
+    fi
   tags: [ssh]
 
 - name: Get all compute node hostnames
@@ -47,83 +41,118 @@
     compute_hosts: "{{ groups['compute'] }}"
   tags: [ssh]
 
-- name: Ensure SSH config directory exists
-  file:
-    path: /root/.ssh
-    state: directory
-    mode: '0700'
-  tags: [ssh]
-
-- name: Fetch the public key from the control node
-  fetch:
-    src: "{{ ssh_key_file }}.pub"
-    dest: "/tmp/id_{{ ssh_key_type }}.pub"
-    flat: yes
-  tags: [ssh]
-
-- name: Distribute the public key to all compute nodes
-  copy:
-    src: "/tmp/id_{{ ssh_key_type }}.pub"
-    dest: "/tmp/id_{{ ssh_key_type }}.pub"
-    mode: '0644'
-  delegate_to: "{{ item }}"
-  with_items: "{{ compute_hosts }}"
-  tags: [ssh]
-
-- name: Create authorized_keys file with all compute node keys
-  authorized_key:
-    user: root
-    state: present
-    key: "{{ lookup('file', '/tmp/id_' + ssh_key_type + '.pub') }}"
-  delegate_to: "{{ item }}"
-  with_items: "{{ compute_hosts }}"
-  tags: [ssh]
-
-- name: Configure SSH to not check host keys for compute nodes
-  template:
-    src: ssh_config.j2
-    dest: /root/.ssh/config
-    mode: '0600'
+- name: Ensure SSH config directory exists using shell
+  shell: |
+    mkdir -p /root/.ssh
+    chmod 700 /root/.ssh
   tags: [ssh]
 
 # -------------------------------------------------------
 # 3. Download and build HPL
 # -------------------------------------------------------
-- name: Create HPL directories
-  file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0755'
-  with_items:
-    - "{{ hpl_download_dir }}"
-    - "{{ hpl_build_dir }}"
-    - "{{ hpl_install_dir }}"
-    - "{{ hpl_run_dir }}"
+- name: Create HPL directories using shell
+  shell: |
+    mkdir -p {{ hpl_download_dir }}
+    mkdir -p {{ hpl_build_dir }}
+    mkdir -p {{ hpl_install_dir }}
+    mkdir -p {{ hpl_run_dir }}
   tags: [hpl, setup]
 
-- name: Download HPL source
-  get_url:
-    url: "{{ hpl_source_url }}"
-    dest: "{{ hpl_download_dir }}/hpl-{{ hpl_version }}.tar.gz"
+- name: Check if module command is available
+  shell: command -v module || echo "module command not found"
+  register: module_check
+  changed_when: false
+  tags: [mpi, setup]
+
+- name: Check if OpenMPI module is available
+  shell: module avail openmpi 2>&1 | grep -q openmpi || echo "OpenMPI module not available"
+  register: openmpi_module_check
+  changed_when: false
+  when: module_check.stdout != "module command not found"
+  tags: [mpi, setup]
+
+- name: Load OpenMPI module
+  shell: |
+    module load openmpi
+    # Export the PATH to a file so it can be sourced in later tasks
+    echo "export PATH=$PATH" > /tmp/mpi_path
+    echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> /tmp/mpi_path
+  when: module_check.stdout != "module command not found" and openmpi_module_check.stdout != "OpenMPI module not available"
+  register: module_load
+  changed_when: false
+  tags: [mpi, setup]
+
+- name: Check for MPI commands after module load
+  shell: |
+    source /tmp/mpi_path
+    which mpicc || echo "mpicc not found"
+    which mpif77 || echo "mpif77 not found"
+  register: mpi_commands_check
+  changed_when: false
+  when: module_check.stdout != "module command not found" and openmpi_module_check.stdout != "OpenMPI module not available"
+  tags: [mpi, setup]
+
+- name: Try to find MPI in standard locations if module failed
+  shell: |
+    if [ -d /usr/lib64/openmpi/bin ]; then
+      echo "export PATH=$PATH:/usr/lib64/openmpi/bin" > /tmp/mpi_path
+      echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/openmpi/lib" >> /tmp/mpi_path
+    elif [ -d /opt/openmpi/bin ]; then
+      echo "export PATH=$PATH:/opt/openmpi/bin" > /tmp/mpi_path
+      echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openmpi/lib" >> /tmp/mpi_path
+    else
+      echo "MPI binaries not found in standard locations"
+      exit 1
+    fi
+  register: find_mpi
+  failed_when: false
+  when: (module_check.stdout == "module command not found" or openmpi_module_check.stdout == "OpenMPI module not available" or 
+        (mpi_commands_check is defined and (mpi_commands_check.stdout.find("mpicc not found") != -1 or mpi_commands_check.stdout.find("mpif77 not found") != -1)))
+  tags: [mpi, setup]
+
+- name: Check for Spack
+  shell: command -v spack || echo "spack not found"
+  register: spack_check
+  changed_when: false
+  when: find_mpi.rc is defined and find_mpi.rc != 0
+  tags: [mpi, setup]
+
+- name: Install OpenMPI via Spack if available
+  shell: |
+    spack install openmpi target=$(spack arch -t)
+    spack load openmpi
+    echo "export PATH=$PATH" > /tmp/mpi_path
+    echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> /tmp/mpi_path
+  when: spack_check is defined and spack_check.stdout != "spack not found" and find_mpi.rc is defined and find_mpi.rc != 0
+  register: spack_install
+  failed_when: false
+  tags: [mpi, setup]
+
+- name: Fail if MPI is not available
+  fail:
+    msg: "OpenMPI is not available. Please install OpenMPI or make sure it's in the PATH."
+  when: (find_mpi.rc is defined and find_mpi.rc != 0) and 
+        (spack_check is not defined or spack_check.stdout == "spack not found" or 
+         spack_install is defined and spack_install.rc != 0)
+  tags: [mpi, setup]
+
+- name: Download HPL source using wget
+  shell: |
+    cd {{ hpl_download_dir }}
+    if [ ! -f hpl-{{ hpl_version }}.tar.gz ]; then
+      wget -O hpl-{{ hpl_version }}.tar.gz {{ hpl_source_url }}
+    fi
   tags: [hpl, download]
 
-- name: Extract HPL source
-  unarchive:
-    src: "{{ hpl_download_dir }}/hpl-{{ hpl_version }}.tar.gz"
-    dest: "{{ hpl_download_dir }}"
-    remote_src: yes
-    creates: "{{ hpl_download_dir }}/hpl-{{ hpl_version }}"
+- name: Extract HPL source using tar
+  shell: |
+    cd {{ hpl_download_dir }}
+    if [ ! -d hpl-{{ hpl_version }} ]; then
+      gunzip -f hpl-{{ hpl_version }}.tar.gz
+      tar -xf hpl-{{ hpl_version }}.tar
+    fi
   tags: [hpl, extract]
 
-# Replace this task
-- name: Copy Make.Linux_{{ mpi_implementation }} to Make.linux
-  copy:
-    src: "{{ hpl_download_dir }}/hpl-{{ hpl_version }}/setup/Make.Linux_{{ mpi_implementation | regex_replace('openmpi', 'OPENMPI') | regex_replace('mpich', 'MPICH2') }}"
-    dest: "{{ hpl_download_dir }}/hpl-{{ hpl_version }}/Make.linux"
-    remote_src: yes
-  tags: [hpl, configure]
-
-# With these tasks
 - name: List available Make templates
   shell: ls -la {{ hpl_download_dir }}/hpl-{{ hpl_version }}/setup/
   register: make_templates
@@ -137,11 +166,11 @@
 
 - name: Copy Make template to Make.linux
   shell: |
-    TEMPLATE=$(find {{ hpl_download_dir }}/hpl-{{ hpl_version }}/setup/ -name "Make.Linux_*" | head -1)
+    cd {{ hpl_download_dir }}/hpl-{{ hpl_version }}
+    TEMPLATE=$(find setup/ -name "Make.Linux_*" | head -1)
     if [ -n "$TEMPLATE" ]; then
-      cp $TEMPLATE {{ hpl_download_dir }}/hpl-{{ hpl_version }}/Make.linux
+      cp $TEMPLATE Make.linux
       echo "Using template: $TEMPLATE"
-      exit 0
     else
       echo "No Make template found, creating a basic one"
       exit 1
@@ -151,82 +180,42 @@
   changed_when: template_copy.rc == 0
   tags: [hpl, configure]
 
-- name: Create basic Make.linux if no template found
-  copy:
-    dest: "{{ hpl_download_dir }}/hpl-{{ hpl_version }}/Make.linux"
-    content: |
-      # Basic HPL Makefile for Linux systems
-      # Generated by Ansible
-      
-      TOPdir       = $(HOME)/hpl-{{ hpl_version }}
-      MPdir        = /usr
-      MPinc        = -I$(MPdir)/include
-      MPlib        = $(MPdir)/lib64/libmpi.so
-      
-      LAdir        = /usr
-      LAinc        = -I$(LAdir)/include
-      LAlib        = -L$(LAdir)/lib64 -lopenblas -lpthread
-      
-      CC           = mpicc
-      CCFLAGS      = $(HPL_DEFS) -fomit-frame-pointer -O3 -funroll-loops -W -Wall
-      LINKER       = mpif77
-      ARCHIVER     = ar
-      ARFLAGS      = r
-      RANLIB       = echo
-      
-      HPL_INCLUDES = -I$(TOPdir)/include $(LAinc) $(MPinc)
-      HPL_LIBS     = $(LAlib) $(MPlib)
-      
-      # HPL include/lib
-      HPL_INCLUDES = -I$(TOPdir)/include $(LAinc) $(MPinc)
-      HPL_LIBS     = $(HPL_LIBDIR)/libhpl.a $(LAlib) $(MPlib)
-    mode: '0644'
-  when: template_copy.rc == 1
+- name: Configure HPL Makefile using sed
+  shell: |
+    cd {{ hpl_download_dir }}/hpl-{{ hpl_version }}
+    sed -i "s|^TOPdir.*|TOPdir = $(HOME)/hpl-{{ hpl_version }}|" Make.linux
+    sed -i 's|^MPdir.*|MPdir = /usr|' Make.linux
+    sed -i 's|^LAdir.*|LAdir = /usr|' Make.linux
+    sed -i 's|^CC.*|CC = mpicc|' Make.linux
+    sed -i 's|^CCFLAGS.*|CCFLAGS = $(HPL_DEFS) -fomit-frame-pointer -O3 -funroll-loops -W -Wall|' Make.linux
+    sed -i 's|^LINKER.*|LINKER = mpif77|' Make.linux
+    sed -i 's|^ARCHIVER.*|ARCHIVER = ar|' Make.linux
+    sed -i 's|^ARFLAGS.*|ARFLAGS = r|' Make.linux
+    sed -i 's|^RANLIB.*|RANLIB = echo|' Make.linux
+    sed -i 's|^LAlib.*|LAlib = -L$(LAdir)/lib64 -lopenblas -lpthread|' Make.linux
   tags: [hpl, configure]
 
-- name: Configure HPL Makefile
-  lineinfile:
-    path: "{{ hpl_download_dir }}/hpl-{{ hpl_version }}/Make.linux"
-    regexp: "{{ item.regexp }}"
-    line: "{{ item.line }}"
-  with_items:
-    - { regexp: '^TOPdir.*', line: 'TOPdir = $(HOME)/hpl-{{ hpl_version }}' }
-    - { regexp: '^MPdir.*', line: 'MPdir = /usr' }
-    - { regexp: '^LAdir.*', line: 'LAdir = /usr' }
-    - { regexp: '^CC.*', line: 'CC = mpicc' }
-    - { regexp: '^CCFLAGS.*', line: 'CCFLAGS = $(HPL_DEFS) -fomit-frame-pointer -O3 -funroll-loops -W -Wall' }
-    - { regexp: '^LINKER.*', line: 'LINKER = mpif77' }
-    - { regexp: '^ARCHIVER.*', line: 'ARCHIVER = ar' }
-    - { regexp: '^ARFLAGS.*', line: 'ARFLAGS = r' }
-    - { regexp: '^RANLIB.*', line: 'RANLIB = echo' }
-  tags: [hpl, configure]
-
-- name: Set BLAS library in Makefile
-  lineinfile:
-    path: "{{ hpl_download_dir }}/hpl-{{ hpl_version }}/Make.linux"
-    regexp: '^LAlib.*'
-    line: 'LAlib = -L$(LAdir)/lib64 -lopenblas -lpthread'  # Use specific library name (openblas)
-  tags: [hpl, configure]
-
-- name: List available Make templates
-  shell: ls -la {{ hpl_download_dir }}/hpl-{{ hpl_version }}/setup/
-  register: make_templates
-  changed_when: false
-  tags: [hpl, configure]
-
-- name: Display available Make templates
-  debug:
-    var: make_templates.stdout_lines
-  tags: [hpl, configure]
-
-# Replace the build task
-- name: Build HPL
+- name: Build HPL using make
   shell: |
     cd {{ hpl_download_dir }}/hpl-{{ hpl_version }}
     export HOME={{ hpl_download_dir }}
+    source /tmp/mpi_path
+    which mpicc
+    which mpif77
     make arch=linux > {{ hpl_download_dir }}/hpl_build.log 2>&1
   register: build_result
   failed_when: false
+  tags: [hpl, build]
+
+- name: Display build log for debugging
+  shell: "cat {{ hpl_download_dir }}/hpl_build.log"
+  register: full_build_log
+  changed_when: false
+  tags: [hpl, build]
+
+- name: Show full build log
+  debug:
+    var: full_build_log.stdout_lines
   tags: [hpl, build]
 
 - name: Check build result
@@ -248,17 +237,30 @@
   when: build_result.rc != 0
   tags: [hpl, build]
 
+- name: Check if HPL binary exists
+  shell: |
+    if [ -f {{ hpl_download_dir }}/hpl-{{ hpl_version }}/bin/linux/xhpl ]; then
+      echo "Binary exists"
+      exit 0
+    else
+      echo "Binary does not exist"
+      exit 1
+    fi
+  register: binary_check
+  failed_when: false
+  changed_when: false
+  tags: [hpl, build]
+
 - name: Fail if build failed and no binary exists
   fail:
     msg: "HPL build failed. Check the build log for details."
-  when: build_result.rc != 0 and not (lookup('file', '{{ hpl_download_dir }}/hpl-{{ hpl_version }}/bin/linux/xhpl', errors='ignore') | length > 0)
+  when: build_result.rc != 0 and binary_check.rc != 0
   tags: [hpl, build]
 
-- name: Copy HPL binary to install directory
-  copy:
-    src: "{{ hpl_download_dir }}/hpl-{{ hpl_version }}/bin/linux/"
-    dest: "{{ hpl_install_dir }}/"
-    remote_src: yes
+- name: Copy HPL binary to install directory using cp
+  shell: |
+    mkdir -p {{ hpl_install_dir }}
+    cp -r {{ hpl_download_dir }}/hpl-{{ hpl_version }}/bin/linux/* {{ hpl_install_dir }}/
   tags: [hpl, install]
 
 # -------------------------------------------------------
@@ -279,92 +281,61 @@
     hpl_problem_size: "{{ ((mem_gb * 1024 * 0.8) | sqrt | int / 8) * 8 }}"
   tags: [hpl, config]
 
-# Add these tasks before the "Create HPL.dat file" task
-- name: Create HPL.dat.j2 template
-  copy:
-    dest: "{{ role_path }}/templates/HPL.dat.j2"
-    content: |
-      HPLinpack benchmark input file
-      Innovative Computing Laboratory, University of Tennessee
-      HPL.out      output file name (if any)
-      6            device out (6=stdout,7=stderr,file)
-      1            # of problems sizes (N)
-      {{ hpl_problem_size }}         Ns
-      1            # of NBs
-      {{ hpl_block_size }}           NBs
-      0            PMAP process mapping (0=Row-,1=Column-major)
-      1            # of process grids (P x Q)
-      {{ hpl_grid_p }}            Ps
-      {{ hpl_grid_q }}            Qs
-      16.0         threshold
-      1            # of panel fact
-      2            PFACTs (0=left, 1=Crout, 2=Right)
-      1            # of recursive stopping criterium
-      4            NBMINs (>= 1)
-      1            # of panels in recursion
-      2            NDIVs
-      1            # of recursive panel fact.
-      1            RFACTs (0=left, 1=Crout, 2=Right)
-      1            # of broadcast
-      1            BCASTs (0=1rg,1=1rM,2=2rg,3=2rM,4=Lng,5=LnM)
-      1            # of lookahead depth
-      1            DEPTHs (>=0)
-      2            SWAP (0=bin-exch,1=long,2=mix)
-      64           swapping threshold
-      0            L1 in (0=transposed,1=no-transposed) form
-      0            U  in (0=transposed,1=no-transposed) form
-      1            Equilibration (0=no,1=yes)
-      8            memory alignment in double (> 0)
-    mode: '0644'
-  delegate_to: localhost
-  run_once: true
+- name: Create HPL.dat file using shell
+  shell: |
+    cat > {{ hpl_run_dir }}/HPL.dat << EOF
+    HPLinpack benchmark input file
+    Innovative Computing Laboratory, University of Tennessee
+    HPL.out      output file name (if any)
+    6            device out (6=stdout,7=stderr,file)
+    1            # of problems sizes (N)
+    {{ hpl_problem_size }}         Ns
+    1            # of NBs
+    {{ hpl_block_size }}           NBs
+    0            PMAP process mapping (0=Row-,1=Column-major)
+    1            # of process grids (P x Q)
+    {{ hpl_grid_p }}            Ps
+    {{ hpl_grid_q }}            Qs
+    16.0         threshold
+    1            # of panel fact
+    2            PFACTs (0=left, 1=Crout, 2=Right)
+    1            # of recursive stopping criterium
+    4            NBMINs (>= 1)
+    1            # of panels in recursion
+    2            NDIVs
+    1            # of recursive panel fact.
+    1            RFACTs (0=left, 1=Crout, 2=Right)
+    1            # of broadcast
+    1            BCASTs (0=1rg,1=1rM,2=2rg,3=2rM,4=Lng,5=LnM)
+    1            # of lookahead depth
+    1            DEPTHs (>=0)
+    2            SWAP (0=bin-exch,1=long,2=mix)
+    64           swapping threshold
+    0            L1 in (0=transposed,1=no-transposed) form
+    0            U  in (0=transposed,1=no-transposed) form
+    1            Equilibration (0=no,1=yes)
+    8            memory alignment in double (> 0)
+    EOF
   tags: [hpl, config]
 
-- name: Create hostfile.j2 template
-  copy:
-    dest: "{{ role_path }}/templates/hostfile.j2"
-    content: |
-      {% for host in compute_hosts %}
-      {{ host }} slots={{ hostvars[host]['ansible_processor_vcpus'] | default(1) }}
-      {% endfor %}
-    mode: '0644'
-  delegate_to: localhost
-  run_once: true
-  tags: [hpl, config]
-
-- name: Create ssh_config.j2 template
-  copy:
-    dest: "{{ role_path }}/templates/ssh_config.j2"
-    content: |
-      # SSH configuration for HPL benchmark
-      # Generated by Ansible
-      
-      {% for host in compute_hosts %}
-      Host {{ host }}
-          StrictHostKeyChecking no
-          UserKnownHostsFile /dev/null
-          
-      {% endfor %}
-    mode: '0644'
-  delegate_to: localhost
-  run_once: true
-  tags: [ssh]
-
-- name: Create MPI hostfile
-  template:
-    src: hostfile.j2
-    dest: "{{ hpl_run_dir }}/hostfile"
+- name: Create MPI hostfile using shell
+  shell: |
+    cat > {{ hpl_run_dir }}/hostfile << EOF
+    {% for host in compute_hosts %}
+    {{ host }} slots={{ hostvars[host]['ansible_processor_vcpus'] | default(1) }}
+    {% endfor %}
+    EOF
   tags: [hpl, config]
 
 # -------------------------------------------------------
 # 5. Run HPL benchmark
 # -------------------------------------------------------
-- name: Run HPL benchmark
+- name: Run HPL benchmark using mpirun
   shell: |
     cd {{ hpl_run_dir }}
-    mpirun --hostfile {{ hpl_run_dir }}/hostfile -np {{ hpl_mpi_processes }} {{ hpl_install_dir }}/xhpl > {{ hpl_run_dir }}/HPL.out 2>&1
-  args:
-    creates: "{{ hpl_run_dir }}/HPL.out"
+    if [ ! -f {{ hpl_run_dir }}/HPL.out ]; then
+      mpirun --hostfile {{ hpl_run_dir }}/hostfile -np {{ hpl_mpi_processes }} {{ hpl_install_dir }}/xhpl > {{ hpl_run_dir }}/HPL.out 2>&1
+    fi
   when: hpl_run_benchmark
   tags: [hpl, run]
 
@@ -381,3 +352,33 @@
     msg: "{{ hpl_results.stdout_lines }}"
   when: hpl_run_benchmark
   tags: [hpl, results]
+
+- name: Check for required build tools
+  shell: |
+    which gcc
+    which g++
+    which gfortran
+    which make
+    which mpif77 || echo "mpif77 not found"
+    which mpicc || echo "mpicc not found"
+  register: build_tools
+  changed_when: false
+  tags: [hpl, debug]
+
+- name: Show available build tools
+  debug:
+    var: build_tools.stdout_lines
+  tags: [hpl, debug]
+
+- name: Check for BLAS libraries
+  shell: |
+    ls -la /usr/lib64/libopenblas* || echo "OpenBLAS not found in /usr/lib64"
+    ls -la /usr/lib/libopenblas* || echo "OpenBLAS not found in /usr/lib"
+  register: blas_libs
+  changed_when: false
+  tags: [hpl, debug]
+
+- name: Show BLAS libraries
+  debug:
+    var: blas_libs.stdout_lines
+  tags: [hpl, debug]
