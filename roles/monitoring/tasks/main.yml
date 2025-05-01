@@ -90,7 +90,7 @@
 
 - name: Copy power monitoring for nodes dashboard
   copy:
-    src: "{{ playbook_dir }}/roles/proxmox_monitoring/files/proxmox_power_dashboard.json"
+    src: proxmox_power_dashboard.json
     dest: /opt/monitoring/grafana/dashboards/proxmox_power_dashboard.json
     mode: "0644"
   register: proxmox_dashboard
