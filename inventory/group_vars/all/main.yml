@@ -492,3 +492,53 @@ blas_packages:
 ssh_key_type: "rsa"
 ssh_key_bits: 4096
 ssh_key_file: "/root/.ssh/id_{{ ssh_key_type }}"
+
+# ------------------------------------------------------------
+# HPL Benchmark Configuration
+# ------------------------------------------------------------
+hpl_version: "2.3" # HPL version to download
+hpl_download_url: "https://www.netlib.org/benchmark/hpl/hpl-{{ hpl_version }}.tar.gz"
+hpl_base_dir: "/opt/hpl" # Base directory for HPL build and installation
+hpl_build_dir: "{{ hpl_base_dir }}/build/hpl-{{ hpl_version }}"
+hpl_install_dir: "{{ hpl_base_dir }}/install" # Where xhpl binary will be placed
+hpl_run_dir: "{{ hpl_base_dir }}/run" # Working directory for running HPL
+hpl_binary_path: "{{ hpl_install_dir }}/bin/Linux_{{ blas_implementation | upper }}" # Path to the compiled xhpl
+
+# HPL.dat Generation Parameters (Customize these based on your cluster)
+# These are EXAMPLES, calculate them carefully for your specific hardware.
+hpl_cores_per_node: 16 # Number of physical cores per compute node
+hpl_memory_per_node_gb: 64 # Usable memory per compute node in GB
+hpl_block_size: 256 # NB: Block size (tune this, e.g., 192, 256)
+hpl_memory_usage_fraction: 0.80 # Fraction of total memory to use for N
+
+# --- Calculated HPL Parameters (Do not change unless you know HPL internals) ---
+# Total number of compute nodes (calculated from inventory)
+hpl_num_nodes: "{{ groups['compute_nodes'] | length }}"
+# Total cores = nodes * cores_per_node
+hpl_total_cores: "{{ hpl_num_nodes * hpl_cores_per_node }}"
+# Total memory = nodes * mem_per_node
+hpl_total_memory_gb: "{{ hpl_num_nodes * hpl_memory_per_node_gb }}"
+# Problem Size (N) - Calculated based on total memory and fraction
+# N = sqrt(Total Memory Bytes * Fraction / 8 bytes_per_double)
+hpl_problem_size_n: "{{ ( (hpl_total_memory_gb * (1024**3) * hpl_memory_usage_fraction / 8) | root(2) ) | int }}"
+# Process Grid (P x Q = total_cores). Try to make P and Q close to sqrt(total_cores)
+# Example: If total_cores=32, sqrt(32) is ~5.6. Factors are (1,32), (2,16), (4,8). Choose P=4, Q=8.
+# You might need to adjust these manually for optimal performance.
+hpl_p: "{{ (hpl_total_cores | root(2) ) | round | int }}" # Example calculation, adjust P manually if needed
+hpl_q: "{{ (hpl_total_cores / hpl_p) | int }}" # Calculate Q based on P and total_cores
+
+# --- MPI and BLAS Paths (Adjust if non-standard) ---
+# These paths depend on your OS and how MPI/BLAS were installed.
+# Example paths for OpenMPI and OpenBLAS installed via package manager on RHEL/CentOS derivatives:
+mpi_include_path: "/usr/include/{{ mpi_implementation }}"
+mpi_lib_path: "/usr/lib64/{{ mpi_implementation }}/lib"
+blas_lib_path: "/usr/lib64/{{ blas_implementation }}" # Path to libopenblas.so or similar
+
+# --- SSH Setup ---
+# User for running HPL and passwordless SSH
+hpl_run_user: "hpluser" # Consider using an existing user or create one
+hpl_user_home: "/home/{{ hpl_run_user }}"
+ssh_key_path_private: "{{ hpl_user_home }}/.ssh/id_{{ ssh_key_type }}"
+ssh_key_path_public: "{{ ssh_key_path_private }}.pub"
+
+# ... existing code ...
