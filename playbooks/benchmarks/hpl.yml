@@ -1,0 +1,36 @@
+---
+# HPL (High-Performance Linpack) Benchmark Deployment Playbook
+# This playbook deploys and runs the HPL benchmark on compute nodes
+# 
+
+- name: Deploy and Run HPL Benchmark
+  hosts: compute
+  become: yes
+  gather_facts: yes
+  
+  vars_files:
+    - "{{ inventory_dir }}/group_vars/all/main.yml"
+  
+  pre_tasks:
+    - name: Check if MPI is installed
+      command: which mpirun
+      register: mpi_check
+      ignore_errors: yes
+      changed_when: false
+      
+    - name: Set MPI installation flag
+      set_fact:
+        mpi_installed: "{{ mpi_check.rc == 0 }}"
+  
+  roles:
+    - role: hpl
+      tags: [hpl, benchmark]
+      
+  post_tasks:
+    - name: Gather HPL benchmark results
+      fetch:
+        src: "{{ hpl_run_dir }}/HPL.out"
+        dest: "{{ inventory_dir }}/benchmark_results/hpl/{{ inventory_hostname }}_HPL.out"
+        flat: yes
+      tags: [results]
+      when: hpl_run_benchmark

@@ -463,3 +463,32 @@ autofs_mount_apps: true
 spack_install_dir: /opt/spack
 spack_git_repo: https://github.com/spack/spack.git
 spack_version: develop
+# HPL benchmark configuration for compute nodes
+
+# MPI implementation to use
+mpi_implementation: "openmpi"
+
+# BLAS/LAPACK implementation
+blas_implementation: "openblas"
+
+# HPL run settings
+hpl_run_benchmark: true
+
+# Number of MPI processes to use (default: all cores)
+# Override this based on your cluster configuration
+hpl_mpi_processes: "{{ ansible_processor_vcpus }}"
+
+# HPL problem size (matrix dimension N)
+# This will be automatically calculated based on available memory
+# but can be overridden here
+# hpl_problem_size: 20000
+
+# HPL block size (NB)
+# Optimal values are typically between 128 and 256
+hpl_block_size: 192
+
+# Process grid dimensions (P x Q)
+# These will be automatically calculated based on the number of processes
+# but can be overridden here
+# hpl_grid_p: 2
+# hpl_grid_q: 2
