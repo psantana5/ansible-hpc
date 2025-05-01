@@ -1,0 +1,152 @@
+---
+# Tasks for HPL role
+
+- name: Include OS-specific vars if available
+  include_vars:
+    file: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+      skip: true
+
+- name: Install HPL dependencies and required MPI/BLAS
+  ansible.builtin.package:
+    name: "{{ hpl_dependencies + mpi_packages + blas_packages }}"
+    state: present
+  tags: [hpl, hpl_install, packages]
+
+- name: Create HPL run user group
+  ansible.builtin.group:
+    name: "{{ hpl_run_user }}"
+    state: present
+  when: hpl_create_user | bool
+  tags: [hpl, hpl_setup, user]
+
+- name: Create HPL run user
+  ansible.builtin.user:
+    name: "{{ hpl_run_user }}"
+    group: "{{ hpl_run_user }}"
+    home: "{{ hpl_user_home }}"
+    shell: /bin/bash
+    state: present
+    create_home: yes
+  when: hpl_create_user | bool
+  tags: [hpl, hpl_setup, user]
+
+- name: Ensure HPL base directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ hpl_run_user }}"
+    group: "{{ hpl_run_user }}"
+    mode: "0755"
+  loop:
+    - "{{ hpl_base_dir }}"
+    - "{{ hpl_build_dir }}"
+    - "{{ hpl_install_dir }}"
+    - "{{ hpl_run_dir }}"
+  tags: [hpl, hpl_setup, directories]
+
+# --- SSH Setup (Simplified - Assumes running as root/sudo) ---
+- name: Generate SSH key for HPL user
+  ansible.builtin.user:
+    name: "{{ hpl_run_user }}"
+    generate_ssh_key: yes
+    ssh_key_type: "{{ ssh_key_type }}"
+    ssh_key_bits: "{{ ssh_key_bits }}"
+    ssh_key_file: "{{ ssh_key_path_private }}"
+  when: hpl_setup_ssh | bool
+  tags: [hpl, hpl_setup, ssh]
+
+- name: Fetch HPL user's public key
+  ansible.builtin.slurp:
+    src: "{{ ssh_key_path_public }}"
+  register: hpl_user_public_key_content
+  when: hpl_setup_ssh | bool
+  tags: [hpl, hpl_setup, ssh]
+
+- name: Distribute HPL user's public key to all compute nodes
+  ansible.builtin.authorized_key:
+    user: "{{ hpl_run_user }}"
+    key: "{{ hpl_user_public_key_content.content | b64decode }}"
+    state: present
+  when: hpl_setup_ssh | bool
+  tags: [hpl, hpl_setup, ssh]
+# --- End SSH Setup ---
+
+- name: Download HPL archive
+  ansible.builtin.get_url:
+    url: "{{ hpl_download_url }}"
+    dest: "{{ hpl_build_dir }}/{{ hpl_archive_name }}"
+    mode: "0644"
+  when: hpl_build_hpl | bool
+  tags: [hpl, hpl_build, download]
+
+- name: Unarchive HPL source
+  ansible.builtin.unarchive:
+    src: "{{ hpl_build_dir }}/{{ hpl_archive_name }}"
+    dest: "{{ hpl_build_dir }}"
+    remote_src: yes
+    creates: "{{ hpl_build_dir }}/{{ hpl_src_dir_name }}/Makefile"
+  when: hpl_build_hpl | bool
+  tags: [hpl, hpl_build, unarchive]
+
+# --- HPL Build ---
+# NOTE: This requires a Make.Linux template specific to your environment
+- name: Create HPL Make file (Make.Linux_PII)
+  ansible.builtin.template:
+    src: Make.Linux.j2 # Needs to be created in roles/hpl/templates
+    dest: "{{ hpl_build_dir }}/{{ hpl_src_dir_name }}/Make.Linux_PII" # Example name
+    owner: "{{ hpl_run_user }}"
+    group: "{{ hpl_run_user }}"
+    mode: "0644"
+  when: hpl_build_hpl | bool
+  tags: [hpl, hpl_build, config]
+
+- name: Build HPL using make
+  ansible.builtin.command: make arch=Linux_PII # Use the arch name from Make.Linux_PII
+  args:
+    chdir: "{{ hpl_build_dir }}/{{ hpl_src_dir_name }}"
+    creates: "{{ hpl_build_dir }}/{{ hpl_src_dir_name }}/bin/Linux_PII/xhpl" # Check creates path
+  become: yes
+  become_user: "{{ hpl_run_user }}"
+  when: hpl_build_hpl | bool
+  tags: [hpl, hpl_build, compile]
+
+- name: Copy HPL executable to install directory
+  ansible.builtin.copy:
+    src: "{{ hpl_build_dir }}/{{ hpl_src_dir_name }}/bin/Linux_PII/xhpl" # Check src path
+    dest: "{{ hpl_install_dir }}/xhpl"
+    remote_src: yes
+    owner: "{{ hpl_run_user }}"
+    group: "{{ hpl_run_user }}"
+    mode: "0755"
+  when: hpl_build_hpl | bool
+  tags: [hpl, hpl_build, install]
+# --- End HPL Build ---
+
+# --- HPL Run ---
+- name: Create HPL.dat configuration file
+  ansible.builtin.template:
+    src: HPL.dat.j2 # Needs to be created in roles/hpl/templates
+    dest: "{{ hpl_run_dir }}/HPL.dat"
+    owner: "{{ hpl_run_user }}"
+    group: "{{ hpl_run_user }}"
+    mode: "0644"
+  when: hpl_run_benchmark | bool
+  tags: [hpl, hpl_run, config]
+
+- name: Run HPL benchmark
+  ansible.builtin.command: "mpirun -np {{ hpl_total_cores }} {{ hpl_install_dir }}/xhpl"
+  args:
+    chdir: "{{ hpl_run_dir }}"
+    creates: "{{ hpl_run_dir }}/HPL.out" # Avoid re-running if output exists
+  become: yes
+  become_user: "{{ hpl_run_user }}"
+  when: hpl_run_benchmark | bool
+  tags: [hpl, hpl_run, execute]
+# --- End HPL Run ---

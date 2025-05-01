@@ -1,0 +1,67 @@
+---
+# Defaults for the HPL role
+
+# Package dependencies
+hpl_dependencies:
+  - gcc
+  - gcc-c++
+  - gcc-gfortran
+  - make
+  - wget
+  - tar
+  - bzip2
+  - environment-modules
+  - numactl
+
+# MPI implementation (openmpi or mpich)
+mpi_implementation: "openmpi"
+mpi_packages:
+  - "{{ mpi_implementation }}"
+  - "{{ mpi_implementation }}-devel"
+
+# BLAS/LAPACK implementation
+blas_implementation: "openblas"
+blas_packages:
+  - "{{ blas_implementation }}"
+  - "{{ blas_implementation }}-openmp" # Use openmp version instead of -devel
+
+# HPL Benchmark Configuration
+hpl_version: "2.3" # HPL version to download
+hpl_download_url: "https://www.netlib.org/benchmark/hpl/hpl-{{ hpl_version }}.tar.gz"
+hpl_archive_name: "hpl-{{ hpl_version }}.tar.gz"
+hpl_src_dir_name: "hpl-{{ hpl_version }}"
+hpl_base_dir: "/opt/hpl" # Base directory for HPL build and installation
+hpl_build_dir: "{{ hpl_base_dir }}/build/{{ hpl_src_dir_name }}"
+hpl_install_dir: "{{ hpl_base_dir }}/bin" # Where the final HPL executable will be placed
+hpl_run_dir: "{{ hpl_base_dir }}/run" # Directory to run HPL from
+
+# HPL.dat configuration (adjust based on cluster specifics)
+hpl_n: 10000              # Problem size (adjust based on memory)
+hpl_nb: 256               # Block size (adjust based on cache/tuning)
+hpl_total_cores: "{{ ansible_processor_vcpus | default(1) * groups['compute'] | length }}" # Estimate total cores
+# Example: If total_cores=32, sqrt(32) is ~5.6. Factors are (1,32), (2,16), (4,8). Choose P=4, Q=8.
+# You might need to adjust these manually for optimal performance.
+hpl_p: "{{ (hpl_total_cores | root(2) ) | round | int }}" # Example calculation, adjust P manually if needed
+hpl_q: "{{ (hpl_total_cores / hpl_p) | int }}" # Calculate Q based on P and total_cores
+
+# --- MPI and BLAS Paths (Adjust if non-standard) ---
+# These paths depend on your OS and how MPI/BLAS were installed.
+# Example paths for OpenMPI and OpenBLAS installed via package manager on RHEL/CentOS derivatives:
+mpi_include_path: "/usr/include/{{ mpi_implementation }}"
+mpi_lib_path: "/usr/lib64/{{ mpi_implementation }}/lib"
+blas_lib_path: "/usr/lib64/{{ blas_implementation }}" # Path to libopenblas.so or similar
+
+# --- SSH Setup ---
+# User for running HPL and passwordless SSH
+hpl_run_user: "hpluser" # Consider using an existing user or create one
+hpl_user_home: "/home/{{ hpl_run_user }}"
+ssh_key_type: "rsa"
+ssh_key_bits: 4096
+ssh_key_path_private: "{{ hpl_user_home }}/.ssh/id_{{ ssh_key_type }}"
+ssh_key_path_public: "{{ ssh_key_path_private }}.pub"
+
+# --- Control Flags ---
+hpl_create_user: true # Whether to create the hpl_run_user
+hpl_setup_ssh: true   # Whether to set up passwordless SSH for hpl_run_user
+hpl_build_hpl: true   # Whether to download and build HPL
+hpl_run_benchmark: true # Whether to run the benchmark after setup
