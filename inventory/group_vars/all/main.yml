@@ -489,10 +489,11 @@ blas_packages:
   - "{{ blas_implementation }}-openmp"  # Use openmp version instead of -devel
 
 # HPL source and build settings
+# HPL source and build settings
 hpl_version: "2.3"
 hpl_source_url: "http://www.netlib.org/benchmark/hpl/hpl-{{ hpl_version }}.tar.gz"
 hpl_download_dir: "/tmp"
-hpl_build_dir: "/opt/hpl-{{ hpl_version }}"
+hpl_build_dir: "/tmp/hpl-{{ hpl_version }}"  # Changed to match download location
 hpl_install_dir: "/opt/hpl"
 hpl_run_dir: "/opt/hpl/runs"
 

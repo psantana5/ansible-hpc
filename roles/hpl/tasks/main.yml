@@ -73,7 +73,7 @@
 
 - name: Load OpenMPI module
   shell: |
-    module load openmpi
+    module load mpi/openmpi-x86_64
     # Export the PATH to a file so it can be sourced in later tasks
     echo "export PATH=$PATH" > /tmp/mpi_path
     echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> /tmp/mpi_path
@@ -123,7 +123,7 @@
     spack load openmpi
     echo "export PATH=$PATH" > /tmp/mpi_path
     echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> /tmp/mpi_path
-  when: spack_check is defined and spack_check.stdout != "spack not found" and find_mpi.rc is defined and find_mpi.rc != 0
+  when: spack_check is defined and spack_check.stdout is defined and spack_check.stdout != "spack not found" and find_mpi.rc is defined and find_mpi.rc != 0
   register: spack_install
   failed_when: false
   tags: [mpi, setup]
@@ -132,7 +132,7 @@
   fail:
     msg: "OpenMPI is not available. Please install OpenMPI or make sure it's in the PATH."
   when: (find_mpi.rc is defined and find_mpi.rc != 0) and 
-        (spack_check is not defined or spack_check.stdout == "spack not found" or 
+        (spack_check is not defined or spack_check.stdout is not defined or spack_check.stdout == "spack not found" or 
          spack_install is defined and spack_install.rc != 0)
   tags: [mpi, setup]
 
@@ -183,17 +183,32 @@
 - name: Configure HPL Makefile using sed
   shell: |
     cd {{ hpl_download_dir }}/hpl-{{ hpl_version }}
-    sed -i "s|^TOPdir.*|TOPdir = $(HOME)/hpl-{{ hpl_version }}|" Make.linux
+    sed -i "s|^TOPdir.*|TOPdir = {{ hpl_download_dir }}/hpl-{{ hpl_version }}|" Make.linux
     sed -i 's|^MPdir.*|MPdir = /usr|' Make.linux
     sed -i 's|^LAdir.*|LAdir = /usr|' Make.linux
     sed -i 's|^CC.*|CC = mpicc|' Make.linux
-    sed -i 's|^CCFLAGS.*|CCFLAGS = $(HPL_DEFS) -fomit-frame-pointer -O3 -funroll-loops -W -Wall|' Make.linux
+    sed -i 's|^CCFLAGS.*|CCFLAGS = $(HPL_DEFS) -fomit-frame-pointer -O3 -funroll-loops -W -Wall -I$(TOPdir)/include|' Make.linux
     sed -i 's|^LINKER.*|LINKER = mpif77|' Make.linux
     sed -i 's|^ARCHIVER.*|ARCHIVER = ar|' Make.linux
     sed -i 's|^ARFLAGS.*|ARFLAGS = r|' Make.linux
     sed -i 's|^RANLIB.*|RANLIB = echo|' Make.linux
     sed -i 's|^LAlib.*|LAlib = -L$(LAdir)/lib64 -lopenblas -lpthread|' Make.linux
+    # Make sure HPL_INCLUDES is properly set
+    sed -i 's|^HPL_INCLUDES.*|HPL_INCLUDES = -I$(TOPdir)/include $(LAinc) $(MPinc)|' Make.linux
+    # Create symbolic link for hpl.h in the include directory
+    mkdir -p include
+    cp include/hpl.h.in include/hpl.h
   tags: [hpl, configure]
+
+
+- name: Clean previous build artifacts
+  shell: |
+    cd {{ hpl_download_dir }}/hpl-{{ hpl_version }}
+    rm -rf bin lib include/linux
+    find . -name "linux" -type d | xargs rm -rf || true
+    # Make sure the include directory exists
+    mkdir -p include
+  tags: [hpl, build]
 
 - name: Build HPL using make
   shell: |
@@ -333,8 +348,10 @@
 - name: Run HPL benchmark using mpirun
   shell: |
     cd {{ hpl_run_dir }}
+    mkdir -p $HOME/tmp
     if [ ! -f {{ hpl_run_dir }}/HPL.out ]; then
-      mpirun --hostfile {{ hpl_run_dir }}/hostfile -np {{ hpl_mpi_processes }} {{ hpl_install_dir }}/xhpl > {{ hpl_run_dir }}/HPL.out 2>&1
+      source /tmp/mpi_path
+      mpirun --tmpdir $HOME/tmp --hostfile {{ hpl_run_dir }}/hostfile -np {{ hpl_mpi_processes }} {{ hpl_install_dir }}/xhpl > {{ hpl_run_dir }}/HPL.out 2>&1
     fi
   when: hpl_run_benchmark
   tags: [hpl, run]
