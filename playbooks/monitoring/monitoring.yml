@@ -5,7 +5,7 @@
 
   vars_files:
     - inventory/group_vars/all/main.yml
-    - inventory/group_vars/vault/vault.yml
+    - inventory/group_vars/monitoring_servers/vault.yml
   roles:
     - monitoring
     - epel
@@ -40,7 +40,7 @@
 
     - name: Create Node Exporter systemd service
       template:
-        src: roles/monitoring/templates/node_exporter.service.j2
+        src: "{{ playbook_dir }}/roles/monitoring/templates/node_exporter.service.j2"
         dest: /etc/systemd/system/node_exporter.service
         mode: "0644"
       notify: reload systemd
@@ -104,7 +104,7 @@
 
     - name: Create SLURM Exporter systemd service
       template:
-        src: roles/monitoring/templates/slurm-exporter.service.j2
+        src: "{{ playbook_dir }}/roles/monitoring/templates/slurm-exporter.service.j2"
         dest: /etc/systemd/system/slurm-exporter.service
         mode: "0644"
       notify: reload systemd
