@@ -126,9 +126,9 @@
     chdir: /opt/monitoring
   when: docker_compose_file.changed or prometheus_config.changed or prometheus_alerts.changed or grafana_datasource.changed or grafana_dashboards.changed or node_exporter_dashboard.changed or (proxmox_dashboard is defined and proxmox_dashboard.changed) or monitoring_containers.stdout == ""
 
-#- name: Copy Slurm power dashboard to Grafana
-#  template:
-#    src: slurm_power_dashboard.json.j2
-#    dest: /opt/monitoring/grafana/provisioning/dashboards/slurm_power_dashboard.json
-#    mode: "0644"
-#  register: slurm_power_dashboard
+- name: Copy Slurm power dashboard to Grafana
+  template:
+    src: slurm_power_dashboard.json.j2
+    dest: /opt/monitoring/grafana/provisioning/dashboards/slurm_power_dashboard.json
+    mode: "0644"
+  register: slurm_power_dashboard
