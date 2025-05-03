@@ -1,4 +1,4 @@
-[![CI Status](https://img.shields.io/github/actions/workflow/status/psantana5/playbooks-slurm/ci.yml?label=CI&style=flat-square)](https://github.com/psantana5/playbooks-slurm/actions/workflows/ci.yml)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/psantana5/playbooks-slurm/ci-status.yml?label=CI&style=flat-square)](https://github.com/psantana5/playbooks-slurm/actions/workflows/ci-status.yml)
 
 # HPC Cluster Automation with Ansible
 
