@@ -8,7 +8,14 @@ on:
 jobs:
   update-badge:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+
       - name: Check workflow status
         id: check_status
         run: |
@@ -20,7 +27,6 @@ jobs:
 
       - name: Update README badge
         run: |
-          cd $GITHUB_WORKSPACE 
           sed -i "s|https://img.shields.io/badge/CI-.*|https://img.shields.io/badge/CI-${{ steps.check_status.outputs.STATUS }}-brightgreen.svg|g" README.md
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
