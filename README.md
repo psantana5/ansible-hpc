@@ -1,3 +1,5 @@
+[![CI](https://github.com/psantana5/playbooks-slurm/actions/workflows/ci.yml/badge.svg)](https://github.com/psantana5/playbooks-slurm/actions/workflows/ci.yml)
+
 # HPC Cluster Automation with Ansible
 
 This repository provides a comprehensive, modular Ansible-based automation suite for deploying, configuring, and managing a High-Performance Computing (HPC) cluster. It orchestrates all core services required for a modern HPC environment, including compute, storage, authentication, monitoring, reporting, and scientific software management.

@@ -99,8 +99,8 @@
 # NOTE: This requires a Make.Linux template specific to your environment
 - name: Create HPL Make file (Make.Linux_PII)
   ansible.builtin.template:
-    src: Make.Linux.j2 # Needs to be created in roles/hpl/templates
-    dest: "{{ hpl_build_dir }}/{{ hpl_src_dir_name }}/Make.Linux_PII" # Example name
+    src: "{{ 'Make.Linux_nodo02.j2' if inventory_hostname == 'nodo02' else 'Make.Linux.j2' }}"
+    dest: "{{ hpl_build_dir }}/{{ hpl_src_dir_name }}/Make.Linux_PII"
     owner: "{{ hpl_run_user }}"
     group: "{{ hpl_run_user }}"
     mode: "0644"
