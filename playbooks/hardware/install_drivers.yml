@@ -1,0 +1,39 @@
+---
+- name: Install Hardware Drivers for Compute Nodes
+  hosts: compute
+  become: yes
+  
+  vars:
+    enable_infiniband: true  # Enable InfiniBand/RoCE installation
+    enable_nvidia: true      # Enable NVIDIA driver installation
+    
+  pre_tasks:
+    - name: Check if compute node is reachable
+      ping:
+        
+    - name: Gather hardware facts
+      setup:
+        gather_subset:
+          - hardware
+          
+  roles:
+    - role: hardware_drivers
+      
+  post_tasks:
+    - name: Verify InfiniBand installation
+      command: ibstat
+      register: ibstat_result
+      failed_when: ibstat_result.rc != 0
+      when: enable_infiniband | bool
+      
+    - name: Verify NVIDIA driver installation
+      command: nvidia-smi
+      register: nvidia_result
+      failed_when: nvidia_result.rc != 0
+      when: enable_nvidia | bool
+      
+    - name: Display hardware status
+      debug:
+        msg: 
+          - "InfiniBand Status: {{ 'OK' if not ibstat_result.failed else 'Failed' }}"
+          - "NVIDIA Status: {{ 'OK' if not nvidia_result.failed else 'Failed' }}"

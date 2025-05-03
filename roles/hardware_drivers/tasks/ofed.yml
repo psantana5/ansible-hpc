@@ -1,0 +1,33 @@
+---
+- name: Install OFED dependencies
+  package:
+    name:
+      - perl
+      - pciutils
+      - python3
+      - gcc-c++
+      - make
+      - rpm-build
+      - redhat-rpm-config
+    state: present
+
+- name: Download OFED
+  get_url:
+    url: "{{ ofed_download_url }}"
+    dest: "/tmp/MLNX_OFED.tgz"
+    mode: '0644'
+  when: ofed_download_url is defined
+
+- name: Extract OFED
+  unarchive:
+    src: "/tmp/MLNX_OFED.tgz"
+    dest: "/tmp"
+    remote_src: yes
+  when: ofed_download_url is defined
+
+- name: Install OFED with OpenMPI support
+  shell: |
+    cd /tmp/MLNX_OFED_LINUX-*
+    ./mlnxofedinstall --with-mpi --force
+  args:
+    creates: /etc/infiniband/openib.conf
