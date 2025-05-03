@@ -1,36 +1,25 @@
 ---
 # HPL (High-Performance Linpack) Benchmark Deployment Playbook
 # This playbook deploys and runs the HPL benchmark on compute nodes
-# 
 
 - name: Deploy and Run HPL Benchmark
-  hosts: compute
+  hosts: compute # Ensure this group exists and contains your compute nodes
   become: yes
-  gather_facts: yes
-  
-  vars_files:
-    - "{{ inventory_dir }}/group_vars/all/main.yml"
-  
-  pre_tasks:
-    - name: Check if MPI is installed
-      command: which mpirun
-      register: mpi_check
-      ignore_errors: yes
-      changed_when: false
-      
-    - name: Set MPI installation flag
-      set_fact:
-        mpi_installed: "{{ mpi_check.rc == 0 }}"
-  
+  gather_facts: yes # Facts like core count are useful
+
   roles:
-    - role: hpl
-      tags: [hpl, benchmark]
-      
+    - role: hpl # Call the new role
+      # You can override role defaults here if needed, e.g.:
+      # hpl_n: 20000
+      # hpl_run_user: 'existing_mpi_user'
+      # hpl_create_user: false
+      # hpl_setup_ssh: false
+
   post_tasks:
     - name: Gather HPL benchmark results
-      fetch:
-        src: "{{ hpl_run_dir }}/HPL.out"
-        dest: "{{ inventory_dir }}/benchmark_results/hpl/{{ inventory_hostname }}_HPL.out"
+      ansible.builtin.fetch:
+        src: "{{ hpl_run_dir }}/HPL.out" # Use variable from role defaults
+        dest: "{{ inventory_dir }}/benchmark_results/hpl/{{ inventory_hostname }}_HPL.out" # Keep results organized
         flat: yes
-      tags: [results]
-      when: hpl_run_benchmark
+      when: hpl_run_benchmark | default(true) | bool # Use role variable to control fetching
+      tags: [results] # Optional tag for fetching results separately

@@ -1,0 +1,150 @@
+{#
+# Jinja2 template for HPL Makefile (e.g., Make.Linux) - Revised for provided vars
+#
+# Variables Expected from Ansible (examples based on your provided vars):
+# hpl_build_dir:      Directory where HPL source is located and built (e.g., /opt/hpl/build/hpl-2.3)
+# mpi_include_path:   MPI include path (e.g., /usr/include/openmpi)
+# mpi_lib_path:       MPI library path (e.g., /usr/lib64/openmpi/lib)
+# blas_lib_path:      Path to BLAS library (e.g., /usr/lib64/openblas)
+# hpl_cc:             (Optional) C Compiler (defaults to mpicc)
+# hpl_linker:         (Optional) Linker (defaults to mpicc)
+# hpl_archiver:       (Optional) Archiver (defaults to ar)
+# hpl_ranlib:         (Optional) Ranlib command (defaults to ranlib)
+# hpl_extra_cflags:   (Optional) Extra C flags (e.g., architecture specific flags)
+# hpl_extra_ldflags:  (Optional) Extra linker flags
+#}
+#===============================================================================
+# -*- Makefile -*-
+# HPL Make include file.
+#===============================================================================
+#
+# Shell BASH is the default shell to be used.
+# SHELL        = /bin/sh
+#
+# The top directory where HPL is located (source/build directory).
+TOPdir       = {{ hpl_build_dir }}
+#
+# The machine dependent support directory (relative to TOPdir).
+INCdir       = $(TOPdir)/include
+BINdir       = $(TOPdir)/bin/Linux_PII # HPL convention, adjust ARCH if needed
+LIBdir       = $(TOPdir)/lib/Linux_PII # HPL convention, adjust ARCH if needed
+#
+# HPL includes directory
+HPLlib       = $(LIBdir)/libhpl.a
+#
+# ----------------------------------------------------------------------
+# - Message Passing library (MPI) --------------------------------------
+# ----------------------------------------------------------------------
+# MPinc tells the C compiler where to find the MPI header files.
+# MPlib defines the MPI library linking flags.
+MPinc        = -I{{ mpi_include_path }}
+MPlib        = -L{{ mpi_lib_path }} -lmpi
+#
+# ----------------------------------------------------------------------
+# - Linear Algebra library (BLAS or VSIPL) -----------------------------
+# ----------------------------------------------------------------------
+# LAinc tells the C compiler where to find the LA library header files.
+# LAlib defines the LA library linking flags.
+# Using OpenBLAS (OpenMP version) based on variables.
+LAinc        = {# Usually not needed for pre-compiled BLAS #}
+LAlib        = -L{{ blas_lib_path }} -lopenblas -fopenmp -lm {# Link OpenBLAS, add -fopenmp for OpenMP version #}
+#
+# ----------------------------------------------------------------------
+# - F77 / C interface --------------------------------------------------
+# ----------------------------------------------------------------------
+# Adjust if your BLAS library uses a different Fortran naming convention.
+# Add_ is common for gfortran-compiled libraries like OpenBLAS.
+F2CDEFS      = -DAdd_
+#
+# ----------------------------------------------------------------------
+# - HPL Compile Time Options -------------------------------------------
+# ----------------------------------------------------------------------
+HPL_OPTS     = -DHPL_DETAILED_TIMING -DHPL_PROGRESS_REPORT -DHPL_NO_MPI_IO
+# HPL_OPTS     = $(HPL_OPTS) -DHPL_CALL_CBLAS # Uncomment if using CBLAS interface directly
+#
+# ----------------------------------------------------------------------
+# - Compilers / Linkers - Archivers / Ranlib ---------------------------
+# ----------------------------------------------------------------------
+# Defaulting to mpicc which is typical for OpenMPI.
+CC           = {{ hpl_cc | default('mpicc') }}
+CCNOOPT      = $(HPL_DEFS)
+# Added -fopenmp flag for OpenBLAS-OpenMP support.
+CCFLAGS      = $(HPL_DEFS) -fomit-frame-pointer -O3 -funroll-loops -fopenmp {{ hpl_extra_cflags | default('-march=native') }} $(MPinc) $(LAinc) $(HPL_OPTS)
+#
+LINKER       = {{ hpl_linker | default('mpicc') }}
+# Inherits CCFLAGS (including -fopenmp). Add any extra linker flags if needed.
+LINKFLAGS    = $(CCFLAGS) {{ hpl_extra_ldflags | default('') }}
+#
+ARCHIVER     = {{ hpl_archiver | default('ar') }}
+ARCHFLAGS    = rvs
+RANLIB       = {{ hpl_ranlib | default('ranlib') }}
+#
+# ----------------------------------------------------------------------
+# Complete list of libraries to link with. Order is important.
+# ----------------------------------------------------------------------
+LIBS         = $(HPLlib) $(LAlib) $(MPlib)
+#
+#-----------------------------------------------------------------------
+# Include file dependencies (usually do not need modification)
+#-----------------------------------------------------------------------
+#
+INCLUDES = \
+$(INCdir)/hpl.h \
+$(INCdir)/hpl_comm.h \
+$(INCdir)/hpl_blas.h \
+$(INCdir)/hpl_auxil.h \
+$(INCdir)/hpl_pmisc.h \
+$(INCdir)/hpl_pauxil.h \
+$(INCdir)/hpl_panel.h \
+$(INCdir)/hpl_lapack.h \
+$(INCdir)/hpl_ptimer.h \
+$(INCdir)/hpl_pmatgen.h \
+$(INCdir)/hpl_utils.h \
+$(INCdir)/hpl_memory.h \
+$(INCdir)/hpl_grid.h \
+$(INCdir)/hpl_constants.h \
+$(INCdir)/hpl_pgesv.h \
+$(INCdir)/hpl_test.h \
+$(INCdir)/hpl_matgen.h \
+$(INCdir)/hpl_timer.h
+#
+#-----------------------------------------------------------------------
+# Object files list (usually do not need modification)
+#-----------------------------------------------------------------------
+#
+HPL_OBJS = \
+$(LIBdir)/HPL_acopy.o      $(LIBdir)/HPL_dtrsv.o      $(LIBdir)/HPL_pabort.o \
+$(LIBdir)/HPL_pauxil.o     $(LIBdir)/HPL_pcomm.o      $(LIBdir)/HPL_grid.o \
+$(LIBdir)/HPL_indxg2p.o    $(LIBdir)/HPL_pdlaswp.o    $(LIBdir)/HPL_plindx.o \
+$(LIBdir)/HPL_numrocI.o    $(LIBdir)/HPL_pdmxswp.o    $(LIBdir)/HPL_pdrand.o \
+$(LIBdir)/HPL_indxl2g.o    $(LIBdir)/HPL_dgemm.o      $(LIBdir)/HPL_pcontrol.o \
+$(LIBdir)/HPL_pauxil_blacs.o $(LIBdir)/HPL_pdinfo.o   $(LIBdir)/HPL_pdpanel.o \
+$(LIBdir)/HPL_barrier.o    $(LIBdir)/HPL_reduce.o     $(LIBdir)/HPL_ptimer.o \
+$(LIBdir)/HPL_indxp2g.o    $(LIBdir)/HPL_pdtest.o     $(LIBdir)/HPL_ptimer_blacs.o \
+$(LIBdir)/HPL_lmul.o       $(LIBdir)/HPL_memory.o     $(LIBdir)/HPL_bcast.o \
+$(LIBdir)/HPL_numroc.o     $(LIBdir)/HPL_pdmatgen.o   $(LIBdir)/HPL_pdtrans.o \
+$(LIBdir)/HPL_daxpy.o      $(LIBdir)/HPL_dscal.o      $(LIBdir)/HPL_pgeadd.o \
+$(LIBdir)/HPL_pdgesv.o     $(LIBdir)/HPL_ladd.o       $(LIBdir)/HPL_dgemv.o \
+$(LIBdir)/HPL_lsub.o       $(LIBdir)/HPL_recv.o       $(LIBdir)/HPL_timer.o \
+$(LIBdir)/HPL_dger.o       $(LIBdir)/HPL_rand.o       $(LIBdir)/HPL_copy.o \
+$(LIBdir)/HPL_pdlaswp01T.o $(LIBdir)/HPL_pdpanel_Acontrib.o $(LIBdir)/HPL_pdpanel_Reduce.o \
+$(LIBdir)/HPL_pdpanel_resolve.o $(LIBdir)/HPL_spread.o $(LIBdir)/HPL_sdrv.o \
+$(LIBdir)/HPL_swap.o       $(LIBdir)/HPL_sum.o        $(LIBdir)/HPL_timer_cputime.o \
+$(LIBdir)/HPL_timer_walltime.o $(LIBdir)/HPL_send.o $(LIBdir)/HPL_pmul.o \
+$(LIBdir)/HPL_starts.o \
+\
+$(LIBdir)/HPL_fprintf.o    $(LIBdir)/HPL_warn.o       $(LIBdir)/HPL_abort.o \
+$(LIBdir)/HPL_error.o      $(LIBdir)/HPL_maxloc.o     $(LIBdir)/HPL_minloc.o \
+$(LIBdir)/HPL_pdlamch.o    $(LIBdir)/HPL_dlacpy.o     $(LIBdir)/HPL_dlaprnt.o \
+$(LIBdir)/HPL_fprintf_double.o $(LIBdir)/HPL_fprintf_float.o \
+$(LIBdir)/HPL_fprintf_int.o $(LIBdir)/HPL_fprintf_size_t.o \
+$(LIBdir)/HPL_dlange.o     $(LIBdir)/HPL_dlatune.o \
+\
+$(LIBdir)/HPL_pdlapiv.o $(LIBdir)/HPL_pdrpiv.o $(LIBdir)/HPL_pdpiv.o
+#
+TEST_OBJS = \
+$(LIBdir)/HPL_pdtest.o
+#
+TEST_EXE = $(BINdir)/xhpl
+#
+#===============================================================================
