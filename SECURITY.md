@@ -1,6 +1,6 @@
 # Security Policy
 
-I take security seriously and I am committed to ensuring the safety and reliability of the **playbooks-ansible** project. This document outlines how to report vulnerabilities and our approach to handling security issues.
+I take security seriously and I am committed to ensuring the safety and reliability of the **ansible-hpc** project. This document outlines how to report vulnerabilities and our approach to handling security issues.
 
 ---
 

@@ -1,0 +1,29 @@
+# HPL Makefile for Linux (nodo02 specific)
+# ----------------------------------------------------------------------
+
+ARCH         = Linux_PII
+TOPdir       = {{ hpl_build_dir }}/{{ hpl_src_dir_name }}
+INCdir       = $(TOPdir)/include
+BINdir       = $(TOPdir)/bin/$(ARCH)
+LIBdir       = $(TOPdir)/lib/$(ARCH)
+HPLlib       = $(LIBdir)/libhpl.a
+
+MPdir        = {{ mpi_include_path }}
+MPlib        = {{ mpi_lib_path }}/libmpi.so
+LAdir        = {{ blas_lib_path }}
+LAlib        = $(LAdir)/libopenblas.so
+
+HPL_INCLUDES = -I$(INCdir) -I$(INCdir)/$(ARCH) -I$(MPdir)
+HPL_LIBS     = $(HPLlib) $(LAlib) $(MPlib)
+
+# Compiler and linker flags
+CC           = mpicc
+CCNOOPT      = $(HPL_INCLUDES) -O0
+CCFLAGS      = $(HPL_INCLUDES) -O3 -march=native -mtune=native -Wall -Wl,--rlimit,13000000000
+LINKER       = mpicc
+LINKFLAGS    = $(CCFLAGS) -Wl,--rlimit,13000000000
+ARCHIVER     = ar
+ARFLAGS      = r
+RANLIB       = echo
+
+# ----------------------------------------------------------------------

@@ -1,3 +1,5 @@
+[![CI Status](https://img.shields.io/github/actions/workflow/status/psantana5/playbooks-slurm/ci-status.yml?label=CI&style=flat-square)](https://github.com/psantana5/playbooks-slurm/actions/workflows/ci-status.yml)
+
 # HPC Cluster Automation with Ansible
 
 This repository provides a comprehensive, modular Ansible-based automation suite for deploying, configuring, and managing a High-Performance Computing (HPC) cluster. It orchestrates all core services required for a modern HPC environment, including compute, storage, authentication, monitoring, reporting, and scientific software management.
