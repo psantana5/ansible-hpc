@@ -2,6 +2,7 @@ name: CI Status Monitor
 
 on:
   workflow_run:
+    workflows: ["Ansible Linting", "Ansible Syntax Check", "CodeQL", "Create Release", "Documentation Generation", "Integration Tests", "Molecule Tests", "Security Scan", "YAML Lint"]
     types: [completed]
 
 jobs:
