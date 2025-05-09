@@ -1,0 +1,11 @@
+---
+- name: Desplegar Energy Aware Runtime (EAR)
+  hosts: slurm
+  become: yes
+  
+  vars_files:
+    - inventory/group_vars/all/main.yml
+    
+  roles:
+    - epel
+    - ear

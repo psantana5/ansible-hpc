@@ -1,0 +1,29 @@
+---
+# Versión de EAR a instalar
+ear_version: "5.1"
+
+# Directorios de instalación
+ear_install_path: /opt/ear
+ear_tmp: /tmp
+ear_etc: /etc/ear
+
+# Opciones de compilación
+ear_cc_flags: "-O2 -g"
+
+# Configuración de base de datos
+ear_db_type: "mysql"  # Opciones: mysql, postgresql
+ear_db_host: "localhost"
+ear_db_port: 3306
+ear_db_user: "ear_user"
+ear_db_password: "ear_password"
+ear_db_name: "ear_db"
+
+# Habilitar soporte MPI
+ear_enable_mpi: true
+
+# Configuración de SLURM
+ear_slurm_plugin_enabled: true
+
+# Configuración de nodos
+ear_node_freq_min: 1000000  # Frecuencia mínima en KHz
+ear_node_freq_max: 2400000  # Frecuencia máxima en KHz

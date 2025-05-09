@@ -1,0 +1,16 @@
+---
+- name: Instalar dependencias en sistemas RedHat/CentOS
+  package:
+    name:
+      - slurm-devel
+      - mysql-devel
+      - gsl-devel
+      - openmpi-devel
+      - autoconf
+      - automake
+      - libtool
+      - gcc
+      - gcc-c++
+      - make
+      - git
+    state: present

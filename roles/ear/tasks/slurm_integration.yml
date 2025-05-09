@@ -1,0 +1,22 @@
+---
+- name: Crear directorio para plugins de SLURM
+  file:
+    path: "/etc/slurm/plugstack.conf.d"
+    state: directory
+    mode: '0755'
+
+- name: Configurar plugin EAR para SLURM
+  template:
+    src: ear.conf.j2
+    dest: "/etc/slurm/plugstack.conf.d/ear.conf"
+    mode: '0644'
+  notify: Reiniciar SLURM
+
+- name: Asegurar que plugstack.conf incluye el directorio de plugins
+  lineinfile:
+    path: "/etc/slurm/plugstack.conf"
+    line: "include /etc/slurm/plugstack.conf.d/*.conf"
+    state: present
+    create: yes
+    mode: '0644'
+  notify: Reiniciar SLURM

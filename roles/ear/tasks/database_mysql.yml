@@ -1,0 +1,38 @@
+---
+- name: Asegurar que MySQL/MariaDB está instalado
+  package:
+    name:
+      - mariadb-server
+      - mariadb
+      - MySQL-python
+    state: present
+
+- name: Iniciar y habilitar servicio MariaDB
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Crear base de datos EAR
+  mysql_db:
+    name: "{{ ear_db_name }}"
+    state: present
+
+- name: Crear usuario de base de datos EAR
+  mysql_user:
+    name: "{{ ear_db_user }}"
+    password: "{{ ear_db_password }}"
+    priv: "{{ ear_db_name }}.*:ALL"
+    host: "{{ item }}"
+    state: present
+  loop:
+    - 'localhost'
+    - '127.0.0.1'
+    - '%'
+
+- name: Importar esquema de base de datos EAR
+  shell: |
+    mysql -u {{ ear_db_user }} -p{{ ear_db_password }} {{ ear_db_name }} < {{ ear_install_path }}/share/ear/sql/mysql_ear_schema.sql
+  args:
+    executable: /bin/bash
+  when: ear_git_clone.changed

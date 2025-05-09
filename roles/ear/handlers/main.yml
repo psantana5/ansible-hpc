@@ -1,0 +1,9 @@
+---
+- name: Reiniciar SLURM
+  service:
+    name: "{{ item }}"
+    state: restarted
+  loop:
+    - slurmctld
+    - slurmd
+  ignore_errors: yes

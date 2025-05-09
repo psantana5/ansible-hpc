@@ -1,0 +1,94 @@
+---
+- name: Incluir tareas específicas de la distribución
+  include_tasks: "{{ ansible_os_family | lower }}.yml"
+  
+- name: Crear directorios necesarios
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ ear_install_path }}"
+    - "{{ ear_tmp }}"
+    - "{{ ear_etc }}"
+    - "/share/doc/ear"
+
+- name: Clonar repositorio EAR
+  git:
+    repo: "https://github.com/eas4dc/EAR.git"
+    dest: "/tmp/ear-src"
+    version: "master"
+  register: ear_git_clone
+
+- name: Preparar entorno de compilación
+  shell: |
+    cd /tmp/ear-src
+    autoreconf -i
+  args:
+    executable: /bin/bash
+  when: ear_git_clone.changed
+
+- name: Configurar EAR sin soporte MPI
+  shell: |
+    cd /tmp/ear-src
+    ./configure --disable-mpi \
+      --prefix={{ ear_install_path }} \
+      MPICC=mpicc \
+      CC=gcc \
+      CC_FLAGS="{{ ear_cc_flags }}" \
+      EAR_TMP={{ ear_tmp }} \
+      EAR_ETC={{ ear_etc }} \
+      MAKE_NAME=nompi
+  args:
+    executable: /bin/bash
+  when: not ear_enable_mpi and ear_git_clone.changed
+
+- name: Configurar EAR con soporte MPI
+  shell: |
+    cd /tmp/ear-src
+    export EAR_INSTALL_PATH={{ ear_install_path }}
+    export EAR_TMP={{ ear_tmp }}
+    export EAR_ETC={{ ear_etc }}
+    export my_CFLAGS="{{ ear_cc_flags }}"
+    ./configure \
+      --prefix=$EAR_INSTALL_PATH \
+      MPICC=mpicc MPICC_FLAGS="$my_CFLAGS" \
+      CC=gcc CC_FLAGS="$my_CFLAGS" \
+      EAR_TMP=$EAR_TMP EAR_ETC=$EAR_ETC \
+      MAKE_NAME=impi
+  args:
+    executable: /bin/bash
+  when: ear_enable_mpi and ear_git_clone.changed
+
+- name: Compilar e instalar EAR sin MPI
+  shell: |
+    cd /tmp/ear-src
+    make -f Makefile.nompi
+    make -f Makefile.nompi install
+    make -f Makefile.nompi etc.install
+    make -f Makefile.nompi doc.install
+  args:
+    executable: /bin/bash
+  when: not ear_enable_mpi and ear_git_clone.changed
+
+- name: Compilar e instalar EAR con MPI
+  shell: |
+    cd /tmp/ear-src
+    make -f Makefile.impi full
+    make -f Makefile.impi earl.install
+  args:
+    executable: /bin/bash
+  when: ear_enable_mpi and ear_git_clone.changed
+
+- name: Configurar base de datos para EAR
+  include_tasks: "database_{{ ear_db_type }}.yml"
+
+- name: Configurar integración con SLURM
+  include_tasks: slurm_integration.yml
+  when: ear_slurm_plugin_enabled
+
+- name: Limpiar archivos temporales
+  file:
+    path: "/tmp/ear-src"
+    state: absent
+  when: ear_git_clone.changed

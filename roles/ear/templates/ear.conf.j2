@@ -1,0 +1,22 @@
+# EAR SLURM Plugin Configuration
+optional earplug.so default={{ ear_install_path }}/lib/libear.so
+
+[ear]
+# Configuración básica de EAR
+EarInstallPath={{ ear_install_path }}
+EarTmpDir={{ ear_tmp }}
+EarEtcDir={{ ear_etc }}
+
+# Configuración de base de datos
+DBUser={{ ear_db_user }}
+DBPassw={{ ear_db_password }}
+DBHost={{ ear_db_host }}
+DBPort={{ ear_db_port }}
+DBName={{ ear_db_name }}
+
+# Configuración de nodos
+NodeFreqMin={{ ear_node_freq_min }}
+NodeFreqMax={{ ear_node_freq_max }}
+
+# Configuración de política energética
+DefaultPolicy=monitoring
