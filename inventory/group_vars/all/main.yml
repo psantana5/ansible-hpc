@@ -560,7 +560,7 @@ ear_db_password: "ear_password"
 ear_db_name: "ear_db"
 
 # Habilitar soporte MPI
-ear_enable_mpi: true
+ear_enable_mpi: false
 
 # Configuración de SLURM
 ear_slurm_plugin_enabled: true
