@@ -5,9 +5,30 @@
     state: directory
     mode: '0755'
 
-- name: Configurar plugin EAR para SLURM
+- name: Verificar si existe el plugin ear.so
+  stat:
+    path: "{{ ear_install_path }}/lib/plugins/ear.so"
+  register: ear_plugin_exists
+
+- name: Verificar si existe el plugin libear_slurm.so
+  stat:
+    path: "{{ ear_install_path }}/lib/plugins/libear_slurm.so"
+  register: libear_slurm_exists
+
+- name: Determinar el nombre del plugin a usar
+  set_fact:
+    ear_plugin_name: "{{ 'ear.so' if ear_plugin_exists.stat.exists else 'libear_slurm.so' }}"
+
+- name: Crear enlace simbólico para el plugin de SLURM
+  file:
+    src: "{{ ear_install_path }}/lib/plugins/ear.so"
+    dest: "{{ ear_install_path }}/lib/plugins/libear_slurm.so"
+    state: link
+  when: ear_plugin_exists.stat.exists and not libear_slurm_exists.stat.exists
+
+- name: Crear archivo de configuración para el plugin de SLURM
   template:
-    src: ear.conf.j2
+    src: ear_slurm.conf.j2
     dest: "/etc/slurm/plugstack.conf.d/ear.conf"
     mode: '0644'
   notify: Reiniciar SLURM

@@ -82,7 +82,11 @@
 
 - name: Configurar integración con SLURM
   include_tasks: slurm_integration.yml
-  when: ear_slurm_plugin_enabled
+  when: ear_slurm_plugin_enabled | default(true)
+
+- name: Compilar plugin de SLURM si es necesario
+  include_tasks: compile_slurm_plugin.yml
+  when: ear_slurm_plugin_enabled | default(true)
 
 - name: Configurar daemon EAR (eard) en nodos de cómputo
   include_tasks: eard_setup.yml
