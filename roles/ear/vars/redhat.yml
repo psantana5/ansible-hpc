@@ -2,6 +2,9 @@
 # Variables específicas para sistemas RedHat/CentOS
 ear_packages:
   - slurm-devel
-  - mysql-devel
   - gsl-devel
   - openmpi-devel
+
+# Paquetes adicionales solo para el nodo manager
+ear_manager_packages:
+  - mysql-devel

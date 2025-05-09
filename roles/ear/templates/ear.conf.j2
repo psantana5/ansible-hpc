@@ -1,21 +1,121 @@
-# EAR SLURM Plugin Configuration
-optional earplug.so default={{ ear_install_path }}/lib/libear.so
-[ear]
-# Configuración básica de EAR
-EarInstallPath={{ ear_install_path }}
-EarTmpDir={{ ear_tmp }}
-EarEtcDir={{ ear_etc }}
+# EAR Configuration File
 
-# Configuración de base de datos
+#-------------------------------------------------------------------------------------------------
+# DB confguration: This configuration conrrespondons with the DB server installation.
+#-------------------------------------------------------------------------------------------------
+DBIp={{ ear_db_host }}
+
+# Add a secondary IP for high availability
+DBSECIP=add_secondary_ip_for_ha
+
 DBUser={{ ear_db_user }}
 DBPassw={{ ear_db_password }}
-DBHost={{ ear_db_host }}
-DBPort={{ ear_db_port }}
-DBName={{ ear_db_name }}
 
-# Configuración de nodos
+# User and password for usermode querys.
+DBCommandsUser={{ ear_db_user }}
+DBCommandsPassw={{ ear_db_password }}
+
+DBDatabase={{ ear_db_name }}
+DBPort={{ ear_db_port }}
+#--------------------------------------------------------------------------------------------------
+# EAR Daemon (EARD): Update this section to change EARD configuration.
+#--------------------------------------------------------------------------------------------------
+# Port is used for connections with the EAR plugin and commands.
+NodeDaemonPort={{ ear_daemon_port }}
+# Frequency at wich periodic metrics are reported, in seconds.
+NodeDaemonPowermonFreq=60
+#-------------------------------------------------------------------------------------------------
+# EAR Database Manager (EARDBD): Update this section to change EARDBD configuration.
+#-------------------------------------------------------------------------------------------------
+DBDaemonPortTCP=50002
+DBDaemonPortSecTCP=50003
+DBDaemonSyncPort=50004
+# Aggregation time id frequency at which power metrics are aggregated in aggregated metrics, in seconds.
+DBDaemonAggregationTime=60
+# Frequency at which buffered data is sent to DB server.
+DBDaemonInsertionTime=30
+# Memory size expressed in MB per process (server and/or mirror) to cache the values.
+DBDaemonMemorySize=120
+#--------------------------------------------------------------------------------------------------
+# EAR Library (EARL): These options modify internal EARL behaviour.
+# Do not modify except you are an expert.
+#--------------------------------------------------------------------------------------------------
+CoefficientsDir={{ ear_etc }}/coeffs
+# EAR library default report plugin
+EARLReportPlugins=eard.so
+
+#--------------------------------------------------------------------------------------------------
+# EAR Global Manager (EARGMD): Update that section to use EARGM.
+#--------------------------------------------------------------------------------------------------
+# Verbosity
+EARGMVerbose=1
+# '-' are Joules, 'K' KiloJoules and 'M' MegaJoules.
+EARGMUnits=K
+# Period T1 and T2 are specified in seconds T1 (ex. must be less than T2, ex. 10min and 1 month)
+EARGMEnergyPeriodT1=90
+EARGMEnergyPeriodT2=259200
+# Use aggregated periodic metrics or periodic power metrics. Aggregated metrics are only available
+# when EARDBD is running
+EARGMEnergyUseAggregated=1
+# Two modes are supported '0=manual' and '1=automatic'.
+EARGMEnergyMode=0
+# T1 "grace" periods between DEFCON before re-evaluate.
+EARGMEnergyGracePeriods=3
+# Format for action is: command_name energy_T1 energy_T2  energy_limit T2 T1  units "
+# This action is automatically executed at each warning level (only once per grace periods)
+EARGMEnergyAction=no_action
+
+#### POWERCAP definition for EARGM: Powercap is still under development. Do not activate
+# Period at which the powercap thread is activated. Meta-EARGM checks the EARGMs it controls every 2*EARGMPowerPeriod
+EARGMPowerPeriod=120
+# Powercap mode: 0 is monitoring, 1 is hard powercap, 2 is soft powercap.
+EARGMPowerCapMode=1
+# Admins can specify to automatically execute a command in EARGMPowerCapSuspendAction when total_power >= EARGMPowerLimit*EARGMPowerCapResumeLimit/100
+EARGMPowerCapSuspendLimit=90
+# Format for action is: command_name current_power current_limit total_idle_nodes total_idle_power
+EARGMPowerCapSuspendAction=no_action
+# Admins can specify to automatically execute a command in EARGMPowerCapResumeAction to undo EARGMPowerCapSuspendAction
+# when total_power >= EARGMPowerLimit*EARGMPowerCapResumeLimit/100. Note that this will only be executed if a suspend action was executed previously.
+EARGMPowerCapResumeLimit=40
+# Format for action is: command_name current_power current_limit total_idle_nodes total_idle_power
+EARGMPowerCapResumeAction=no_action
+# Sets the report plugins to use for EARGM warning and events accounting
+EARGMReportPlugins=mysql.so
+
+# EARGMs must be specified with a unique id, their node and the port that receives remote
+# connections. An EARGM can also act as meta-eargm if the meta field is filled, and it will
+# control the EARGMs whose ids are in said field. If two EARGMs are in the same node,
+# setting the EARGMID environment variable overrides the node field and chooses the characteristics
+# of the EARGM with the correspoding id.
+#
+# Only one EARGM can currently control the energy caps, so setting the rest to 0 is recommended and
+# the limit applies to EARGMPeriodT2, using EARGMEnergyUnits to define the units.
+# energy = 0 -> energy_cap disabled
+# power = 0  -> powercap disabled
+# power = N  -> powercap budget for that EARGM (and the nodes it controls) is N
+# power = -1 -> powercap budget is calculated by adding up the powercap set to each of the nodes under its control.
+#                               This is incompatible with nodes that have their powercap unlimited (powercap = 1)
+EARGMId=1 energy=1800 power=600 node=slurm01 port=50100 meta=1,2
+EARGMId=2 energy=0 power=500 node=nodo01 port=50100
+
+#---------------------------------------------------------------------------------------------------
+# Common configuration
+#---------------------------------------------------------------------------------------------------
+TmpDir={{ ear_tmp }}
+EtcDir={{ ear_etc }}
+InstDir={{ ear_install_path }}
+# Network extension (using another network instead of the local one). If compute nodes must be accessed from login nodes with a network different
+# than the local one, specify the network extension here.
+# NetworkExtension=.ext
+
+# Verbosity for logs
+NodeUseLog=1
+DBDaemonUseLog=1
+
+# Configuración de frecuencias
 NodeFreqMin={{ ear_node_freq_min }}
 NodeFreqMax={{ ear_node_freq_max }}
 
-# Configuración de política energética
-DefaultPolicy=monitoring
+# Configuración de políticas energéticas
+DefaultPolicy={{ ear_default_policy }}
+PolicyThreshold={{ ear_policy_threshold }}

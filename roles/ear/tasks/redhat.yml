@@ -1,16 +1,11 @@
 ---
-- name: Instalar dependencias en sistemas RedHat/CentOS
+- name: Instalar dependencias comunes en sistemas RedHat/CentOS
   package:
-    name:
-      - slurm-devel
-      - mysql-devel
-      - gsl-devel
-      - openmpi-devel
-      - autoconf
-      - automake
-      - libtool
-      - gcc
-      - gcc-c++
-      - make
-      - git
+    name: "{{ ear_packages }}"
     state: present
+
+- name: Instalar dependencias adicionales en el nodo manager
+  package:
+    name: "{{ ear_manager_packages }}"
+    state: present
+  when: inventory_hostname in groups['ear_manager']

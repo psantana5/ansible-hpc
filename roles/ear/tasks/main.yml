@@ -57,8 +57,27 @@
     executable: /bin/bash
   when: ear_git_clone.changed
 
+- name: Crear directorio para configuración de EAR
+  file:
+    path: "{{ ear_etc }}/ear"
+    state: directory
+    mode: '0755'
+
+- name: Crear archivo ear.conf desde plantilla
+  template:
+    src: ear.conf.j2
+    dest: "{{ ear_etc }}/ear/ear.conf"
+    mode: '0644'
+  notify: Reiniciar EAR daemon
+
+- name: Configurar módulo EAR
+  include_tasks: module_setup.yml
+
+- name: Configurar modelos energéticos
+  include_tasks: energy_models.yml
+
 - name: Configurar base de datos para EAR (solo en nodo manager)
-  include_tasks: "database_{{ ear_db_type }}.yml"
+  include_tasks: database_setup.yml
   when: inventory_hostname in groups['ear_manager']
 
 - name: Configurar integración con SLURM

@@ -1,0 +1,12 @@
+---
+- name: Crear directorio para módulos si no existe
+  file:
+    path: "{{ ear_etc }}/module"
+    state: directory
+    mode: '0755'
+
+- name: Crear script para cargar el módulo EAR
+  template:
+    src: ear_module.sh.j2
+    dest: "/etc/profile.d/ear.sh"
+    mode: '0755'

@@ -12,3 +12,30 @@
   
   roles:
     - ear
+
+- name: Validar instalación de EAR
+  hosts: ear_manager
+  become: yes
+  
+  tasks:
+    - name: Verificar estado de los daemons EAR
+      shell: |
+        {{ ear_install_path }}/bin/econtrol --status
+      register: ear_status
+      changed_when: false
+      ignore_errors: yes
+      
+    - name: Mostrar estado de EAR
+      debug:
+        var: ear_status.stdout_lines
+        
+    - name: Verificar reportes a la base de datos
+      shell: |
+        {{ ear_install_path }}/bin/ereport -n all
+      register: ear_report
+      changed_when: false
+      ignore_errors: yes
+      
+    - name: Mostrar reportes de EAR
+      debug:
+        var: ear_report.stdout_lines
