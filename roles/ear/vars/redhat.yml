@@ -1,0 +1,7 @@
+---
+# Variables específicas para sistemas RedHat/CentOS
+ear_packages:
+  - slurm-devel
+  - mysql-devel
+  - gsl-devel
+  - openmpi-devel

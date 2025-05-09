@@ -32,6 +32,14 @@ login
 compute
 slurmctld
 
+# EAR deployment targets
+[ear_manager]
+slurm01 ansible_host=192.168.1.137
+
+[ear_nodes:children]
+compute
+slurmctld
+
 # Specific Service Hosts (Aligned with site.yml role targeting)
 [ldap_servers]
 ldap01 ansible_host=192.168.1.141

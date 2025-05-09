@@ -1,4 +1,7 @@
 ---
+- name: Incluir variables específicas de la distribución
+  include_vars: "{{ ansible_os_family | lower }}.yml"
+  
 - name: Incluir tareas específicas de la distribución
   include_tasks: "{{ ansible_os_family | lower }}.yml"
   
@@ -28,21 +31,6 @@
     executable: /bin/bash
   when: ear_git_clone.changed
 
-- name: Configurar EAR sin soporte MPI
-  shell: |
-    cd /tmp/ear-src
-    ./configure --disable-mpi \
-      --prefix={{ ear_install_path }} \
-      MPICC=mpicc \
-      CC=gcc \
-      CC_FLAGS="{{ ear_cc_flags }}" \
-      EAR_TMP={{ ear_tmp }} \
-      EAR_ETC={{ ear_etc }} \
-      MAKE_NAME=nompi
-  args:
-    executable: /bin/bash
-  when: not ear_enable_mpi and ear_git_clone.changed
-
 - name: Configurar EAR con soporte MPI
   shell: |
     cd /tmp/ear-src
@@ -58,18 +46,7 @@
       MAKE_NAME=impi
   args:
     executable: /bin/bash
-  when: ear_enable_mpi and ear_git_clone.changed
-
-- name: Compilar e instalar EAR sin MPI
-  shell: |
-    cd /tmp/ear-src
-    make -f Makefile.nompi
-    make -f Makefile.nompi install
-    make -f Makefile.nompi etc.install
-    make -f Makefile.nompi doc.install
-  args:
-    executable: /bin/bash
-  when: not ear_enable_mpi and ear_git_clone.changed
+  when: ear_git_clone.changed
 
 - name: Compilar e instalar EAR con MPI
   shell: |
@@ -78,14 +55,19 @@
     make -f Makefile.impi earl.install
   args:
     executable: /bin/bash
-  when: ear_enable_mpi and ear_git_clone.changed
+  when: ear_git_clone.changed
 
-- name: Configurar base de datos para EAR
+- name: Configurar base de datos para EAR (solo en nodo manager)
   include_tasks: "database_{{ ear_db_type }}.yml"
+  when: inventory_hostname in groups['ear_manager']
 
 - name: Configurar integración con SLURM
   include_tasks: slurm_integration.yml
   when: ear_slurm_plugin_enabled
+
+- name: Configurar daemon EAR (eard) en nodos de cómputo
+  include_tasks: eard_setup.yml
+  when: inventory_hostname in groups['ear_nodes']
 
 - name: Limpiar archivos temporales
   file:

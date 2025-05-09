@@ -1,0 +1,28 @@
+# Configuración del daemon EAR (eard)
+# Generado automáticamente por Ansible
+
+# Configuración básica
+EAR_INSTALL_PATH={{ ear_install_path }}
+EAR_TMP={{ ear_tmp }}
+EAR_ETC={{ ear_etc }}
+
+# Configuración del daemon
+EARD_PORT={{ ear_daemon_port }}
+EARD_USER={{ ear_daemon_user }}
+EARD_GROUP={{ ear_daemon_group }}
+EARD_VERBOSE={{ ear_daemon_verbose }}
+
+# Configuración de frecuencias
+MIN_FREQ={{ ear_node_freq_min }}
+MAX_FREQ={{ ear_node_freq_max }}
+
+# Configuración de políticas energéticas
+DEFAULT_POLICY={{ ear_default_policy }}
+POLICY_THRESHOLD={{ ear_policy_threshold }}
+
+# Configuración de base de datos
+DB_USER={{ ear_db_user }}
+DB_PASS={{ ear_db_password }}
+DB_HOST={{ ear_db_host }}
+DB_PORT={{ ear_db_port }}
+DB_NAME={{ ear_db_name }}

@@ -7,3 +7,12 @@
     - slurmctld
     - slurmd
   ignore_errors: yes
+
+- name: Reiniciar EAR daemon
+  service:
+    name: eard
+    state: restarted
+  ignore_errors: yes
+
+- name: Recargar systemd
+  shell: systemctl daemon-reload

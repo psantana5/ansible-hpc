@@ -1,11 +1,14 @@
 ---
-- name: Desplegar Energy Aware Runtime (EAR)
-  hosts: slurm
+- name: Desplegar Energy Aware Runtime (EAR) en nodo manager
+  hosts: ear_manager
   become: yes
   
-  vars_files:
-    - inventory/group_vars/all/main.yml
-    
   roles:
-    - epel
+    - ear
+
+- name: Desplegar Energy Aware Runtime Daemon (eard) en nodos de cómputo
+  hosts: ear_nodes
+  become: yes
+  
+  roles:
     - ear

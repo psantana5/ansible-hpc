@@ -1,0 +1,14 @@
+[Unit]
+Description=Energy Aware Runtime Daemon
+After=network.target
+
+[Service]
+Type=simple
+User={{ ear_daemon_user }}
+Group={{ ear_daemon_group }}
+ExecStart={{ ear_install_path }}/sbin/eard
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
