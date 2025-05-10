@@ -1,0 +1,47 @@
+---
+- name: Crear directorio para coeficientes
+  file:
+    path: "{{ ear_etc }}/coeffs"
+    state: directory
+    mode: '0755'
+
+- name: Verificar si existe la herramienta coeffs_null en la instalación
+  stat:
+    path: "{{ ear_install_path }}/bin/coeffs_null"
+  register: coeffs_null_install
+
+- name: Verificar si existe la herramienta coeffs_null en el código fuente
+  stat:
+    path: "/tmp/ear-src/src/tools/coeffs_null"
+  register: coeffs_null_src
+  when: not coeffs_null_install.stat.exists
+
+- name: Crear archivo de coeficientes dummy usando coeffs_null instalado
+  shell: |
+    {{ ear_install_path }}/bin/coeffs_null > {{ ear_etc }}/coeffs/coeffs.default
+  args:
+    executable: /bin/bash
+  when: coeffs_null_install.stat.exists
+  changed_when: true
+
+- name: Crear archivo de coeficientes dummy usando coeffs_null del código fuente
+  shell: |
+    /tmp/ear-src/src/tools/coeffs_null > {{ ear_etc }}/coeffs/coeffs.default
+  args:
+    executable: /bin/bash
+  when: not coeffs_null_install.stat.exists and coeffs_null_src.stat.exists
+  changed_when: true
+
+- name: Crear archivo de coeficientes dummy manualmente
+  copy:
+    content: |
+      # Dummy coefficient file for EAR
+      # Created by Ansible
+      # Format: node_name min_freq max_freq coeff_a coeff_b coeff_c
+      node01 1000000 2400000 0.0 0.0 0.0
+      node02 1000000 2400000 0.0 0.0 0.0
+      default 1000000 2400000 0.0 0.0 0.0
+    dest: "{{ ear_etc }}/coeffs/coeffs.default"
+    mode: '0644'
+  when: (not coeffs_null_install.stat.exists and not coeffs_null_src.stat.exists) and inventory_hostname in groups['ear_manager']
+  changed_when: true

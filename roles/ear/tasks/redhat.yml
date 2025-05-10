@@ -1,0 +1,11 @@
+---
+- name: Instalar dependencias comunes en sistemas RedHat/CentOS
+  package:
+    name: "{{ ear_packages }}"
+    state: present
+
+- name: Instalar dependencias adicionales en el nodo manager
+  package:
+    name: "{{ ear_manager_packages }}"
+    state: present
+  when: inventory_hostname in groups['ear_manager']

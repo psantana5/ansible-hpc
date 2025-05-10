@@ -1,0 +1,99 @@
+---
+- name: Incluir variables específicas de la distribución
+  include_vars: "{{ ansible_os_family | lower }}.yml"
+  
+- name: Incluir tareas específicas de la distribución
+  include_tasks: "{{ ansible_os_family | lower }}.yml"
+  
+- name: Crear directorios necesarios
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ ear_install_path }}"
+    - "{{ ear_tmp }}"
+    - "{{ ear_etc }}"
+    - "/share/doc/ear"
+
+- name: Clonar repositorio EAR
+  git:
+    repo: "https://github.com/eas4dc/EAR.git"
+    dest: "/tmp/ear-src"
+    version: "master"
+  register: ear_git_clone
+
+- name: Preparar entorno de compilación
+  shell: |
+    cd /tmp/ear-src
+    autoreconf -i
+  args:
+    executable: /bin/bash
+  when: ear_git_clone.changed
+
+- name: Configurar EAR con soporte MPI
+  shell: |
+    cd /tmp/ear-src
+    export EAR_INSTALL_PATH={{ ear_install_path }}
+    export EAR_TMP={{ ear_tmp }}
+    export EAR_ETC={{ ear_etc }}
+    export my_CFLAGS="{{ ear_cc_flags }}"
+    ./configure \
+      --prefix=$EAR_INSTALL_PATH \
+      MPICC=mpicc MPICC_FLAGS="$my_CFLAGS" \
+      CC=gcc CC_FLAGS="$my_CFLAGS" \
+      EAR_TMP=$EAR_TMP EAR_ETC=$EAR_ETC \
+      MAKE_NAME=impi
+  args:
+    executable: /bin/bash
+  when: ear_git_clone.changed
+
+- name: Compilar e instalar EAR con MPI
+  shell: |
+    cd /tmp/ear-src
+    make -f Makefile.impi full
+    make -f Makefile.impi earl.install
+  args:
+    executable: /bin/bash
+  when: ear_git_clone.changed
+
+- name: Crear directorio para configuración de EAR
+  file:
+    path: "{{ ear_etc }}/ear"
+    state: directory
+    mode: '0755'
+
+- name: Crear archivo ear.conf desde plantilla
+  template:
+    src: ear.conf.j2
+    dest: "{{ ear_etc }}/ear/ear.conf"
+    mode: '0644'
+  notify: Reiniciar EAR daemon
+
+- name: Configurar módulo EAR
+  include_tasks: module_setup.yml
+
+- name: Configurar modelos energéticos
+  include_tasks: energy_models.yml
+
+- name: Configurar base de datos para EAR (solo en nodo manager)
+  include_tasks: database_setup.yml
+  when: inventory_hostname in groups['ear_manager']
+
+- name: Configurar integración con SLURM
+  include_tasks: slurm_integration.yml
+  when: ear_slurm_plugin_enabled | default(true)
+
+- name: Compilar plugin de SLURM si es necesario
+  include_tasks: compile_slurm_plugin.yml
+  when: ear_slurm_plugin_enabled | default(true)
+
+- name: Configurar daemon EAR (eard) en nodos de cómputo
+  include_tasks: eard_setup.yml
+  when: inventory_hostname in groups['ear_nodes']
+
+- name: Limpiar archivos temporales
+  file:
+    path: "/tmp/ear-src"
+    state: absent
+  when: ear_git_clone.changed
