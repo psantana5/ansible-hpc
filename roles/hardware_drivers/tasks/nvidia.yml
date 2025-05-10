@@ -1,0 +1,28 @@
+---
+- name: Detect GPU architecture
+  shell: lspci | grep -i nvidia
+  register: nvidia_cards
+  changed_when: false
+  ignore_errors: yes
+
+- name: Install NVIDIA repository
+  get_url:
+    url: "https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo"
+    dest: /etc/yum.repos.d/cuda.repo
+    mode: '0644'
+  when: nvidia_cards.rc == 0
+
+- name: Install NVIDIA drivers and CUDA
+  package:
+    name:
+      - nvidia-driver
+      - cuda
+      - cuda-drivers
+    state: present
+  when: nvidia_cards.rc == 0
+
+- name: Load NVIDIA modules
+  modprobe:
+    name: nvidia
+    state: present
+  when: nvidia_cards.rc == 0
