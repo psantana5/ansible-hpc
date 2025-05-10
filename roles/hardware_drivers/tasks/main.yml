@@ -1,0 +1,8 @@
+---
+- name: Include OFED tasks
+  include_tasks: ofed.yml
+  when: enable_infiniband | default(false) | bool
+
+- name: Include NVIDIA tasks
+  include_tasks: nvidia.yml
+  when: enable_nvidia | default(false) | bool

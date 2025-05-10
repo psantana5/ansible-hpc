@@ -1,0 +1,16 @@
+---
+- name: Test Hardware Driver Integration
+  hosts: compute
+  become: yes
+  tasks:
+    - name: Verify InfiniBand devices
+      command: ibstat
+      register: ibstat_result
+      failed_when: ibstat_result.rc != 0
+      when: enable_infiniband | default(false) | bool
+      
+    - name: Verify NVIDIA devices
+      command: nvidia-smi
+      register: nvidia_result
+      failed_when: nvidia_result.rc != 0
+      when: enable_nvidia | default(false) | bool

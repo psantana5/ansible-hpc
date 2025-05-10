@@ -1,0 +1,7 @@
+---
+# InfiniBand/RoCE settings
+enable_infiniband: false
+ofed_download_url: "https://content.mellanox.com/ofed/MLNX_OFED-23.07-0.5.1.2/MLNX_OFED_LINUX-23.07-0.5.1.2-rhel8.9-x86_64.tgz"
+
+# NVIDIA settings
+enable_nvidia: false
