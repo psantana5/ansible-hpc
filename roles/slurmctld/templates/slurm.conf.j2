@@ -145,8 +145,7 @@ SlurmdLogFile=/var/log/slurm/slurmd.log
 #
 # COMPUTE NODES
 {% for node in groups['compute'] %}
-NodeName={{ node }} CPUs={{ hostvars[node]['cpu_count'] | default('32') }} Boards=1 SocketsPerBoard={{ hostvars[node]['socket_count'] | default('1') }} CoresPerSocket={{ hostvars[node]['cores_per_socket'] | default('16') }} ThreadsPerCore={{ hostvars[node]['threads_per_core'] | default('2') }} RealMemory={{ hostvars[node]['total_memory_mb'] | default('15692') }} TmpDisk={{ hostvars[node]['tmp_disk_mb'] | default('71616') }} State=UNKNOWN Feature={% if hostvars[node]['total_memory_mb'] | default('15692') | int > 30000 %}highmem{% else %}highcpu{% endif %}
-{% endfor %}
+NodeName={{ node }} CPUs={{ hostvars[node]['cpu_count'] | default('32') }} Boards=1 SocketsPerBoard={{ hostvars[node]['socket_count'] | default('1') }} CoresPerSocket={{ hostvars[node]['cores_per_socket'] | default('16') }} ThreadsPerCore={{ hostvars[node]['threads_per_core'] | default('2') }} RealMemory={{ hostvars[node]['total_memory_mb'] | default('15692') }} TmpDisk={{ hostvars[node]['tmp_disk_mb'] | default('71616') }} State=UNKNOWN Feature={% if hostvars[node]['total_memory_mb'] | default('15692') | int > 30000 %}highmem{% else %}highcpu{% endif %}\n{% endfor %}
 
 # Partitions
 # Research group partitions
