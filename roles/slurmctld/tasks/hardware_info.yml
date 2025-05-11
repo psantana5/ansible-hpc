@@ -1,0 +1,59 @@
+---
+# Collect hardware information from compute nodes using Ansible's setup module
+- name: Collect hardware information from compute nodes
+  setup:
+    gather_subset:
+      - hardware
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  loop: "{{ groups['compute'] }}"
+
+# Set CPU-related variables for each node based on collected facts
+- name: Set CPU variables for each node
+  set_fact:
+    cpu_count: "{{ hostvars[item]['ansible_processor_count'] * hostvars[item]['ansible_processor_cores'] }}"
+    socket_count: "{{ hostvars[item]['ansible_processor_count'] }}"
+    cores_per_socket: "{{ hostvars[item]['ansible_processor_cores'] }}"
+    threads_per_core: "{{ hostvars[item]['ansible_processor_threads_per_core'] | default(1) }}"
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  loop: "{{ groups['compute'] }}"
+
+# Set memory variables for each node based on collected facts
+- name: Set memory variables for each node
+  set_fact:
+    total_memory_mb: "{{ hostvars[item]['ansible_memtotal_mb'] }}"
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  loop: "{{ groups['compute'] }}"
+
+# Get temporary disk information for each node (not available in Ansible facts)
+- name: Get temporary disk information for each node
+  shell: df -m /tmp | tail -1 | awk '{print $4}'
+  register: tmp_disk_output
+  changed_when: false
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['compute'] }}"
+
+# Set temporary disk variable for each node
+- name: Set temporary disk variable for each node
+  set_fact:
+    tmp_disk_mb: "{{ tmp_disk_output.results[loop_index].stdout | int }}"
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  loop: "{{ groups['compute'] }}"
+  loop_control:
+    index_var: loop_index
+
+# Display collected hardware information for verification
+- name: Display collected hardware information for each node
+  debug:
+    msg: |
+      Node: {{ item }}
+      CPUs: {{ hostvars[item]['cpu_count'] }}
+      Sockets: {{ hostvars[item]['socket_count'] }}
+      Cores per socket: {{ hostvars[item]['cores_per_socket'] }}
+      Threads per core: {{ hostvars[item]['threads_per_core'] }}
+      Total memory (MB): {{ hostvars[item]['total_memory_mb'] }}
+      Temporary disk (MB): {{ hostvars[item]['tmp_disk_mb'] }}
+  loop: "{{ groups['compute'] }}"

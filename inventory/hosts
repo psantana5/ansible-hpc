@@ -12,6 +12,7 @@ slurm01 ansible_host=192.168.1.137
 [compute]
 nodo01 ansible_host=192.168.1.140
 nodo02 ansible_host=192.168.1.138
+nodo03 ansible_host=192.168.1.148
 
 [login]
 login01 ansible_host=192.168.1.132

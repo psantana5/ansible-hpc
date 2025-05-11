@@ -20,7 +20,12 @@
   tasks:
     - name: Verificar estado de los daemons EAR
       shell: |
+        export EAR_ETC={{ ear_etc }}
+        export EAR_INSTALL_PATH={{ ear_install_path }}
+        export EAR_TMP={{ ear_tmp }}
         {{ ear_install_path }}/bin/econtrol --status
+      args:
+        executable: /bin/bash
       register: ear_status
       changed_when: false
       ignore_errors: yes
@@ -31,7 +36,12 @@
         
     - name: Verificar reportes a la base de datos
       shell: |
+        export EAR_ETC={{ ear_etc }}
+        export EAR_INSTALL_PATH={{ ear_install_path }}
+        export EAR_TMP={{ ear_tmp }}
         {{ ear_install_path }}/bin/ereport -n all
+      args:
+        executable: /bin/bash
       register: ear_report
       changed_when: false
       ignore_errors: yes

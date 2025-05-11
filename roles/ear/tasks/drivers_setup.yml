@@ -1,0 +1,46 @@
+---
+- name: Verificar si el driver CPUFreq está cargado
+  shell: lsmod | grep acpi_cpufreq
+  register: cpufreq_loaded
+  changed_when: false
+  failed_when: false
+
+- name: Verificar si el driver IPMI está cargado
+  shell: lsmod | grep ipmi
+  register: ipmi_loaded
+  changed_when: false
+  failed_when: false
+
+- name: Cargar driver CPUFreq si no está cargado
+  shell: modprobe acpi-cpufreq
+  when: cpufreq_loaded.rc != 0
+  ignore_errors: yes
+
+- name: Cargar drivers IPMI si no están cargados
+  shell: |
+    modprobe ipmi_msghandler
+    modprobe ipmi_devintf
+    modprobe ipmi_si
+  when: ipmi_loaded.rc != 0
+  ignore_errors: yes
+
+- name: Configurar carga automática de drivers en el arranque
+  copy:
+    content: |
+      # Drivers requeridos por EAR
+      acpi-cpufreq
+      ipmi_msghandler
+      ipmi_devintf
+      ipmi_si
+    dest: "/etc/modules-load.d/ear-drivers.conf"
+    mode: '0644'
+
+- name: Verificar si los drivers están disponibles en el kernel
+  shell: |
+    find /lib/modules/$(uname -r) -name "acpi-cpufreq.ko" -o -name "ipmi_*.ko" | sort
+  register: drivers_available
+  changed_when: false
+
+- name: Mostrar drivers disponibles
+  debug:
+    var: drivers_available.stdout_lines

@@ -138,6 +138,12 @@
   meta: end_play
   when: not slurm_conf_template.stat.exists
 
+- name: Recopilar información de hardware de los nodos
+  include_tasks: hardware_info.yml
+  tags: 
+    - hardware_info
+    - slurm_config
+
 - name: Configure slurmctld
   template:
     src: slurm.conf.j2
@@ -200,4 +206,3 @@
     owner: slurm
     group: slurm
     mode: '0755'
-

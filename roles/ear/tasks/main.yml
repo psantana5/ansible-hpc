@@ -16,6 +16,9 @@
     - "{{ ear_etc }}"
     - "/share/doc/ear"
 
+- name: Configurar drivers requeridos por EAR
+  include_tasks: drivers_setup.yml
+
 - name: Clonar repositorio EAR
   git:
     repo: "https://github.com/eas4dc/EAR.git"
@@ -61,6 +64,12 @@
   file:
     path: "{{ ear_etc }}/ear"
     state: directory
+    mode: '0755'
+
+- name: Crear archivo de variables de entorno para EAR
+  template:
+    src: ear_env.sh.j2
+    dest: "/etc/profile.d/ear_env.sh"
     mode: '0755'
 
 - name: Crear archivo ear.conf desde plantilla
