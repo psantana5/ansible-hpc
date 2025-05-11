@@ -1,0 +1,16 @@
+dn: cn=config
+changetype: modify
+add: olcTLSCACertificateFile
+olcTLSCACertificateFile: {{ ldap_tls_cacert_path | default('/etc/pki/tls/certs/ldapserver.crt') }}
+-
+add: olcTLSCertificateFile
+olcTLSCertificateFile: {{ ldap_tls_cert_path | default('/etc/pki/tls/certs/ldapserver.crt') }}
+-
+add: olcTLSCertificateKeyFile
+olcTLSCertificateKeyFile: {{ ldap_tls_key_path | default('/etc/pki/tls/private/ldapserver.key') }}
+-
+add: olcTLSVerifyClient
+olcTLSVerifyClient: {{ ldap_tls_verify_client | default('never') }}
+-
+add: olcTLSCipherSuite
+olcTLSCipherSuite: {{ ldap_tls_cipher_suite | default('HIGH:MEDIUM:+SSLv3') }}

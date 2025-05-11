@@ -270,9 +270,46 @@
   loop:
     - {
         key: "TLS_CACERT",
-        value: "{{ ldap_tls_cert_path | default('/etc/pki/tls/certs/ldapserver.crt') }}",
+        value: "{{ ldap_tls_cert_path | default('/etc/pki/tls/certs/ldapserver.crt') }}"
       }
-    - { key: "TLS_REQCERT", value: "allow" } # Or 'demand' based on policy
+    - {
+        key: "TLS_REQCERT",
+        value: "{{ ldap_tls_reqcert | default('never') }}"
+      }
+    - {
+        key: "URI",
+        value: "ldap://{{ ansible_fqdn }} ldaps://{{ ansible_fqdn }}"
+      }
+    - {
+        key: "BASE",
+        value: "{{ ldap_base_dn }}"
+      }
+
+- name: Create TLS LDIF template
+  ansible.builtin.template:
+    src: ldap-tls.ldif.j2
+    dest: "{{ ldap_config_dir | default('/etc/openldap') }}/ldap-tls.ldif"
+    owner: "{{ ldap_user | default('ldap') }}"
+    group: "{{ ldap_group | default('ldap') }}"
+    mode: "0640"
+
+- name: Apply TLS configuration to running LDAP server
+  ansible.builtin.command: "ldapmodify -Y EXTERNAL -H ldapi:/// -f {{ ldap_config_dir | default('/etc/openldap') }}/ldap-tls.ldif"
+  register: ldapmodify_result
+  changed_when: "'modifying entry' in ldapmodify_result.stdout"
+  failed_when: ldapmodify_result.rc != 0 and 'Already exists' not in ldapmodify_result.stderr
+  notify: restart slapd service
+
+- name: Update firewalld for LDAPS
+  ansible.posix.firewalld:
+    port: "636/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  notify: restart slapd service
+
+- name: Force handlers to run now
+  ansible.builtin.meta: flush_handlers
 
 # ----------------------------------------------------------------------
 # Phase 5: Service Management

@@ -8,7 +8,7 @@ Type=forking
 User=ldap
 Group=ldap
 EnvironmentFile=-/etc/sysconfig/slapd
-ExecStart=/usr/sbin/slapd -u ldap -g ldap -h ldap:/// $SLAPD_OPTIONS
+ExecStart=/usr/sbin/slapd -u ldap -g ldap -h "ldap:/// ldaps:///" $SLAPD_OPTIONS
 ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]

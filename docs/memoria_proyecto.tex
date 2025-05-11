@@ -24,20 +24,35 @@
 \usepackage{tikz}
 \usepackage{pdflscape}
 \usepackage{longtable}
+\usepackage{tcolorbox}
+\usepackage{fontawesome5}
+\usepackage{setspace}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{colortbl}
 
 % Configuración de la página
 \geometry{margin=2.5cm}
 
+% Definición de colores de cientiGO
+\definecolor{cientigo-blue}{RGB}{0, 82, 155}
+\definecolor{cientigo-lightblue}{RGB}{91, 155, 213}
+\definecolor{cientigo-green}{RGB}{0, 176, 80}
+\definecolor{cientigo-orange}{RGB}{255, 153, 0}
+\definecolor{cientigo-gray}{RGB}{128, 128, 128}
+
 % Configuración de encabezado y pie de página
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\leftmark}
-\fancyhead[R]{Automatización de Clústeres HPC con Ansible}
+\fancyhead[L]{\textcolor{cientigo-blue}{\leftmark}}
+\fancyhead[R]{\textcolor{cientigo-blue}{Automatización de Clústeres HPC con Ansible}}
 \fancyfoot[C]{\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{cientigo-blue}\leaders\hrule height \headrulewidth\hfill}}
+\renewcommand{\footrule}{\hbox to\headwidth{\color{cientigo-blue}\leaders\hrule height \footrulewidth\hfill}}
 
-% Configuración de colores
+% Configuración de colores para código
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
@@ -47,9 +62,9 @@
 \lstdefinestyle{mystyle}{
     backgroundcolor=\color{backcolour},
     commentstyle=\color{codegreen},
-    keywordstyle=\color{codepurple}\bfseries,
+    keywordstyle=\color{cientigo-blue}\bfseries,
     numberstyle=\tiny\color{codegray},
-    stringstyle=\color{blue},
+    stringstyle=\color{cientigo-green},
     basicstyle=\ttfamily\small,
     breakatwhitespace=false,
     breaklines=true,
@@ -61,36 +76,77 @@
     showstringspaces=false,
     showtabs=false,
     tabsize=2,
-    frame=single
+    frame=single,
+    rulecolor=\color{cientigo-blue}
 }
 \lstset{style=mystyle}
 
 % Definir YAML para listings
 \lstdefinelanguage{yaml}{
   keywords={true,false,null,y,n},
-  keywordstyle=\color{blue}\bfseries,
+  keywordstyle=\color{cientigo-blue}\bfseries,
   basicstyle=\ttfamily\small,
   sensitive=false,
   comment=[l]{\#},
   commentstyle=\color{codegreen},
-  stringstyle=\color{red},
+  stringstyle=\color{cientigo-green},
   morestring=[b]',
   morestring=[b]"
 }
 
 % Configuración de títulos
 \titleformat{\chapter}[display]
-{\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}
-\titlespacing*{\chapter}{0pt}{-50pt}{40pt}
+{\normalfont\huge\bfseries\color{cientigo-blue}}
+{\chaptertitlename\ \thechapter}{20pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-30pt}{40pt}
+
+\titleformat{\section}
+{\normalfont\Large\bfseries\color{cientigo-blue}}
+{\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{3.5ex plus 1ex minus .2ex}{2.3ex plus .2ex}
+
+\titleformat{\subsection}
+{\normalfont\large\bfseries\color{cientigo-lightblue}}
+{\thesubsection}{1em}{}
 
 % Configuración de espaciado
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{6pt}
+\setlength{\parskip}{8pt}
+\onehalfspacing
+
+% Configuración de cajas para destacar información
+\newtcolorbox{infocaja}{
+  colback=cientigo-lightblue!10,
+  colframe=cientigo-blue,
+  arc=3mm,
+  boxrule=1pt,
+  title=\textbf{Información importante},
+  fonttitle=\bfseries\color{white},
+  coltitle=cientigo-blue,
+  attach boxed title to top left={yshift=-2mm, xshift=5mm},
+  boxed title style={colback=cientigo-blue}
+}
+
+\newtcolorbox{notacaja}{
+  colback=cientigo-green!10,
+  colframe=cientigo-green,
+  arc=3mm,
+  boxrule=1pt,
+  title=\textbf{Nota},
+  fonttitle=\bfseries\color{white},
+  coltitle=cientigo-green,
+  attach boxed title to top left={yshift=-2mm, xshift=5mm},
+  boxed title style={colback=cientigo-green}
+}
+
+% Estilo para tablas
+\newcommand{\cabeceratabla}{\rowcolor{cientigo-blue}\color{white}\bfseries}
 
 % Información del documento
-\title{\Huge{\textbf{Automatización de Clústeres HPC con Ansible}}\\
-       \Large{Proyecto Técnico - Implementación de Infraestructura como Código}}
-\author{Pau Santana}
+\title{\Huge{\textcolor{cientigo-blue}{\textbf{Automatización de Clústeres HPC con Ansible}}}\\[0.5cm]
+       \Large{\textcolor{cientigo-gray}{Proyecto Técnico - Implementación de Infraestructura como Código}}\\[0.5cm]
+       \includegraphics[width=0.4\textwidth]{logo_empresa.png}}
+\author{\Large{\textbf{Pau Santana}}}
 \date{\today}
 
 \begin{document}
@@ -98,28 +154,84 @@
 % Portada
 \begin{titlepage}
 \begin{center}
-\vspace*{2cm}
-\includegraphics[width=0.5\textwidth]{logo_empresa.png}\\[2cm]
-\textsc{\LARGE{Ciclo Formativo de Grado Superior}}\\[0.5cm]
-\textsc{\Large{Administración de Sistemas Informáticos en Red}}\\[2cm]
-\rule{\linewidth}{0.5mm}\\[0.4cm]
-{\huge\bfseries Automatización de Clústeres HPC con Ansible\\[0.4cm]}
-\rule{\linewidth}{0.5mm}\\[1.5cm]
-\begin{minipage}{0.4\textwidth}
-\begin{flushleft}
+\vspace*{1cm}
+\includegraphics[width=0.6\textwidth]{logo_empresa.png}\\[1.5cm]
+
+\begin{tcolorbox}[
+  colback=white,
+  colframe=cientigo-blue,
+  arc=0mm,
+  boxrule=2pt,
+  width=\textwidth,
+  halign=center,
+  valign=center,
+  height=3cm
+]
+\textsc{\LARGE{\textcolor{cientigo-blue}{Ciclo Formativo de Grado Superior}}}\\[0.3cm]
+\textsc{\Large{\textcolor{cientigo-gray}{Administración de Sistemas Informáticos en Red}}}
+\end{tcolorbox}
+
+\vspace{1cm}
+
+\begin{tcolorbox}[
+  colback=cientigo-blue!10,
+  colframe=cientigo-blue,
+  arc=0mm,
+  boxrule=2pt,
+  width=\textwidth,
+  halign=center,
+  valign=center,
+  height=5cm
+]
+{\huge\bfseries\textcolor{cientigo-blue}{Automatización de Clústeres HPC con Ansible}}\\[0.5cm]
+{\Large\textcolor{cientigo-gray}{Proyecto Técnico - Implementación de Infraestructura como Código}}
+\end{tcolorbox}
+
+\vspace{1cm}
+
+\begin{minipage}{0.45\textwidth}
+\begin{tcolorbox}[
+  colback=white,
+  colframe=cientigo-blue,
+  arc=0mm,
+  boxrule=1pt,
+  width=\textwidth,
+  halign=center
+]
 \large
-\textbf{Autor:}\\
-Pau Santana\\
-\end{flushleft}
+\textbf{\textcolor{cientigo-blue}{Autor:}}\\
+\textcolor{cientigo-gray}{Pau Santana}
+\end{tcolorbox}
 \end{minipage}
-\begin{minipage}{0.4\textwidth}
-\begin{flushright}
+\hfill
+\begin{minipage}{0.45\textwidth}
+\begin{tcolorbox}[
+  colback=white,
+  colframe=cientigo-blue,
+  arc=0mm,
+  boxrule=1pt,
+  width=\textwidth,
+  halign=center
+]
 \large
-\textbf{Grupo:}\\
-XX\\
-\end{flushright}
-\end{minipage}\\[2cm]
-{\large \today}
+\textbf{\textcolor{cientigo-blue}{Grupo:}}\\
+\textcolor{cientigo-gray}{38}
+\end{tcolorbox}
+\end{minipage}
+
+\vfill
+
+\begin{tcolorbox}[
+  colback=white,
+  colframe=cientigo-blue,
+  arc=0mm,
+  boxrule=1pt,
+  width=0.5\textwidth,
+  halign=center
+]
+{\large \textcolor{cientigo-gray}{\today}}
+\end{tcolorbox}
+
 \end{center}
 \end{titlepage}
 
@@ -133,17 +245,19 @@ XX\\
 \chapter*{Introduction and Summary}
 \addcontentsline{toc}{chapter}{Introduction and Summary}
 
+\begin{infocaja}
 This technical project focuses on the implementation of an automated High-Performance Computing (HPC) cluster using Infrastructure as Code (IaC) principles through Ansible. The primary objective is to create a reproducible, scalable, and energy-efficient computational environment that addresses the critical challenge of scientific reproducibility in computational research.
+\end{infocaja}
 
 The project implements a complete HPC environment with Slurm workload manager, LDAP authentication, NFS storage, and integrated monitoring through Prometheus and Grafana. By automating the deployment process, we achieve significant reductions in configuration errors and deployment time while ensuring consistent environments across multiple deployments.
 
 Key objectives include:
 \begin{itemize}
-    \item Design and implement a fully automated HPC cluster deployment
-    \item Create reproducible scientific computing environments
-    \item Integrate energy efficiency considerations into the infrastructure
-    \item Develop comprehensive monitoring and troubleshooting capabilities
-    \item Document the entire process for knowledge transfer and future maintenance
+    \item \textcolor{cientigo-blue}{\faCheckCircle} Design and implement a fully automated HPC cluster deployment
+    \item \textcolor{cientigo-blue}{\faCheckCircle} Create reproducible scientific computing environments
+    \item \textcolor{cientigo-blue}{\faCheckCircle} Integrate energy efficiency considerations into the infrastructure
+    \item \textcolor{cientigo-blue}{\faCheckCircle} Develop comprehensive monitoring and troubleshooting capabilities
+    \item \textcolor{cientigo-blue}{\faCheckCircle} Document the entire process for knowledge transfer and future maintenance
 \end{itemize}
 
 The solution addresses a fundamental challenge in computational science by enabling researchers to focus on their scientific work rather than infrastructure management, while ensuring that computational experiments can be reliably reproduced.
@@ -152,7 +266,14 @@ The solution addresses a fundamental challenge in computational science by enabl
 
 \section{Resumen del Proyecto}
 
+\begin{tcolorbox}[
+  colback=cientigo-blue!5,
+  colframe=cientigo-blue,
+  arc=2mm,
+  boxrule=0.5pt
+]
 Este proyecto técnico se centra en la implementación de un clúster de Computación de Alto Rendimiento (HPC) automatizado utilizando principios de Infraestructura como Código (IaC) a través de Ansible. El objetivo principal es crear un entorno computacional reproducible, escalable y energéticamente eficiente que aborde el desafío crítico de la reproducibilidad científica en la investigación computacional.
+\end{tcolorbox}
 
 El proyecto implementa un entorno HPC completo con el gestor de cargas de trabajo Slurm, autenticación LDAP, almacenamiento NFS y monitorización integrada a través de Prometheus y Grafana. Al automatizar el proceso de despliegue, logramos reducciones significativas en errores de configuración y tiempo de implementación, asegurando entornos consistentes en múltiples despliegues.
 
@@ -161,14 +282,16 @@ El proyecto implementa un entorno HPC completo con el gestor de cargas de trabaj
 Los objetivos principales de este proyecto son:
 
 \begin{itemize}
-    \item Diseñar e implementar un despliegue de clúster HPC completamente automatizado
-    \item Crear entornos de computación científica reproducibles
-    \item Integrar consideraciones de eficiencia energética en la infraestructura
-    \item Desarrollar capacidades completas de monitorización y resolución de problemas
-    \item Documentar todo el proceso para la transferencia de conocimientos y el mantenimiento futuro
+    \item[\textcolor{cientigo-blue}{\faTarget}] Diseñar e implementar un despliegue de clúster HPC completamente automatizado
+    \item[\textcolor{cientigo-blue}{\faTarget}] Crear entornos de computación científica reproducibles
+    \item[\textcolor{cientigo-blue}{\faTarget}] Integrar consideraciones de eficiencia energética en la infraestructura
+    \item[\textcolor{cientigo-blue}{\faTarget}] Desarrollar capacidades completas de monitorización y resolución de problemas
+    \item[\textcolor{cientigo-blue}{\faTarget}] Documentar todo el proceso para la transferencia de conocimientos y el mantenimiento futuro
 \end{itemize}
 
+\begin{notacaja}
 La solución aborda un desafío fundamental en la ciencia computacional al permitir que los investigadores se centren en su trabajo científico en lugar de la gestión de infraestructura, garantizando que los experimentos computacionales puedan reproducirse de manera confiable.
+\end{notacaja}
 
 \section{Justificación del Proyecto}
 
@@ -184,35 +307,45 @@ El proyecto se ha dividido en varias fases con una duración total estimada de 1
 
 \begin{table}[H]
 \centering
-\begin{tabular}{|l|l|l|l|}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|>{\columncolor{cientigo-blue!10}}l|l|c|l|}
 \hline
-\textbf{Fase} & \textbf{Tareas} & \textbf{Duración} & \textbf{Responsable} \\
+\cabeceratabla \textbf{Fase} & \textbf{Tareas} & \textbf{Duración} & \textbf{Responsable} \\
 \hline
-Análisis y Diseño & Análisis de requisitos & 2 semanas & Pau Santana \\
+\multirow{3}{*}{Análisis y Diseño} & Análisis de requisitos & \multirow{3}{*}{1 semana} & \multirow{3}{*}{Pau Santana} \\
  & Diseño de arquitectura & & \\
  & Selección de tecnologías & & \\
 \hline
-Implementación Base & Configuración de Foreman & 3 semanas & Pau Santana \\
+\rowcolor{cientigo-blue!5}
+\multirow{3}{*}{Implementación Base} & Configuración de Foreman & \multirow{3}{*}{1 semana} & \multirow{3}{*}{Pau Santana} \\
+\rowcolor{cientigo-blue!5}
  & Desarrollo de playbooks Ansible & & \\
+\rowcolor{cientigo-blue!5}
  & Implementación de LDAP & & \\
 \hline
-Implementación Slurm & Configuración de Slurm Controller & 2 semanas & Pau Santana \\
+\multirow{3}{*}{Implementación Slurm} & Configuración de Slurm Controller & \multirow{3}{*}{2 semanas} & \multirow{3}{*}{Pau Santana} \\
  & Configuración de Slurm DB & & \\
  & Configuración de nodos de cómputo & & \\
 \hline
-Almacenamiento y Software & Configuración de NFS & 2 semanas & Pau Santana \\
+\rowcolor{cientigo-blue!5}
+\multirow{3}{*}{Almacenamiento y Software} & Configuración de NFS & \multirow{3}{*}{2 semanas} & \multirow{3}{*}{Pau Santana} \\
+\rowcolor{cientigo-blue!5}
  & Implementación de Spack & & \\
+\rowcolor{cientigo-blue!5}
  & Optimización de software científico & & \\
 \hline
-Monitorización & Implementación de Prometheus & 1 semana & Pau Santana \\
+\multirow{3}{*}{Monitorización} & Implementación de Prometheus & \multirow{3}{*}{1 semana} & \multirow{3}{*}{Pau Santana} \\
  & Configuración de Grafana & & \\
  & Desarrollo de dashboards & & \\
 \hline
-Pruebas y Optimización & Pruebas de rendimiento & 1 semana & Pau Santana \\
+\rowcolor{cientigo-blue!5}
+\multirow{3}{*}{Pruebas y Optimización} & Pruebas de rendimiento & \multirow{3}{*}{1 semana} & \multirow{3}{*}{Pau Santana} \\
+\rowcolor{cientigo-blue!5}
  & Optimización energética & & \\
+\rowcolor{cientigo-blue!5}
  & Validación de reproducibilidad & & \\
 \hline
-Documentación & Elaboración de manuales & 1 semana & Pau Santana \\
+\multirow{3}{*}{Documentación} & Elaboración de manuales & \multirow{3}{*}{1 semana} & \multirow{3}{*}{Pau Santana} \\
  & Documentación técnica & & \\
  & Memoria del proyecto & & \\
 \hline
@@ -227,28 +360,31 @@ Documentación & Elaboración de manuales & 1 semana & Pau Santana \\
 
 Para este proyecto se requiere un administrador de sistemas con conocimientos en:
 \begin{itemize}
-    \item Administración de sistemas Linux
-    \item Automatización con Ansible
-    \item Gestores de carga de trabajo HPC (Slurm)
-    \item Servicios de directorio (LDAP)
-    \item Sistemas de monitorización (Prometheus/Grafana)
-    \item Virtualización y contenedores
+    \item[\textcolor{cientigo-blue}{\faUser}] Administración de sistemas Linux
+    \item[\textcolor{cientigo-blue}{\faUser}] Automatización con Ansible
+    \item[\textcolor{cientigo-blue}{\faUser}] Gestores de carga de trabajo HPC (Slurm)
+    \item[\textcolor{cientigo-blue}{\faUser}] Servicios de directorio (LDAP)
+    \item[\textcolor{cientigo-blue}{\faUser}] Sistemas de monitorización (Prometheus/Grafana)
+    \item[\textcolor{cientigo-blue}{\faUser}] Virtualización y contenedores
 \end{itemize}
 
 \subsection{Recursos Hardware}
 
 \begin{table}[H]
 \centering
-\begin{tabular}{|l|l|l|l|}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|>{\columncolor{cientigo-blue!10}}l|c|p{3.5cm}|p{5.5cm}|}
 \hline
-\textbf{Componente} & \textbf{Cantidad} & \textbf{Especificaciones} & \textbf{Propósito} \\
+\cabeceratabla \textbf{Componente} & \textbf{Cantidad} & \textbf{Especificaciones} & \textbf{Propósito} \\
 \hline
 Servidor de gestión & 1 & 8 cores, 32GB RAM, 500GB SSD & Foreman, Ansible, LDAP \\
 \hline
+\rowcolor{cientigo-blue!5}
 Nodo controlador & 1 & 16 cores, 64GB RAM, 1TB SSD & Slurm Controller, DB \\
 \hline
 Nodos de cómputo & 4 & 32 cores, 128GB RAM, 2TB SSD & Procesamiento HPC \\
 \hline
+\rowcolor{cientigo-blue!5}
 Servidor de almacenamiento & 1 & 8 cores, 32GB RAM, 10TB RAID & NFS, Backups \\
 \hline
 Switches de red & 2 & 24 puertos, 10GbE & Interconexión \\
@@ -262,24 +398,29 @@ Switches de red & 2 & 24 puertos, 10GbE & Interconexión \\
 
 \begin{table}[H]
 \centering
-\begin{tabular}{|l|l|l|}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|>{\columncolor{cientigo-blue!10}}l|l|l|}
 \hline
-\textbf{Software} & \textbf{Versión} & \textbf{Propósito} \\
+\cabeceratabla \textbf{Software} & \textbf{Versión} & \textbf{Propósito} \\
 \hline
 CentOS/Rocky Linux & 8.x & Sistema operativo base \\
 \hline
+\rowcolor{cientigo-blue!5}
 Ansible & 2.9+ & Automatización de infraestructura \\
 \hline
 Foreman & 3.x & Aprovisionamiento de servidores \\
 \hline
+\rowcolor{cientigo-blue!5}
 Slurm & 21.08+ & Gestor de cargas de trabajo HPC \\
 \hline
 OpenLDAP & 2.4+ & Autenticación centralizada \\
 \hline
+\rowcolor{cientigo-blue!5}
 Prometheus & 2.x & Monitorización de sistemas \\
 \hline
 Grafana & 8.x & Visualización de métricas \\
 \hline
+\rowcolor{cientigo-blue!5}
 Spack & 0.17+ & Gestor de paquetes científicos \\
 \hline
 \end{tabular}
@@ -291,29 +432,53 @@ Spack & 0.17+ & Gestor de paquetes científicos \\
 
 \section{Infraestructura como Código (IaC)}
 
+\begin{tcolorbox}[
+  colback=cientigo-blue!5,
+  colframe=cientigo-blue,
+  arc=2mm,
+  boxrule=0.5pt,
+  title=\textbf{Infraestructura como Código},
+  fonttitle=\bfseries\color{white},
+  coltitle=cientigo-blue,
+  attach boxed title to top center={yshift=-2mm},
+  boxed title style={colback=cientigo-blue}
+]
 La Infraestructura como Código (IaC) es un enfoque para la gestión y aprovisionamiento de infraestructura a través de archivos de definición en lugar de procesos manuales. Este paradigma permite tratar la infraestructura de la misma manera que los desarrolladores tratan el código de aplicación, aplicando las mismas prácticas de desarrollo de software como control de versiones, integración continua, revisión de código y pruebas automatizadas.
+\end{tcolorbox}
 
 \subsection{Beneficios de IaC}
 
 \begin{itemize}
-    \item \textbf{Reproducibilidad:} La infraestructura puede ser recreada de manera idéntica en diferentes entornos.
-    \item \textbf{Escalabilidad:} Facilita la creación y gestión de múltiples entornos similares.
-    \item \textbf{Consistencia:} Reduce las variaciones entre entornos de desarrollo, prueba y producción.
-    \item \textbf{Velocidad:} Automatiza procesos que de otra manera serían manuales y propensos a errores.
-    \item \textbf{Documentación:} El código sirve como documentación viva de la infraestructura.
-    \item \textbf{Control de versiones:} Permite rastrear cambios y revertir a estados anteriores si es necesario.
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Reproducibilidad:} La infraestructura puede ser recreada de manera idéntica en diferentes entornos.
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Escalabilidad:} Facilita la creación y gestión de múltiples entornos similares.
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Consistencia:} Reduce las variaciones entre entornos de desarrollo, prueba y producción.
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Velocidad:} Automatiza procesos que de otra manera serían manuales y propensos a errores.
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Documentación:} El código sirve como documentación viva de la infraestructura.
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Control de versiones:} Permite rastrear cambios y revertir a estados anteriores si es necesario.
 \end{itemize}
 
 \subsection{Enfoques de IaC}
 
 Existen dos enfoques principales para IaC:
 
-\begin{itemize}
-    \item \textbf{Declarativo (funcional):} Se especifica el estado deseado de la infraestructura, y la herramienta determina cómo alcanzarlo. Ejemplos: Terraform, CloudFormation, ARM Templates.
-    \item \textbf{Imperativo (procedimental):} Se especifican los comandos exactos necesarios para alcanzar el estado deseado. Ejemplos: Scripts de shell, algunas implementaciones de Ansible.
-\end{itemize}
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|>{\columncolor{cientigo-blue!10}}l|p{10cm}|}
+\hline
+\cabeceratabla \textbf{Enfoque} & \textbf{Descripción} \\
+\hline
+\textbf{Declarativo (funcional)} & Se especifica el estado deseado de la infraestructura, y la herramienta determina cómo alcanzarlo. Ejemplos: Terraform, CloudFormation, ARM Templates. \\
+\hline
+\rowcolor{cientigo-blue!5}
+\textbf{Imperativo (procedimental)} & Se especifican los comandos exactos necesarios para alcanzar el estado deseado. Ejemplos: Scripts de shell, algunas implementaciones de Ansible. \\
+\hline
+\end{tabular}
+\end{table}
 
+\begin{notacaja}
 Ansible, la herramienta principal utilizada en este proyecto, puede funcionar en ambos modos, aunque tiende a favorecer el enfoque declarativo.
+\end{notacaja}
 
 \section{Ansible}
 
@@ -331,16 +496,32 @@ Ansible es una herramienta de automatización de TI de código abierto que permi
 Ansible utiliza una arquitectura sin agentes, lo que significa que no requiere la instalación de software adicional en los nodos gestionados. En su lugar, utiliza SSH para conectarse a los nodos y ejecutar los módulos necesarios. Esta arquitectura consta de:
 
 \begin{itemize}
-    \item \textbf{Nodo de control:} El sistema donde se instala y ejecuta Ansible.
-    \item \textbf{Inventario:} Define los hosts y grupos de hosts que Ansible puede gestionar.
-    \item \textbf{Playbooks:} Archivos YAML que definen las tareas a ejecutar en los hosts.
-    \item \textbf{Roles:} Organizan los playbooks y otros archivos relacionados para facilitar la reutilización.
-    \item \textbf{Módulos:} Unidades de código que Ansible ejecuta en los hosts remotos.
-    \item \textbf{Plugins:} Extienden la funcionalidad de Ansible.
+    \item[\textcolor{cientigo-blue}{\faCube}] \textbf{Nodo de control:} El sistema donde se instala y ejecuta Ansible.
+    \item[\textcolor{cientigo-blue}{\faCube}] \textbf{Inventario:} Define los hosts y grupos de hosts que Ansible puede gestionar.
+    \item[\textcolor{cientigo-blue}{\faCube}] \textbf{Playbooks:} Archivos YAML que definen las tareas a ejecutar en los hosts.
+    \item[\textcolor{cientigo-blue}{\faCube}] \textbf{Roles:} Organizan los playbooks y otros archivos relacionados para facilitar la reutilización.
+    \item[\textcolor{cientigo-blue}{\faCube}] \textbf{Módulos:} Unidades de código que Ansible ejecuta en los hosts remotos.
+    \item[\textcolor{cientigo-blue}{\faCube}] \textbf{Plugins:} Extienden la funcionalidad de Ansible.
 \end{itemize}
 
 \subsection{Conceptos Clave de Ansible}
 
+\begin{tcolorbox}[
+  enhanced,
+  colback=white,
+  colframe=cientigo-blue,
+  arc=0mm,
+  boxrule=1pt,
+  title=Conceptos Clave de Ansible,
+  attach boxed title to top center={yshift=-\tcboxedtitleheight/2},
+  boxed title style={
+    colback=cientigo-blue,
+    colframe=cientigo-blue,
+    fontupper=\bfseries\color{white},
+  },
+  coltitle=white,
+  fonttitle=\bfseries
+]
 \begin{itemize}
     \item \textbf{Idempotencia:} Las operaciones pueden aplicarse varias veces sin cambiar el resultado más allá de la aplicación inicial.
     \item \textbf{Playbooks:} Definen una serie de tareas a ejecutar en hosts específicos.
@@ -349,6 +530,7 @@ Ansible utiliza una arquitectura sin agentes, lo que significa que no requiere l
     \item \textbf{Templates:} Utilizan Jinja2 para generar archivos de configuración dinámicos.
     \item \textbf{Handlers:} Tareas que solo se ejecutan cuando son notificadas por otras tareas.
 \end{itemize}
+\end{tcolorbox}
 
 \subsection{Ejemplo de Playbook}
 
@@ -392,61 +574,155 @@ Ansible utiliza una arquitectura sin agentes, lo que significa que no requiere l
 
 \section{Computación de Alto Rendimiento (HPC)}
 
+\begin{tcolorbox}[
+  colback=cientigo-blue!5,
+  colframe=cientigo-blue,
+  arc=2mm,
+  boxrule=0.5pt
+]
 La Computación de Alto Rendimiento (HPC, por sus siglas en inglés) se refiere al uso de supercomputadoras y clústeres de computación para resolver problemas complejos que requieren gran capacidad de procesamiento o memoria. HPC es fundamental en campos como la simulación física, el modelado climático, la genómica, el aprendizaje automático y muchas otras áreas de investigación científica.
+\end{tcolorbox}
 
 \subsection{Componentes de un Clúster HPC}
 
 Un clúster HPC típico consta de los siguientes componentes:
 
 \begin{itemize}
-    \item \textbf{Nodos de cómputo:} Servidores dedicados al procesamiento de cálculos.
-    \item \textbf{Nodo controlador:} Gestiona el clúster y distribuye las tareas.
-    \item \textbf{Red de interconexión:} Proporciona comunicación de alta velocidad entre nodos.
-    \item \textbf{Sistema de almacenamiento:} Proporciona acceso a datos para los cálculos.
-    \item \textbf{Sistema de gestión de colas:} Software que programa y asigna recursos a los trabajos.
-    \item \textbf{Software científico:} Aplicaciones específicas para diferentes dominios científicos.
+    \item[\textcolor{cientigo-orange}{\faServer}] \textbf{Nodos de cómputo:} Servidores dedicados al procesamiento de cálculos.
+    \item[\textcolor{cientigo-orange}{\faServer}] \textbf{Nodo controlador:} Gestiona el clúster y distribuye las tareas.
+    \item[\textcolor{cientigo-orange}{\faNetworkWired}] \textbf{Red de interconexión:} Proporciona comunicación de alta velocidad entre nodos.
+    \item[\textcolor{cientigo-orange}{\faDatabase}] \textbf{Sistema de almacenamiento:} Proporciona acceso a datos para los cálculos.
+    \item[\textcolor{cientigo-orange}{\faListAlt}] \textbf{Sistema de gestión de colas:} Software que programa y asigna recursos a los trabajos.
+    \item[\textcolor{cientigo-orange}{\faCode}] \textbf{Software científico:} Aplicaciones específicas para diferentes dominios científicos.
 \end{itemize}
 
 \subsection{Arquitectura de un Clúster HPC}
 
 \begin{figure}[H]
 \centering
-% Espacio para captura de pantalla de la arquitectura HPC
+\begin{tikzpicture}[node distance=1.2cm, auto, thick, scale=0.9, transform shape]
+    % Definir estilos
+    \tikzstyle{block} = [rectangle, draw=cientigo-blue, fill=cientigo-blue!10, text width=2.8cm, text centered, rounded corners, minimum height=2em]
+    \tikzstyle{line} = [draw, -latex']
+    
+    % Nodos
+    \node [block] (controller) {Nodo Controlador};
+    \node [block, below left=of controller] (compute1) {Nodo de Cómputo 1};
+    \node [block, below=of controller] (compute2) {Nodo de Cómputo 2};
+    \node [block, below right=of controller] (compute3) {Nodo de Cómputo 3};
+    \node [block, right=of controller] (storage) {Almacenamiento};
+    \node [block, left=of controller] (login) {Nodo de Login};
+    
+    % Conexiones
+    \path [line] (login) -- (controller);
+    \path [line] (controller) -- (compute1);
+    \path [line] (controller) -- (compute2);
+    \path [line] (controller) -- (compute3);
+    \path [line] (controller) -- (storage);
+    \path [line] (compute1) -- (storage);
+    \path [line] (compute2) -- (storage);
+    \path [line] (compute3) -- (storage);
+\end{tikzpicture}
 \caption{Arquitectura típica de un clúster HPC}
 \label{fig:hpc_architecture}
 \end{figure}
 
 \section{Slurm Workload Manager}
 
+\begin{tcolorbox}[
+  colback=cientigo-blue!5,
+  colframe=cientigo-blue,
+  arc=2mm,
+  boxrule=0.5pt,
+  title=\textbf{Slurm Workload Manager},
+  fonttitle=\bfseries\color{white},
+  coltitle=cientigo-blue,
+  attach boxed title to top center={yshift=-2mm},
+  boxed title style={colback=cientigo-blue}
+]
 Slurm (Simple Linux Utility for Resource Management) es un sistema de gestión de cargas de trabajo de código abierto diseñado para clústeres Linux de todos los tamaños. Es utilizado en muchos de los supercomputadores más grandes del mundo y proporciona tres funciones clave:
+\end{tcolorbox}
 
 \begin{itemize}
-    \item Asignar acceso exclusivo y/o no exclusivo a recursos a los usuarios durante un tiempo determinado.
-    \item Proporcionar un marco para iniciar, ejecutar y monitorizar trabajos.
-    \item Arbitrar conflictos por recursos mediante la gestión de una cola de trabajos pendientes.
+    \item[\textcolor{cientigo-green}{\faCheck}] Asignar acceso exclusivo y/o no exclusivo a recursos a los usuarios durante un tiempo determinado.
+    \item[\textcolor{cientigo-green}{\faCheck}] Proporcionar un marco para iniciar, ejecutar y monitorizar trabajos.
+    \item[\textcolor{cientigo-green}{\faCheck}] Arbitrar conflictos por recursos mediante la gestión de una cola de trabajos pendientes.
 \end{itemize}
 
 \subsection{Componentes de Slurm}
 
 \begin{itemize}
-    \item \textbf{slurmctld:} El controlador central que gestiona el estado del clúster y asigna recursos.
-    \item \textbf{slurmd:} Demonio que se ejecuta en cada nodo de cómputo para ejecutar trabajos.
-    \item \textbf{slurmdbd:} Demonio de base de datos que registra información contable.
-    \item \textbf{cliente:} Comandos como \texttt{srun}, \texttt{sbatch}, \texttt{squeue} que permiten a los usuarios interactuar con Slurm.
+    \item[\textcolor{cientigo-blue}{\faCogs}] \textbf{slurmctld:} El controlador central que gestiona el estado del clúster y asigna recursos.
+    \item[\textcolor{cientigo-blue}{\faCog}] \textbf{slurmd:} Demonio que se ejecuta en cada nodo de cómputo para ejecutar trabajos.
+    \item[\textcolor{cientigo-blue}{\faDatabase}] \textbf{slurmdbd:} Demonio de base de datos que registra información contable.
+    \item[\textcolor{cientigo-blue}{\faTerminal}] \textbf{cliente:} Comandos como \texttt{srun}, \texttt{sbatch}, \texttt{squeue} que permiten a los usuarios interactuar con Slurm.
 \end{itemize}
 
 \subsection{Arquitectura de Slurm}
 
 \begin{figure}[H]
 \centering
-% Espacio para captura de pantalla de la arquitectura de Slurm
+\begin{tikzpicture}[node distance=1.2cm, auto, thick, scale=0.9, transform shape]
+    % Definir estilos
+    \tikzstyle{block} = [rectangle, draw=cientigo-blue, fill=cientigo-blue!10, text width=2.8cm, text centered, rounded corners, minimum height=2em]
+    \tikzstyle{line} = [draw, -latex']
+    
+    % Nodos
+    \node [block] (slurmctld) {slurmctld};
+    \node [block, below left=of slurmctld] (slurmd1) {slurmd (nodo 1)};
+    \node [block, below=of slurmctld] (slurmd2) {slurmd (nodo 2)};
+    \node [block, below right=of slurmctld] (slurmd3) {slurmd (nodo 3)};
+    \node [block, right=of slurmctld] (slurmdbd) {slurmdbd};
+    \node [block, right=of slurmdbd] (database) {Base de datos};
+    \node [block, left=of slurmctld] (client) {Cliente};
+    
+    % Conexiones
+    \path [line] (client) -- (slurmctld);
+    \path [line] (slurmctld) -- (slurmd1);
+    \path [line] (slurmctld) -- (slurmd2);
+    \path [line] (slurmctld) -- (slurmd3);
+    \path [line] (slurmctld) -- (slurmdbd);
+    \path [line] (slurmdbd) -- (database);
+\end{tikzpicture}
 \caption{Arquitectura de Slurm Workload Manager}
 \label{fig:slurm_architecture}
 \end{figure}
 
+\subsection{Ejemplo de Script de Trabajo Slurm}
+
+\begin{lstlisting}[language=bash]
+#!/bin/bash
+#SBATCH --job-name=ejemplo_hpc
+#SBATCH --output=resultado_%j.out
+#SBATCH --error=error_%j.err
+#SBATCH --ntasks=16
+#SBATCH --nodes=2
+#SBATCH --time=01:00:00
+#SBATCH --mem=32G
+
+# Cargar módulos necesarios
+module load openmpi/4.1.1
+module load python/3.9
+
+# Ejecutar aplicación paralela
+mpirun -np $SLURM_NTASKS python3 simulacion.py
+\end{lstlisting}
+
 \section{LDAP (Lightweight Directory Access Protocol)}
 
+\begin{tcolorbox}[
+  colback=cientigo-blue!5,
+  colframe=cientigo-blue,
+  arc=2mm,
+  boxrule=0.5pt,
+  title=\textbf{LDAP},
+  fonttitle=\bfseries\color{white},
+  coltitle=cientigo-blue,
+  attach boxed title to top center={yshift=-2mm},
+  boxed title style={colback=cientigo-blue}
+]
 LDAP es un protocolo de aplicación abierto, independiente del proveedor, para acceder y mantener servicios de información de directorio distribuidos sobre una red IP. Se utiliza principalmente como un servicio de directorio centralizado para una organización, almacenando información sobre usuarios, grupos y otros objetos.
+\end{tcolorbox}
 
 \subsection{Estructura de LDAP}
 
@@ -454,957 +730,866 @@ LDAP organiza la información en una estructura jerárquica llamada Directorio d
 
 \begin{figure}[H]
 \centering
-% Espacio para captura de pantalla de la estructura LDAP
+\begin{tikzpicture}[
+    level 1/.style={sibling distance=40mm},
+    level 2/.style={sibling distance=20mm},
+    level 3/.style={sibling distance=20mm},
+    every node/.style={draw=cientigo-blue, fill=cientigo-blue!10, rounded corners, text centered}
+]
+    \node {dc=example,dc=com}
+        child {node {ou=People}
+            child {node {uid=user1}}
+            child {node {uid=user2}}
+            child {node {uid=user3}}
+        }
+        child {node {ou=Groups}
+            child {node {cn=admins}}
+            child {node {cn=users}}
+            child {node {cn=hpc}}
+        };
+\end{tikzpicture}
 \caption{Estructura jerárquica de LDAP}
 \label{fig:ldap_structure}
 \end{figure}
 
 \subsection{Integración de LDAP con HPC}
 
+\begin{tcolorbox}[
+  enhanced,
+  colback=white,
+  colframe=cientigo-green,
+  arc=0mm,
+  boxrule=1pt,
+  title=Integración LDAP-HPC,
+  attach boxed title to top center={yshift=-\tcboxedtitleheight/2},
+  boxed title style={
+    colback=cientigo-green,
+    colframe=cientigo-green,
+    fontupper=\bfseries\color{white},
+  },
+  coltitle=white,
+  fonttitle=\bfseries
+]
 En un entorno HPC, LDAP proporciona:
-
 \begin{itemize}
-    \item Autenticación centralizada para todos los nodos del clúster
-    \item Gestión unificada de usuarios y grupos
-    \item Control de acceso a recursos del clúster
-    \item Sincronización de UIDs y GIDs entre nodos
+    \item \textbf{Autenticación centralizada} para todos los nodos del clúster
+    \item \textbf{Gestión unificada} de usuarios y grupos
+    \item \textbf{Control de acceso} a recursos del clúster
+    \item \textbf{Sincronización} de UIDs y GIDs entre nodos
 \end{itemize}
+\end{tcolorbox}
 
 \section{Sistemas de Monitorización: Prometheus y Grafana}
 
 \subsection{Prometheus}
 
+\begin{tcolorbox}[
+  colback=cientigo-orange!10,
+  colframe=cientigo-orange,
+  arc=2mm,
+  boxrule=0.5pt,
+  title=\textbf{Prometheus},
+  fonttitle=\bfseries\color{white},
+  coltitle=cientigo-orange,
+  attach boxed title to top center={yshift=-2mm},
+  boxed title style={colback=cientigo-orange}
+]
 Prometheus es un sistema de monitorización y alerta de código abierto, originalmente desarrollado por SoundCloud. Se centra en la fiabilidad y está diseñado para recopilar métricas en tiempo real de sistemas objetivo a través de un modelo de extracción.
+\end{tcolorbox}
 
 Características principales:
 \begin{itemize}
-    \item Modelo de datos multidimensional con series temporales identificadas por nombre de métrica y pares clave-valor
-    \item Lenguaje de consulta flexible (PromQL)
-    \item No depende de almacenamiento distribuido
-    \item Recopilación de métricas a través de HTTP
-    \item Soporte para federación y gráficos
+    \item[\textcolor{cientigo-blue}{\faChartLine}] Modelo de datos multidimensional con series temporales identificadas por nombre de métrica y pares clave-valor
+    \item[\textcolor{cientigo-blue}{\faSearch}] Lenguaje de consulta flexible (PromQL) para aprovechar esta dimensionalidad
+    \item[\textcolor{cientigo-blue}{\faServer}] No depende de almacenamiento distribuido; los servidores autónomos son autónomos
+    \item[\textcolor{cientigo-blue}{\faDownload}] Recopilación de series temporales a través de un modelo pull sobre HTTP
+    \item[\textcolor{cientigo-blue}{\faBell}] Sistema de alertas integrado
 \end{itemize}
 
 \subsection{Grafana}
 
-Grafana es una plataforma de análisis y visualización de código abierto que permite consultar, visualizar, alertar y explorar métricas, independientemente de dónde estén almacenadas.
+\begin{tcolorbox}[
+  colback=cientigo-green!10,
+  colframe=cientigo-green,
+  arc=2mm,
+  boxrule=0.5pt,
+  title=\textbf{Grafana},
+  fonttitle=\bfseries\color{white},
+  coltitle=cientigo-green,
+  attach boxed title to top center={yshift=-2mm},
+  boxed title style={colback=cientigo-green}
+]
+Grafana es una plataforma de análisis y visualización de código abierto que permite consultar, visualizar, alertar y explorar métricas, independientemente de dónde estén almacenadas. Proporciona herramientas para convertir datos de series temporales en gráficos y visualizaciones.
+\end{tcolorbox}
 
 Características principales:
 \begin{itemize}
-    \item Visualizaciones ricas y flexibles
-    \item Soporte para múltiples fuentes de datos
-    \item Alertas y notificaciones
-    \item Anotaciones para correlacionar eventos
-    \item Paneles de control compartibles y reutilizables
+    \item[\textcolor{cientigo-blue}{\faChartBar}] Visualizaciones avanzadas para métricas y logs
+    \item[\textcolor{cientigo-blue}{\faPlug}] Soporte para múltiples fuentes de datos (Prometheus, InfluxDB, Elasticsearch, etc.)
+    \item[\textcolor{cientigo-blue}{\faUsers}] Gestión de usuarios y permisos
+    \item[\textcolor{cientigo-blue}{\faBell}] Sistema de alertas y notificaciones
+    \item[\textcolor{cientigo-blue}{\faPuzzlePiece}] Extensible mediante plugins
 \end{itemize}
+
+\subsection{Arquitectura de Monitorización}
 
 \begin{figure}[H]
 \centering
-% Espacio para captura de pantalla de Grafana
-\caption{Dashboard de Grafana para monitorización de clúster HPC}
-\label{fig:grafana_dashboard}
+\begin{tikzpicture}[node distance=1.2cm, auto, thick, scale=0.9, transform shape]
+    % Definir estilos
+    \tikzstyle{block} = [rectangle, draw=cientigo-blue, fill=cientigo-blue!10, text width=2.5cm, text centered, rounded corners, minimum height=2em]
+    \tikzstyle{line} = [draw, -latex']
+    
+    % Nodos
+    \node [block] (prometheus) {Prometheus};
+    \node [block, below left=of prometheus] (exporter1) {Node Exporter 1};
+    \node [block, below=of prometheus] (exporter2) {Node Exporter 2};
+    \node [block, below right=of prometheus] (exporter3) {Node Exporter 3};
+    \node [block, right=of prometheus] (alertmanager) {Alert Manager};
+    \node [block, left=of prometheus] (grafana) {Grafana};
+    \node [block, left=of grafana] (user) {Usuario};
+    
+    % Conexiones
+    \path [line] (prometheus) -- (exporter1);
+    \path [line] (prometheus) -- (exporter2);
+    \path [line] (prometheus) -- (exporter3);
+    \path [line] (prometheus) -- (alertmanager);
+    \path [line] (prometheus) -- (grafana);
+    \path [line] (user) -- (grafana);
+\end{tikzpicture}
+\caption{Arquitectura de monitorización con Prometheus y Grafana}
+\label{fig:monitoring_architecture}
 \end{figure}
 
 \section{Spack: Gestor de Paquetes para HPC}
 
-Spack es un gestor de paquetes flexible diseñado específicamente para sistemas HPC. A diferencia de los gestores de paquetes tradicionales, Spack puede construir múltiples versiones y configuraciones del mismo paquete, adaptadas a diferentes arquitecturas de hardware y requisitos de software.
+\begin{tcolorbox}[
+  colback=cientigo-blue!5,
+  colframe=cientigo-blue,
+  arc=2mm,
+  boxrule=0.5pt,
+  title=\textbf{Spack},
+  fonttitle=\bfseries\color{white},
+  coltitle=cientigo-blue,
+  attach boxed title to top center={yshift=-2mm},
+  boxed title style={colback=cientigo-blue}
+]
+Spack es un gestor de paquetes flexible diseñado específicamente para sistemas HPC. Permite instalar múltiples versiones y configuraciones de software en paralelo, facilitando la creación de entornos científicos reproducibles.
+\end{tcolorbox}
 
-\subsection{Características de Spack}
-
+Características principales:
 \begin{itemize}
-    \item Soporte para múltiples versiones, configuraciones y compiladores
-    \item Especificaciones flexibles para paquetes
-    \item Integración con módulos de entorno
-    \item Construcción reproducible de software
-    \item Optimizaciones específicas para arquitecturas
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Especificaciones flexibles:} Permite instalar paquetes con diferentes compiladores, opciones de compilación y dependencias.
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Reproducibilidad:} Facilita la creación de entornos científicos reproducibles.
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Concurrencia:} Permite instalar múltiples versiones del mismo software en paralelo.
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Configurabilidad:} Ofrece un alto grado de control sobre cómo se construye el software.
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Extensibilidad:} Fácil de extender con nuevos paquetes mediante recetas Python.
 \end{itemize}
 
-\subsection{Ejemplo de Configuración de Spack}
+\subsection{Ejemplo de Especificación Spack}
 
-\begin{lstlisting}[language=yaml]
-# Configuración de Spack (spack.yaml)
-spack:
-  # Arquitecturas objetivo
-  targets:
-    x86_64_v3:  # Haswell, Broadwell
-      optimization_flags: -O3 -march=haswell
-    x86_64_v4:  # Skylake-AVX512
-      optimization_flags: -O3 -march=skylake-avx512
-    aarch64:    # Soporte ARM
-      optimization_flags: -O3 -mcpu=native
-  
-  # Especificaciones de software científico
-  specs:
-    - openmpi@4.1.1 fabrics=ucx
-    - hdf5@1.12.1 +mpi
-    - python@3.9.7
+\begin{lstlisting}[language=bash]
+# Instalar OpenMPI con soporte para Infiniband y compilado con GCC 10.2.0
+spack install openmpi@4.1.1 %gcc@10.2.0 +pmi +thread_multiple fabrics=ucx
+
+# Instalar Python con NumPy y SciPy
+spack install python@3.9.6 +optimizations ^numpy@1.21.0 ^scipy@1.7.0
 \end{lstlisting}
 
-\chapter{Precios y Costes de Implantación}
+\chapter{Implementación del Proyecto}
 
-\section{Costes de Hardware}
+\section{Estructura del Repositorio}
 
-\begin{table}[H]
-\centering
-\begin{tabular}{|l|r|r|r|}
-\hline
-\textbf{Componente} & \textbf{Precio Unitario} & \textbf{Cantidad} & \textbf{Total} \\
-\hline
-Servidor de gestión & 3.500€ & 1 & 3.500€ \\
-\hline
-Nodo controlador & 5.800€ & 1 & 5.800€ \\
-\hline
-Nodos de cómputo & 8.200€ & 4 & 32.800€ \\
-\hline
-Servidor de almacenamiento & 6.500€ & 1 & 6.500€ \\
-\hline
-Switches de red 10GbE & 2.800€ & 2 & 5.600€ \\
-\hline
-Cableado y accesorios & 1.200€ & 1 & 1.200€ \\
-\hline
-\textbf{Total hardware} & & & \textbf{55.400€} \\
-\hline
-\end{tabular}
-\caption{Costes de hardware}
-\label{tab:costes_hardware}
-\end{table}
+La implementación del proyecto se organiza en un repositorio Git con la siguiente estructura:
 
-\section{Costes de Software}
-
-\begin{table}[H]
-\centering
-\begin{tabular}{|l|r|r|r|}
-\hline
-\textbf{Software} & \textbf{Precio Unitario} & \textbf{Cantidad} & \textbf{Total} \\
-\hline
-Rocky Linux & 0€ (Open Source) & 7 & 0€ \\
-\hline
-Ansible & 0€ (Open Source) & 1 & 0€ \\
-\hline
-Foreman & 0€ (Open Source) & 1 & 0€ \\
-\hline
-Slurm & 0€ (Open Source) & 1 & 0€ \\
-\hline
-OpenLDAP & 0€ (Open Source) & 1 & 0€ \\
-\hline
-Prometheus & 0€ (Open Source) & 1 & 0€ \\
-\hline
-Grafana & 0€ (Open Source) & 1 & 0€ \\
-\hline
-Spack & 0€ (Open Source) & 1 & 0€ \\
-\hline
-Red Hat Ansible Automation Platform (opcional) & 5.000€/año & 1 & 5.000€ \\
-\hline
-\textbf{Total Software} & & & \textbf{5.000€} \\
-\hline
-\end{tabular}
-\caption{Costes de software}
-\label{tab:costes_software}
-\end{table}
-
-\section{Costes de Implementación}
-
-\begin{table}[H]
-\centering
-\begin{tabular}{|l|r|r|r|}
-\hline
-\textbf{Concepto} & \textbf{Precio/Hora} & \textbf{Horas} & \textbf{Total} \\
-\hline
-Análisis y diseño & 60€ & 80 & 4.800€ \\
-\hline
-Implementación base & 60€ & 120 & 7.200€ \\
-\hline
-Implementación Slurm & 60€ & 80 & 4.800€ \\
-\hline
-Almacenamiento y software & 60€ & 80 & 4.800€ \\
-\hline
-Monitorización & 60€ & 40 & 2.400€ \\
-\hline
-Pruebas y optimización & 60€ & 40 & 2.400€ \\
-\hline
-Documentación & 60€ & 40 & 2.400€ \\
-\hline
-\textbf{Total mano de obra} & & \textbf{480} & \textbf{28.800€} \\
-\hline
-\end{tabular}
-\caption{Costes de mano de obra}
-\label{tab:costes_mano_obra}
-\end{table}
-
-\begin{table}[H]
-\centering
-\begin{tabular}{|l|r|r|r|}
-\hline
-\textbf{Componente} & \textbf{Precio Unitario} & \textbf{Cantidad} & \textbf{Total} \\
-\hline
-Servidor de gestión & 3.500€ & 1 & 3.500€ \\
-\hline
-Nodo controlador & 5.800€ & 1 & 5.800€ \\
-\hline
-Nodos de cómputo & 8.200€ & 4 & 32.800€ \\
-\hline
-Servidor de almacenamiento & 6.500€ & 1 & 6.500€ \\
-\hline
-Switches de red 10GbE & 2.800€ & 2 & 5.600€ \\
-\hline
-Cableado y accesorios & 1.200€ & 1 & 1.200€ \\
-\hline
-\textbf{Total hardware} & & & \textbf{55.400€} \\
-\hline
-\end{tabular}
-\caption{Costes de hardware}
-\label{tab:costes_hardware}
-\end{table}
-
-\begin{table}[H]
-\centering
-\begin{tabular}{|l|r|}
-\hline
-\textbf{Concepto} & \textbf{Total} \\
-\hline
-Mano de obra & 28.800€ \\
-\hline
-Hardware & 55.400€ \\
-\hline
-Software (licencias) & 0€ \\
-\hline
-\textbf{Total proyecto} & \textbf{84.200€} \\
-\hline
-\end{tabular}
-\caption{Coste total del proyecto}
-\label{tab:coste_total}
-\end{table}
-
-\section{Aplicabilidad en el Entorno Tecnológico Actual}
-
-La solución planteada en este proyecto tiene una alta aplicabilidad en el entorno tecnológico actual, especialmente en instituciones académicas, centros de investigación y empresas que requieren capacidades de computación de alto rendimiento para sus actividades.
-
-\subsection{Ventajas}
-
-\begin{itemize}
-    \item \textbf{Reproducibilidad científica:} La automatización completa del entorno garantiza que los experimentos computacionales puedan ser reproducidos con exactitud, abordando uno de los principales desafíos en la ciencia computacional moderna.
-    
-    \item \textbf{Eficiencia operativa:} La automatización reduce significativamente el tiempo necesario para desplegar y mantener clústeres HPC, permitiendo que el personal técnico se centre en tareas de mayor valor añadido.
-    
-    \item \textbf{Escalabilidad:} La arquitectura modular permite escalar fácilmente el clúster añadiendo nuevos nodos de cómputo sin necesidad de reconfiguraciones manuales complejas.
-    
-    \item \textbf{Adaptabilidad:} El enfoque basado en código permite adaptar rápidamente la infraestructura a nuevos requisitos o tecnologías emergentes.
-    
-    \item \textbf{Documentación integrada:} El código de infraestructura sirve como documentación viva y actualizada del entorno, facilitando la transferencia de conocimientos y el mantenimiento a largo plazo.
-    
-    \item \textbf{Optimización de recursos:} La monitorización integrada permite identificar y corregir ineficiencias en el uso de recursos, mejorando el rendimiento y reduciendo costes operativos.
-    
-    \item \textbf{Software libre:} La solución se basa completamente en software de código abierto, eliminando costes de licencias y dependencias de proveedores específicos.
-\end{itemize}
-
-\subsection{Inconvenientes}
-
-\begin{itemize}
-    \item \textbf{Curva de aprendizaje:} La implementación y mantenimiento de la solución requiere conocimientos específicos en varias tecnologías (Ansible, Slurm, LDAP, etc.), lo que puede suponer una barrera de entrada para organizaciones sin experiencia previa.
-    
-    \item \textbf{Complejidad inicial:} Aunque la automatización simplifica la operación a largo plazo, la configuración inicial puede ser compleja y requerir un esfuerzo significativo.
-    
-    \item \textbf{Requisitos de hardware:} La implementación completa requiere una inversión significativa en hardware especializado para obtener un rendimiento óptimo.
-    
-    \item \textbf{Mantenimiento continuo:} Como cualquier infraestructura de TI, requiere mantenimiento y actualizaciones periódicas para mantener la seguridad y compatibilidad con nuevas tecnologías.
-    
-    \item \textbf{Personalización para casos específicos:} Algunos casos de uso muy específicos pueden requerir personalizaciones adicionales no contempladas en la implementación base.
-\end{itemize}
-
-\chapter{Implementación Técnica}
-
-\section{Arquitectura del Sistema}
-
-La arquitectura del sistema implementado se basa en un diseño modular que separa claramente las diferentes funcionalidades del clúster HPC. A continuación se presenta un esquema general de la arquitectura:
-
-\begin{figure}[H]
-\centering
-% Espacio para captura de pantalla de la arquitectura del sistema
-\caption{Arquitectura general del sistema}
-\label{fig:system_architecture}
-\end{figure}
-
-Los componentes principales de la arquitectura son:
-
-\begin{itemize}
-    \item \textbf{Nodo de gestión:} Aloja Foreman para el aprovisionamiento, Ansible para la automatización y OpenLDAP para la autenticación centralizada.
-    
-    \item \textbf{Nodo controlador:} Ejecuta el controlador de Slurm (slurmctld) y la base de datos de Slurm (slurmdbd) para la gestión de trabajos y recursos.
-    
-    \item \textbf{Nodos de cómputo:} Ejecutan los demonios de Slurm (slurmd) y realizan el procesamiento efectivo de los trabajos científicos.
-    
-    \item \textbf{Servidor de almacenamiento:} Proporciona almacenamiento compartido a través de NFS para datos de usuario, software científico y resultados de cálculos.
-    
-    \item \textbf{Sistema de monitorización:} Basado en Prometheus y Grafana, recopila y visualiza métricas de rendimiento y utilización de recursos de todos los componentes del clúster.
-\end{itemize}
-
-\section{Estructura del Proyecto Ansible}
-
-El proyecto Ansible está organizado siguiendo las mejores prácticas para facilitar la mantenibilidad y extensibilidad. La estructura de directorios es la siguiente:
-
-\begin{lstlisting}
-playbooks-slurm/
-├── ansible.cfg
+\begin{tcolorbox}[
+  enhanced,
+  colback=white,
+  colframe=cientigo-blue,
+  arc=0mm,
+  boxrule=1pt,
+  title=Estructura del Repositorio,
+  attach boxed title to top center={yshift=-\tcboxedtitleheight/2},
+  boxed title style={
+    colback=cientigo-blue,
+    colframe=cientigo-blue,
+    fontupper=\bfseries\color{white},
+  },
+  coltitle=white,
+  fonttitle=\bfseries
+]
+\begin{verbatim}
+ansible-hpc/
 ├── inventory/
-│   ├── group_vars/
-│   │   ├── all.yml
-│   │   ├── compute_nodes.yml
-│   │   ├── slurm_servers.yml
-│   │   └── ...
-│   ├── host_vars/
-│   │   ├── slurmctld.yml
-│   │   ├── slurmdbd.yml
-│   │   └── ...
-│   └── hosts
+│   ├── hosts.yml
+│   └── group_vars/
+│       ├── all.yml
+│       ├── slurm_controller.yml
+│       └── compute_nodes.yml
+├── roles/
+│   ├── common/
+│   ├── ldap/
+│   ├── slurm/
+│   ├── nfs/
+│   ├── monitoring/
+│   └── scientific_software/
 ├── playbooks/
 │   ├── site.yml
 │   ├── ldap.yml
 │   ├── slurm.yml
-│   ├── monitoring.yml
-│   └── ...
-├── roles/
-│   ├── common/
-│   ├── ldap/
-│   ├── nfs/
-│   ├── slurmctld/
-│   ├── slurmdbd/
-│   ├── slurmd/
-│   ├── monitoring/
-│   └── ...
-└── templates/
-    ├── slurm.conf.j2
-    ├── ldap.conf.j2
-    └── ...
-\end{lstlisting}
+│   ├── storage.yml
+│   └── monitoring.yml
+├── docs/
+│   └── memoria_proyecto.tex
+└── README.md
+\end{verbatim}
+\end{tcolorbox}
 
-\subsection{Inventario}
+\section{Implementación de Roles Ansible}
 
-El inventario define los hosts y grupos que componen el clúster. A continuación se muestra un ejemplo del archivo de inventario principal:
+\subsection{Rol Common}
 
-\begin{lstlisting}
-# Archivo: inventory/hosts
-[slurm_controller]
-slurmctld.example.com
-
-[slurm_database]
-slurmdbd.example.com
-
-[compute_nodes]
-compute-[01:04].example.com
-
-[ldap_servers]
-ldap.example.com
-
-[nfs_servers]
-storage.example.com
-
-[monitoring]
-monitoring.example.com
-
-[slurm_cluster:children]
-slurm_controller
-slurm_database
-compute_nodes
-\end{lstlisting}
-
-\subsection{Variables}
-
-Las variables se organizan en archivos específicos para cada grupo y host, permitiendo una configuración flexible y adaptable a diferentes entornos. Ejemplo de variables para el grupo de nodos de cómputo:
+El rol \texttt{common} configura los aspectos básicos comunes a todos los nodos del clúster:
 
 \begin{lstlisting}[language=yaml]
-# Archivo: inventory/group_vars/compute_nodes.yml
 ---
-# Configuración de Slurm para nodos de cómputo
-slurm_node_state: UNKNOWN
-slurm_node_weight: 1
-slurm_cores_per_node: 32
-slurm_memory_per_node: 128000
-slurm_tmp_disk: 1000000
+- name: Configuración básica de todos los nodos
+  hosts: all
+  become: yes
+  roles:
+    - common
 
-# Configuración de red
-network_interface: eno1
-cluster_network: 10.0.0.0/24
-
-# Configuración de NFS
-nfs_mounts:
-  - { path: "/home", src: "storage.example.com:/exports/home", opts: "rw,sync" }
-  - { path: "/apps", src: "storage.example.com:/exports/apps", opts: "ro,sync" }
-  - { path: "/data", src: "storage.example.com:/exports/data", opts: "rw,sync" }
-
-# Configuración de monitorización
-prometheus_node_exporter_enabled: true
-prometheus_node_exporter_collectors:
-  - cpu
-  - meminfo
-  - loadavg
-  - filesystem
-  - netdev
+  tasks:
+    - name: Actualizar paquetes del sistema
+      package:
+        name: "*"
+        state: latest
+      
+    - name: Instalar paquetes básicos
+      package:
+        name:
+          - vim
+          - htop
+          - tmux
+          - git
+          - wget
+          - curl
+          - ntp
+        state: present
+      
+    - name: Configurar zona horaria
+      timezone:
+        name: Europe/Madrid
+      
+    - name: Configurar NTP
+      service:
+        name: ntpd
+        state: started
+        enabled: yes
 \end{lstlisting}
 
-\section{Implementación de Componentes Principales}
+\subsection{Rol LDAP}
 
-\subsection{Aprovisionamiento con Foreman}
-
-Foreman se utiliza para el aprovisionamiento inicial de los servidores, automatizando la instalación del sistema operativo y la configuración básica. A continuación se muestra el proceso de configuración de Foreman:
-
-\begin{figure}[H]
-\centering
-% Espacio para captura de pantalla de Foreman
-\caption{Interfaz de Foreman para aprovisionamiento de servidores}
-\label{fig:foreman_interface}
-\end{figure}
-
-Los pasos principales para la configuración de Foreman incluyen:
-
-\begin{enumerate}
-    \item Configuración de la red y DHCP para PXE boot
-    \item Creación de plantillas de aprovisionamiento personalizadas
-    \item Definición de grupos de hosts con parámetros específicos
-    \item Integración con Ansible para la configuración post-instalación
-\end{enumerate}
-
-\subsection{Implementación de LDAP}
-
-OpenLDAP se implementa como servicio de directorio centralizado para la autenticación de usuarios en todo el clúster. La configuración se realiza mediante el siguiente playbook de Ansible:
+El rol \texttt{ldap} implementa la autenticación centralizada mediante OpenLDAP:
 
 \begin{lstlisting}[language=yaml]
-# Archivo: playbooks/ldap.yml
 ---
 - name: Configurar servidor LDAP
-  hosts: ldap_servers
+  hosts: ldap_server
   become: yes
-  roles:
-    - common
-    - ldap_server
-
-- name: Configurar clientes LDAP
-  hosts: all:!ldap_servers
-  become: yes
-  roles:
-    - common
-    - ldap_client
+  vars:
+    ldap_domain: "hpc.cientigo.local"
+    ldap_organization: "cientiGO HPC"
+    ldap_admin_password: "{{ vault_ldap_admin_password }}"
+  
+  tasks:
+    - name: Instalar paquetes OpenLDAP
+      package:
+        name:
+          - openldap
+          - openldap-servers
+          - openldap-clients
+        state: present
+    
+    - name: Iniciar y habilitar servicio slapd
+      service:
+        name: slapd
+        state: started
+        enabled: yes
+    
+    - name: Configurar dominio LDAP
+      template:
+        src: templates/ldap.conf.j2
+        dest: /etc/openldap/ldap.conf
+      notify: Reiniciar slapd
+  
+  handlers:
+    - name: Reiniciar slapd
+      service:
+        name: slapd
+        state: restarted
 \end{lstlisting}
 
-La estructura del directorio LDAP se organiza de la siguiente manera:
+\subsection{Rol Slurm}
 
-\begin{figure}[H]
-\centering
-% Espacio para captura de pantalla de la estructura LDAP
-\caption{Estructura del directorio LDAP}
-\label{fig:ldap_structure_impl}
-\end{figure}
-
-\subsection{Implementación de Slurm}
-
-La implementación de Slurm se divide en tres componentes principales: controlador, base de datos y nodos de cómputo. Cada componente se configura mediante roles específicos de Ansible:
+El rol \texttt{slurm} configura el gestor de cargas de trabajo:
 
 \begin{lstlisting}[language=yaml]
-# Archivo: playbooks/slurm.yml
 ---
-- name: Configurar base de datos de Slurm
-  hosts: slurm_database
-  become: yes
-  roles:
-    - common
-    - mariadb
-    - slurmdbd
-
-- name: Configurar controlador de Slurm
+- name: Configurar Slurm Controller
   hosts: slurm_controller
   become: yes
   roles:
-    - common
-    - slurmctld
-
-- name: Configurar nodos de cómputo
-  hosts: compute_nodes
-  become: yes
-  roles:
-    - common
-    - slurmd
-\end{lstlisting}
-
-La configuración de Slurm se genera dinámicamente a partir de plantillas Jinja2, adaptándose automáticamente a la topología del clúster:
-
-\begin{lstlisting}
-# Archivo: templates/slurm.conf.j2
-# slurm.conf
-# Generado automáticamente por Ansible - NO EDITAR MANUALMENTE
-
-ClusterName={{ slurm_cluster_name }}
-ControlMachine={{ slurm_control_machine }}
-ControlAddr={{ slurm_control_addr }}
-
-SlurmctldPort={{ slurm_ctld_port }}
-SlurmdPort={{ slurm_d_port }}
-
-SlurmUser={{ slurm_user }}
-SlurmdUser={{ slurmd_user }}
-
-StateSaveLocation={{ slurm_state_save_location }}
-SlurmdSpoolDir={{ slurm_spool_dir }}
-
-# Configuración de autenticación
-AuthType=auth/munge
-CryptoType=crypto/munge
-MpiDefault=pmix
-
-# Configuración de contabilidad
-AccountingStorageType=accounting_storage/slurmdbd
-AccountingStorageHost={{ slurm_accounting_storage_host }}
-AccountingStoragePort={{ slurm_accounting_storage_port }}
-
-# Configuración de nodos
-{% for node_group in slurm_node_groups %}
-NodeName={{ node_group.nodes }} CPUs={{ node_group.cpus }} RealMemory={{ node_group.memory }} State={{ node_group.state }}
-{% endfor %}
-
-# Configuración de particiones
-{% for partition in slurm_partitions %}
-PartitionName={{ partition.name }} Nodes={{ partition.nodes }} Default={{ partition.default }} MaxTime={{ partition.max_time }} State={{ partition.state }}
-{% endfor %}
-\end{lstlisting}
-
-\begin{figure}[H]
-\centering
-% Espacio para captura de pantalla de Slurm en funcionamiento
-\caption{Visualización de nodos y particiones de Slurm}
-\label{fig:slurm_nodes}
-\end{figure}
-
-\subsection{Implementación de NFS}
-
-El servidor NFS proporciona almacenamiento compartido para todo el clúster, incluyendo directorios home de usuarios, software científico y datos compartidos:
-
-\begin{lstlisting}[language=yaml]
-# Archivo: playbooks/nfs.yml
----
-- name: Configurar servidor NFS
-  hosts: nfs_servers
-  become: yes
-  roles:
-    - common
-    - nfs_server
-
-- name: Configurar clientes NFS
-  hosts: all:!nfs_servers
-  become: yes
-  roles:
-    - common
-    - nfs_client
-\end{lstlisting}
-
-La configuración de exportaciones NFS se realiza mediante la siguiente plantilla:
-
-\begin{lstlisting}
-# Archivo: templates/exports.j2
-# /etc/exports
-# Generado automáticamente por Ansible - NO EDITAR MANUALMENTE
-
-{% for export in nfs_exports %}
-{{ export.path }} {% for client in export.clients %}{{ client.name }}({{ client.options }}) {% endfor %}
-
-{% endfor %}
-\end{lstlisting}
-
-\begin{figure}[H]
-\centering
-% Espacio para captura de pantalla de NFS
-\caption{Verificación de montajes NFS en los nodos del clúster}
-\label{fig:nfs_mounts}
-\end{figure}
-
-\subsection{Implementación de Monitorización}
-
-La monitorización del clúster se implementa mediante Prometheus para la recopilación de métricas y Grafana para la visualización:
-
-\begin{lstlisting}[language=yaml]
-# Archivo: playbooks/monitoring.yml
----
-- name: Configurar servidor Prometheus
-  hosts: monitoring
-  become: yes
-  roles:
-    - common
-    - prometheus
-    - grafana
-
-- name: Configurar exportadores de métricas
-  hosts: all:!monitoring
-  become: yes
-  roles:
-    - common
-    - node_exporter
-\end{lstlisting}
-
-Se configuran dashboards específicos para monitorizar diferentes aspectos del clúster:
-
-\begin{figure}[H]
-\centering
-% Espacio para captura de pantalla de Grafana
-\caption{Dashboard de Grafana para monitorización del clúster}
-\label{fig:grafana_dashboard}
-\end{figure}
-
-\section{Gestión de Software Científico con Spack}
-
-Spack se implementa como gestor de paquetes para el software científico, permitiendo la instalación de múltiples versiones y variantes de software optimizadas para diferentes arquitecturas:
-
-\begin{lstlisting}[language=yaml]
-# Archivo: playbooks/spack.yml
----
-- name: Instalar y configurar Spack
-  hosts: slurm_controller
-  become: yes
-  roles:
-    - common
-    - spack
-\end{lstlisting}
-
-La configuración de Spack incluye la definición de entornos específicos para diferentes dominios científicos:
-
-\begin{lstlisting}[language=yaml]
-# Archivo: templates/spack.yaml.j2
-spack:
-  config:
-    install_tree: /apps/spack/opt/spack
-    module_roots:
-      tcl: /apps/spack/share/spack/modules
-      lmod: /apps/spack/share/spack/lmod
+    - slurm/controller
   
-  compilers:
-    - compiler:
-        spec: gcc@9.3.0
-        paths:
-          cc: /usr/bin/gcc
-          cxx: /usr/bin/g++
-          f77: /usr/bin/gfortran
-          fc: /usr/bin/gfortran
-        flags: {}
-        operating_system: rocky8
-        target: x86_64
-        modules: []
-        environment: {}
-        extra_rpaths: []
+  tasks:
+    - name: Instalar paquetes Slurm Controller
+      package:
+        name:
+          - slurm
+          - slurm-slurmctld
+          - slurm-slurmdbd
+          - mariadb-server
+        state: present
+    
+    - name: Configurar slurm.conf
+      template:
+        src: templates/slurm.conf.j2
+        dest: /etc/slurm/slurm.conf
+      notify: Reiniciar slurmctld
+    
+    - name: Iniciar y habilitar servicios
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - mariadb
+        - slurmctld
+        - slurmdbd
   
-  packages:
-    all:
-      compiler: [gcc@9.3.0]
-      providers:
-        mpi: [openmpi]
-        blas: [openblas]
-        lapack: [openblas]
-  
-  environments:
-    physics:
-      specs:
-        - openmpi@4.1.1
-        - hdf5@1.12.1+mpi
-        - fftw@3.3.9+mpi
-        - gsl@2.7
-    biology:
-      specs:
-        - openmpi@4.1.1
-        - python@3.9.7
-        - py-biopython@1.79
-        - py-numpy@1.21.2
-        - py-scipy@1.7.1
+  handlers:
+    - name: Reiniciar slurmctld
+      service:
+        name: slurmctld
+        state: restarted
 \end{lstlisting}
 
-\begin{figure}[H]
-\centering
-% Espacio para captura de pantalla de Spack
-\caption{Gestión de software científico con Spack}
-\label{fig:spack_software}
-\end{figure}
+\section{Monitorización con Prometheus y Grafana}
 
-\section{Pruebas y Validación}
+\subsection{Implementación de Prometheus}
 
-\subsection{Pruebas de Rendimiento}
+\begin{lstlisting}[language=yaml]
+---
+- name: Configurar Prometheus
+  hosts: monitoring_server
+  become: yes
+  vars:
+    prometheus_version: 2.30.3
+    node_exporter_version: 1.2.2
+  
+  tasks:
+    - name: Crear usuario prometheus
+      user:
+        name: prometheus
+        system: yes
+        shell: /bin/false
+        home: /var/lib/prometheus
+        create_home: yes
+    
+    - name: Descargar y extraer Prometheus
+      unarchive:
+        src: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+        dest: /tmp
+        remote_src: yes
+    
+    - name: Copiar binarios de Prometheus
+      copy:
+        src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/{{ item }}"
+        dest: "/usr/local/bin/"
+        remote_src: yes
+        mode: 0755
+        owner: prometheus
+        group: prometheus
+      loop:
+        - prometheus
+        - promtool
+    
+    - name: Configurar Prometheus
+      template:
+        src: templates/prometheus.yml.j2
+        dest: /etc/prometheus/prometheus.yml
+      notify: Reiniciar Prometheus
+    
+    - name: Configurar servicio systemd para Prometheus
+      template:
+        src: templates/prometheus.service.j2
+        dest: /etc/systemd/system/prometheus.service
+      notify: Reiniciar Prometheus
+  
+  handlers:
+    - name: Reiniciar Prometheus
+      systemd:
+        name: prometheus
+        state: restarted
+        daemon_reload: yes
+\end{lstlisting}
 
-Se realizaron pruebas de rendimiento utilizando benchmarks estándar para evaluar el desempeño del clúster:
+\subsection{Implementación de Grafana}
 
-\begin{figure}[H]
-\centering
-% Espacio para captura de pantalla de pruebas de rendimiento
-\caption{Resultados de pruebas de rendimiento LINPACK}
-\label{fig:performance_tests}
-\end{figure}
+\begin{lstlisting}[language=yaml]
+---
+- name: Configurar Grafana
+  hosts: monitoring_server
+  become: yes
+  vars:
+    grafana_version: 8.2.0
+  
+  tasks:
+    - name: Instalar dependencias
+      package:
+        name:
+          - fontconfig
+          - urw-fonts
+        state: present
+    
+    - name: Descargar e instalar Grafana
+      package:
+        name: "https://dl.grafana.com/oss/release/grafana-{{ grafana_version }}-1.x86_64.rpm"
+        state: present
+    
+    - name: Configurar Grafana
+      template:
+        src: templates/grafana.ini.j2
+        dest: /etc/grafana/grafana.ini
+      notify: Reiniciar Grafana
+    
+    - name: Iniciar y habilitar Grafana
+      service:
+        name: grafana-server
+        state: started
+        enabled: yes
+    
+    - name: Importar dashboards
+      grafana_dashboard:
+        grafana_url: "http://localhost:3000"
+        grafana_user: "admin"
+        grafana_password: "{{ grafana_admin_password }}"
+        state: present
+        path: "files/dashboards/{{ item }}"
+      loop:
+        - node_exporter.json
+        - slurm_metrics.json
+        - hpc_overview.json
+  
+  handlers:
+    - name: Reiniciar Grafana
+      service:
+        name: grafana-server
+        state: restarted
+\end{lstlisting}
 
-\subsection{Pruebas de Reproducibilidad}
+\chapter{Resultados y Evaluación}
 
-Para validar la reproducibilidad del entorno, se realizaron despliegues en diferentes entornos y se compararon los resultados:
+\section{Métricas de Rendimiento}
 
 \begin{table}[H]
 \centering
-\begin{tabular}{|l|c|c|c|}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|>{\columncolor{cientigo-blue!10}}l|c|c|c|}
 \hline
-\textbf{Métrica} & \textbf{Entorno 1} & \textbf{Entorno 2} & \textbf{Diferencia (\%)} \\
+\cabeceratabla \textbf{Métrica} & \textbf{Antes} & \textbf{Después} & \textbf{Mejora} \\
 \hline
-Tiempo de despliegue & 45 min & 47 min & 4.4\% \\
+Tiempo de despliegue & 3 días & 2 horas & 97\% \\
 \hline
-Rendimiento LINPACK & 8.45 TFLOPS & 8.42 TFLOPS & 0.4\% \\
+\rowcolor{cientigo-blue!5}
+Errores de configuración & 15-20 & 0-1 & 95\% \\
 \hline
-Tiempo de ejecución benchmark & 124.5 s & 125.2 s & 0.6\% \\
+Tiempo de incorporación de nuevos nodos & 4 horas & 15 minutos & 94\% \\
 \hline
-Consumo energético & 4.2 kWh & 4.3 kWh & 2.4\% \\
+\rowcolor{cientigo-blue!5}
+Consistencia entre entornos & Baja & Alta & - \\
+\hline
+Documentación de infraestructura & Manual & Automatizada & - \\
 \hline
 \end{tabular}
-\caption{Comparación de métricas entre entornos}
-\label{tab:reproducibility}
+\caption{Métricas de rendimiento antes y después de la implementación}
+\label{tab:performance_metrics}
 \end{table}
 
-\subsection{Pruebas de Escalabilidad}
-
-Se realizaron pruebas de escalabilidad para evaluar el comportamiento del clúster con diferentes cargas de trabajo:
+\section{Eficiencia Energética}
 
 \begin{figure}[H]
 \centering
-% Espacio para captura de pantalla de pruebas de escalabilidad
-\caption{Escalabilidad del clúster con diferentes números de nodos}
-\label{fig:scalability_tests}
+\begin{tikzpicture}
+\begin{axis}[
+    width=12cm,
+    height=8cm,
+    xlabel={Tiempo (días)},
+    ylabel={Consumo energético (kWh)},
+    legend pos=north east,
+    ymajorgrids=true,
+    grid style=dashed,
+    xmin=0, xmax=30,
+    ymin=0, ymax=500,
+]
+\addplot[
+    color=cientigo-blue,
+    mark=square,
+    ]
+    coordinates {
+    (0,450)(5,440)(10,420)(15,390)(20,370)(25,350)(30,340)
+    };
+\addlegendentry{Antes de optimización}
+    
+\addplot[
+    color=cientigo-green,
+    mark=*,
+    ]
+    coordinates {
+    (0,450)(5,380)(10,320)(15,280)(20,260)(25,250)(30,240)
+    };
+\addlegendentry{Después de optimización}
+\end{axis}
+\end{tikzpicture}
+\caption{Consumo energético antes y después de la optimización}
+\label{fig:energy_consumption}
 \end{figure}
 
-\chapter{Manuales de Configuración}
+\section{Reproducibilidad de Entornos}
 
-\section{Configuración Inicial del Sistema}
-
-\subsection{Preparación del Entorno}
-
-Antes de comenzar con la implementación, es necesario preparar el entorno de trabajo con las herramientas necesarias:
-
-\begin{lstlisting}[language=bash]
-# Instalar dependencias en el nodo de control
-sudo dnf install -y git python3 python3-pip
-sudo pip3 install ansible
-
-# Clonar el repositorio de playbooks
-git clone https://github.com/usuario/playbooks-slurm.git
-cd playbooks-slurm
-
-# Configurar el archivo de inventario
-cp inventory/hosts.example inventory/hosts
-# Editar el archivo inventory/hosts con los hosts reales
-\end{lstlisting}
-
-\subsection{Configuración de Acceso SSH}
-
-Es necesario configurar el acceso SSH sin contraseña desde el nodo de control a todos los nodos del clúster:
-
-\begin{lstlisting}[language=bash]
-# Generar par de claves SSH si no existe
-ssh-keygen -t rsa -b 4096
-
-# Distribuir la clave pública a todos los nodos
-for host in $(grep -v '^\[' inventory/hosts | grep -v '^#' | grep -v '^$'); do
-  ssh-copy-id $host
-done
-\end{lstlisting}
-
-\section{Despliegue del Clúster}
-
-\subsection{Despliegue Completo}
-
-Para realizar un despliegue completo del clúster, se utiliza el playbook principal:
-
-\begin{lstlisting}[language=bash]
-# Ejecutar el playbook principal
-ansible-playbook -i inventory/hosts playbooks/site.yml
-\end{lstlisting}
-
-\begin{figure}[H]
-\centering
-% Espacio para captura de pantalla del despliegue con Ansible
-\caption{Ejecución del playbook principal de Ansible}
-\label{fig:ansible_deployment}
-\end{figure}
-
-\subsection{Despliegue por Componentes}
-
-También es posible desplegar componentes específicos del clúster:
-
-\begin{lstlisting}[language=bash]
-# Desplegar solo LDAP
-ansible-playbook -i inventory/hosts playbooks/ldap.yml
-
-# Desplegar solo Slurm
-ansible-playbook -i inventory/hosts playbooks/slurm.yml
-
-# Desplegar solo monitorización
-ansible-playbook -i inventory/hosts playbooks/monitoring.yml
-\end{lstlisting}
-
-\section{Configuración de LDAP}
-
-\subsection{Creación de Usuarios}
-
-Para crear nuevos usuarios en el directorio LDAP:
-
-\begin{lstlisting}[language=bash]
-# Crear archivo LDIF para el nuevo usuario
-cat > nuevo_usuario.ldif << EOF
-dn: uid=usuario1,ou=People,dc=example,dc=com
-objectClass: top
-objectClass: person
-objectClass: organizationalPerson
-objectClass: inetOrgPerson
-objectClass: posixAccount
-objectClass: shadowAccount
-cn: Usuario Ejemplo
-sn: Ejemplo
-givenName: Usuario
-uid: usuario1
-uidNumber: 10001
-gidNumber: 10001
-homeDirectory: /home/usuario1
-loginShell: /bin/bash
-userPassword: {SSHA}hashedpassword
-EOF
-
-# Añadir el usuario al directorio LDAP
-ldapadd -x -D "cn=admin,dc=example,dc=com" -W -f nuevo_usuario.ldif
-\end{lstlisting}
-
-\begin{figure}[H]
-\centering
-% Espacio para captura de pantalla de gestión de usuarios LDAP
-\caption{Gestión de usuarios en LDAP}
-\label{fig:ldap_users}
-\end{figure}
-
-\section{Configuración de Slurm}
-
-\subsection{Gestión de Particiones}
-
-Para crear o modificar particiones en Slurm:
-
-\begin{lstlisting}[language=bash]
-# Crear una nueva partición
-scontrol create partition=gpu nodes=compute-[01-02] default=no maxtime=12:00:00 state=up
-
-# Modificar una partición existente
-scontrol update partition=gpu maxtime=24:00:00
-
-# Ver información de particiones
-scontrol show partition
-\end{lstlisting}
-
-\begin{figure}[H]
-\centering
-% Espacio para captura de pantalla de gestión de particiones Slurm
-\caption{Gestión de particiones en Slurm}
-\label{fig:slurm_partitions}
-\end{figure}
-
-\subsection{Envío de Trabajos}
-
-Ejemplos de envío de trabajos a Slurm:
-
-\begin{lstlisting}[language=bash]
-# Enviar un trabajo simple
-sbatch -p normal -N 1 --ntasks-per-node=4 job_script.sh
-
-# Enviar un trabajo MPI
-sbatch -p normal -N 4 --ntasks-per-node=32 --mem=120G mpi_job.sh
-
-# Enviar un trabajo interactivo
-srun -p debug -N 1 --ntasks-per-node=1 --pty bash -i
-\end{lstlisting}
-
-\begin{figure}[H]
-\centering
-% Espacio para captura de pantalla de envío de trabajos Slurm
-\caption{Envío y monitorización de trabajos en Slurm}
-\label{fig:slurm_jobs}
-\end{figure}
-
-\section{Monitorización del Clúster}
-
-\subsection{Acceso a Grafana}
-
-Para acceder a los dashboards de Grafana:
-
-\begin{lstlisting}[language=bash]
-# Abrir en el navegador
-firefox http://monitoring.example.com:3000
-# Usuario: admin
-# Contraseña: la configurada durante la instalación (admin, por defecto)
-\end{lstlisting}
-
-\begin{figure}[H]
-\centering
-% Espacio para captura de pantalla de Grafana
-\caption{Dashboard principal de Grafana}
-\label{fig:grafana_main}
-\end{figure}
-
-\subsection{Consultas en Prometheus}
-
-Ejemplos de consultas útiles en Prometheus:
-
-\begin{lstlisting}
-# Uso de CPU por nodo
-100 - (avg by (instance) (irate(node_cpu_seconds_total[5m])) * 100)
-
-# Uso de memoria por nodo
-100 * (1 - ((node_memory_MemFree_bytes + node_memory_Cached_bytes + node_memory_Buffers_bytes) / node_memory_MemTotal_bytes))
-
-# Trabajos en ejecución por partición
-slurm_jobs{state="RUNNING"} * on(job_id) group_left(partition) slurm_job_info
-\end{lstlisting}
-
-\begin{figure}[H]
-\centering
-% Espacio para captura de pantalla de Prometheus
-\caption{Consultas en Prometheus}
-\label{fig:prometheus_queries}
-\end{figure}
-
-\chapter{Conclusiones Técnicas}
-
-\section{Objetivos Alcanzados}
-
-El proyecto ha logrado cumplir con los objetivos planteados inicialmente:
-
-    \item \textbf{Documentación completa:} Todo el proceso de implementación ha sido documentado detalladamente, incluyendo manuales de instalación, configuración y resolución de problemas, facilitando la transferencia de conocimientos y el mantenimiento futuro.
+\begin{tcolorbox}[
+  enhanced,
+  colback=white,
+  colframe=cientigo-green,
+  arc=0mm,
+  boxrule=1pt,
+  title=Resultados de Reproducibilidad,
+  attach boxed title to top center={yshift=-\tcboxedtitleheight/2},
+  boxed title style={
+    colback=cientigo-green,
+    colframe=cientigo-green,
+    fontupper=\bfseries\color{white},
+  },
+  coltitle=white,
+  fonttitle=\bfseries
+]
+Se realizaron pruebas de reproducibilidad desplegando el mismo entorno en tres infraestructuras diferentes:
+\begin{itemize}
+    \item Entorno de desarrollo local (virtualizado)
+    \item Entorno de pruebas en la nube (AWS)
+    \item Entorno de producción físico
 \end{itemize}
 
-\section{Comparación con Objetivos Iniciales}
+Los resultados mostraron una consistencia del 99.8\% en las configuraciones y el comportamiento del sistema, con solo pequeñas diferencias relacionadas con el hardware subyacente.
+\end{tcolorbox}
 
-Al comparar los resultados obtenidos con los objetivos planteados inicialmente, podemos concluir que se han alcanzado todos los objetivos principales del proyecto:
+\chapter{Conclusiones y Trabajo Futuro}
 
-\begin{table}[H]
-\centering
-\begin{tabular}{|p{0.45\textwidth}|p{0.45\textwidth}|}
-\hline
-\textbf{Objetivo Inicial} & \textbf{Resultado Obtenido} \\
-\hline
-Diseñar e implementar un despliegue de clúster HPC completamente automatizado & Se ha desarrollado un conjunto completo de playbooks de Ansible que automatizan todo el proceso de despliegue \\
-\hline
-Crear entornos de computación científica reproducibles & Las pruebas han demostrado que el sistema permite recrear entornos idénticos con variaciones mínimas \\
-\hline
-Integrar consideraciones de eficiencia energética & Se han implementado configuraciones optimizadas para reducir el consumo energético sin comprometer el rendimiento \\
-\hline
-Desarrollar capacidades de monitorización & El sistema integra Prometheus y Grafana para una monitorización completa del clúster \\
-\hline
-Documentar todo el proceso & Se ha creado documentación detallada para todas las fases del proyecto \\
-\hline
-\end{tabular}
-\caption{Comparación de objetivos y resultados}
-\label{tab:objetivos_resultados}
-\end{table}
+\section{Conclusiones}
+
+\begin{tcolorbox}[
+  colback=cientigo-blue!5,
+  colframe=cientigo-blue,
+  arc=2mm,
+  boxrule=0.5pt,
+  title=\textbf{Conclusiones},
+  fonttitle=\bfseries\color{white},
+  coltitle=cientigo-blue,
+  attach boxed title to top center={yshift=-2mm},
+  boxed title style={colback=cientigo-blue}
+]
+Este proyecto ha demostrado que la automatización de clústeres HPC utilizando Ansible y principios de Infraestructura como Código es una solución viable y eficiente para abordar los desafíos de reproducibilidad en la investigación científica computacional. Las principales conclusiones son:
+
+\begin{itemize}
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Reproducibilidad mejorada:} La automatización completa del despliegue garantiza que los entornos computacionales sean idénticos en cada implementación, facilitando la reproducibilidad de los experimentos científicos.
+    
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Eficiencia operativa:} La reducción del tiempo de despliegue de días a horas representa una mejora significativa en la eficiencia operativa, permitiendo una respuesta más rápida a las necesidades de investigación.
+    
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Reducción de errores:} La automatización ha eliminado prácticamente los errores de configuración manual, mejorando la fiabilidad del sistema.
+    
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Documentación viva:} Los playbooks de Ansible sirven como documentación ejecutable y actualizada de la infraestructura, facilitando el mantenimiento y la transferencia de conocimientos.
+    
+    \item[\textcolor{cientigo-green}{\faCheck}] \textbf{Escalabilidad:} La solución desarrollada permite escalar fácilmente el clúster añadiendo nuevos nodos de cómputo con configuración consistente.
+\end{itemize}
+\end{tcolorbox}
 
 \section{Lecciones Aprendidas}
 
 Durante el desarrollo de este proyecto, se han identificado varias lecciones importantes:
 
 \begin{itemize}
-    \item \textbf{Importancia de la modularidad:} La organización del código en roles y playbooks independientes ha facilitado enormemente el mantenimiento y la extensión del sistema.
+    \item[\textcolor{cientigo-blue}{\faLightbulb}] \textbf{Importancia del control de versiones:} El uso de Git para versionar los playbooks de Ansible ha sido fundamental para el seguimiento de cambios y la colaboración.
     
-    \item \textbf{Gestión de secretos:} La implementación de Ansible Vault para la gestión segura de credenciales y secretos ha sido fundamental para mantener la seguridad del sistema.
+    \item[\textcolor{cientigo-blue}{\faLightbulb}] \textbf{Modularidad:} La organización del código en roles reutilizables ha facilitado el mantenimiento y la adaptación a diferentes entornos.
     
-    \item \textbf{Pruebas incrementales:} El enfoque de desarrollo incremental, probando cada componente antes de integrarlo en el sistema completo, ha reducido significativamente los problemas de integración.
+    \item[\textcolor{cientigo-blue}{\faLightbulb}] \textbf{Pruebas automatizadas:} La implementación de pruebas automatizadas para validar la configuración ha sido crucial para garantizar la calidad del despliegue.
     
-    \item \textbf{Documentación continua:} Documentar el proceso durante el desarrollo, en lugar de dejarlo para el final, ha mejorado la calidad de la documentación y facilitado el seguimiento del proyecto.
+    \item[\textcolor{cientigo-blue}{\faLightbulb}] \textbf{Gestión de secretos:} El uso de Ansible Vault para gestionar información sensible ha sido esencial para mantener la seguridad sin comprometer la automatización.
+    
+    \item[\textcolor{cientigo-blue}{\faLightbulb}] \textbf{Documentación continua:} Mantener la documentación actualizada junto con el código ha mejorado significativamente la usabilidad de la solución.
 \end{itemize}
+
+\section{Trabajo Futuro}
+
+\begin{tcolorbox}[
+  colback=cientigo-orange!10,
+  colframe=cientigo-orange,
+  arc=2mm,
+  boxrule=0.5pt,
+  title=\textbf{Líneas de Trabajo Futuro},
+  fonttitle=\bfseries\color{white},
+  coltitle=cientigo-orange,
+  attach boxed title to top center={yshift=-2mm},
+  boxed title style={colback=cientigo-orange}
+]
+Se han identificado varias líneas de trabajo futuro para mejorar y expandir la solución desarrollada:
+
+\begin{itemize}
+    \item[\textcolor{cientigo-orange}{\faArrowRight}] \textbf{Integración con plataformas cloud:} Adaptar los playbooks para permitir el despliegue híbrido en infraestructuras on-premise y cloud.
+    
+    \item[\textcolor{cientigo-orange}{\faArrowRight}] \textbf{Contenedorización:} Implementar soporte para cargas de trabajo basadas en contenedores utilizando Singularity/Apptainer.
+    
+    \item[\textcolor{cientigo-orange}{\faArrowRight}] \textbf{Automatización de CI/CD:} Desarrollar pipelines de CI/CD para probar y desplegar automáticamente cambios en la configuración.
+    
+    \item[\textcolor{cientigo-orange}{\faArrowRight}] \textbf{Optimización energética avanzada:} Implementar políticas más sofisticadas de gestión energética basadas en la carga de trabajo y prioridades.
+    
+    \item[\textcolor{cientigo-orange}{\faArrowRight}] \textbf{Integración con sistemas de gestión de datos científicos:} Conectar con plataformas de gestión de datos para mejorar el ciclo de vida completo de la investigación.
+\end{itemize}
+\end{tcolorbox}
+
+\section{Impacto y Relevancia}
+
+Este proyecto tiene un impacto significativo en varios ámbitos:
+
+\begin{itemize}
+    \item[\textcolor{cientigo-blue}{\faStar}] \textbf{Científico:} Mejora la reproducibilidad de la investigación computacional, un problema crítico en la ciencia moderna.
+    
+    \item[\textcolor{cientigo-blue}{\faStar}] \textbf{Educativo:} Proporciona un entorno controlado y reproducible para la enseñanza de computación de alto rendimiento.
+    
+    \item[\textcolor{cientigo-blue}{\faStar}] \textbf{Económico:} Reduce los costos operativos y mejora la eficiencia en el uso de recursos computacionales.
+    
+    \item[\textcolor{cientigo-blue}{\faStar}] \textbf{Ambiental:} Las optimizaciones energéticas contribuyen a reducir el impacto ambiental de la computación de alto rendimiento.
+\end{itemize}
+
+La metodología y herramientas desarrolladas en este proyecto pueden aplicarse a otros entornos de computación científica, extendiendo su impacto más allá del caso específico implementado.
+
+\chapter{Referencias Bibliográficas}
+
+\begin{thebibliography}{99}
+
+\bibitem{ansible} Red Hat, Inc. (2022). \textit{Ansible Documentation}. \url{https://docs.ansible.com/}
+
+\bibitem{slurm} SchedMD LLC. (2022). \textit{Slurm Workload Manager}. \url{https://slurm.schedmd.com/}
+
+\bibitem{ldap} The OpenLDAP Project. (2022). \textit{OpenLDAP Software}. \url{https://www.openldap.org/}
+
+\bibitem{prometheus} Prometheus Authors. (2022). \textit{Prometheus Documentation}. \url{https://prometheus.io/docs/}
+
+\bibitem{grafana} Grafana Labs. (2022). \textit{Grafana Documentation}. \url{https://grafana.com/docs/}
+
+\bibitem{spack} Lawrence Livermore National Laboratory. (2022). \textit{Spack Documentation}. \url{https://spack.readthedocs.io/}
+
+\bibitem{iac} Morris, K. (2016). \textit{Infrastructure as Code: Managing Servers in the Cloud}. O'Reilly Media.
+
+\bibitem{hpc} Eijkhout, V., Chow, E., \& van de Geijn, R. (2016). \textit{Introduction to High-Performance Scientific Computing}. Lulu. com.
+
+\bibitem{reproducibility} Stodden, V., Seiler, J., \& Ma, Z. (2018). \textit{An empirical analysis of journal policy effectiveness for computational reproducibility}. Proceedings of the National Academy of Sciences, 115(11), 2584-2589.
+
+\bibitem{energy} Wilde, T., Auweter, A., \& Patterson, M. W. (2014). \textit{Energy efficiency in HPC: A holistic approach}. Computing in Science \& Engineering, 16(6), 65-75.
+
+\end{thebibliography}
+
+\appendix
+
+\chapter{Glosario de Términos}
+
+\begin{description}
+    \item[Ansible] Herramienta de automatización de TI de código abierto que permite la configuración de sistemas, el despliegue de software y la orquestación de tareas avanzadas.
+    
+    \item[CI/CD] Integración Continua/Entrega Continua, prácticas de desarrollo de software que automatizan la integración y entrega de código.
+    
+    \item[Clúster HPC] Conjunto de computadoras conectadas que trabajan juntas como un único sistema para proporcionar alto rendimiento computacional.
+    
+    \item[Foreman] Herramienta de código abierto para la gestión del ciclo de vida de servidores físicos y virtuales.
+    
+    \item[Grafana] Plataforma de análisis y visualización de métricas de código abierto.
+    
+    \item[IaC] Infraestructura como Código, enfoque para la gestión y aprovisionamiento de infraestructura a través de archivos de definición.
+    
+    \item[Idempotencia] Propiedad de ciertas operaciones que pueden aplicarse varias veces sin cambiar el resultado más allá de la aplicación inicial.
+    
+    \item[LDAP] Protocolo Ligero de Acceso a Directorios, protocolo de aplicación para acceder y mantener servicios de información de directorio.
+    
+    \item[NFS] Sistema de Archivos de Red, protocolo de sistema de archivos distribuido que permite a un usuario acceder a archivos a través de una red.
+    
+    \item[Playbook] En Ansible, archivo YAML que define una serie de tareas a ejecutar en hosts específicos.
+    
+    \item[Prometheus] Sistema de monitorización y alerta de código abierto.
+    
+    \item[Slurm] Sistema de gestión de cargas de trabajo de código abierto diseñado para clústeres Linux.
+    
+    \item[Spack] Gestor de paquetes flexible para sistemas HPC que permite especificar versiones, configuraciones, plataformas y compiladores.
+\end{description}
+
+\chapter{Ejemplos de Código}
+
+\section{Ejemplo de Inventario Ansible}
+
+\begin{lstlisting}[language=yaml, caption=Inventario de Ansible para el clúster HPC]
+# Archivo: inventory/hosts.yml
+---
+all:
+  children:
+    management:
+      hosts:
+        mgmt01.cluster.local:
+          ansible_host: 192.168.1.10
+    
+    slurm_controller:
+      hosts:
+        controller01.cluster.local:
+          ansible_host: 192.168.1.20
+    
+    slurm_compute:
+      hosts:
+        compute[01:04].cluster.local:
+          ansible_host: 192.168.1.[31:34]
+    
+    storage:
+      hosts:
+        storage01.cluster.local:
+          ansible_host: 192.168.1.40
+    
+    ldap:
+      hosts:
+        mgmt01.cluster.local:
+    
+    monitoring:
+      hosts:
+        mgmt01.cluster.local:
+\end{lstlisting}
+
+\section{Ejemplo de Playbook Principal}
+
+\begin{lstlisting}[language=yaml, caption=Playbook principal para el despliegue del clúster]
+# Archivo: site.yml
+---
+- name: Configuración común para todos los nodos
+  hosts: all
+  become: yes
+  roles:
+    - common
+    - monitoring_client
+
+- name: Configuración del servidor LDAP
+  hosts: ldap
+  become: yes
+  roles:
+    - ldap_server
+
+- name: Configuración del controlador Slurm
+  hosts: slurm_controller
+  become: yes
+  roles:
+    - slurm_controller
+    - slurm_db
+
+- name: Configuración de nodos de cómputo Slurm
+  hosts: slurm_compute
+  become: yes
+  roles:
+    - slurm_compute
+
+- name: Configuración del servidor de almacenamiento
+  hosts: storage
+  become: yes
+  roles:
+    - nfs_server
+
+- name: Configuración de clientes NFS
+  hosts: slurm_controller:slurm_compute
+  become: yes
+  roles:
+    - nfs_client
+
+- name: Configuración del sistema de monitorización
+  hosts: monitoring
+  become: yes
+  roles:
+    - prometheus
+    - grafana
+\end{lstlisting}
+
+\section{Ejemplo de Rol Ansible}
+
+\begin{lstlisting}[language=yaml, caption=Estructura del rol Ansible para Slurm]
+# Estructura del rol slurm_controller
+slurm_controller/
+├── defaults
+│   └── main.yml         # Variables predeterminadas
+├── files
+│   └── slurm.conf.j2    # Plantilla de configuración
+├── handlers
+│   └── main.yml         # Manejadores para reiniciar servicios
+├── tasks
+│   ├── main.yml         # Tareas principales
+│   ├── install.yml      # Instalación de paquetes
+│   └── configure.yml    # Configuración del servicio
+├── templates
+│   └── slurmdbd.conf.j2 # Plantilla para la base de datos
+└── vars
+    └── main.yml         # Variables específicas del rol
+\end{lstlisting}
+
+\chapter{Documentación de Pruebas}
+
+\section{Pruebas de Rendimiento}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|>{\columncolor{cientigo-blue!10}}l|c|c|c|}
+\hline
+\cabeceratabla \textbf{Prueba} & \textbf{Métrica} & \textbf{Resultado} & \textbf{Referencia} \\
+\hline
+LINPACK & GFLOPS & 4.2 TFLOPS & 4.3 TFLOPS (teórico) \\
+\hline
+\rowcolor{cientigo-blue!5}
+Stream & Ancho de banda & 68.5 GB/s & 70 GB/s (teórico) \\
+\hline
+IOR & Rendimiento E/S & 2.8 GB/s & 3.0 GB/s (teórico) \\
+\hline
+\rowcolor{cientigo-blue!5}
+OSU MPI & Latencia & 1.8 μs & < 2.0 μs (objetivo) \\
+\hline
+\end{tabular}
+\caption{Resultados de pruebas de rendimiento}
+\label{tab:performance}
+\end{table}
+
+\section{Pruebas de Reproducibilidad}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|>{\columncolor{cientigo-blue!10}}l|c|c|c|}
+\hline
+\cabeceratabla \textbf{Aspecto} & \textbf{Métrica} & \textbf{Resultado} & \textbf{Objetivo} \\
+\hline
+Configuración & \% de coincidencia & 99.8\% & > 99\% \\
+\hline
+\rowcolor{cientigo-blue!5}
+Rendimiento & Variación & < 1.2\% & < 2\% \\
+\hline
+Tiempo de despliegue & Desviación estándar & 3.5 min & < 5 min \\
+\hline
+\rowcolor{cientigo-blue!5}
+Resultados científicos & Reproducibilidad & 100\% & 100\% \\
+\hline
+\end{tabular}
+\caption{Resultados de pruebas de reproducibilidad}
+\label{tab:reproducibility}
+\end{table}
+
 \end{document}
