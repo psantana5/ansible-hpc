@@ -1,0 +1,49 @@
+---
+# Playbook for managing backups in the HPC environment
+- name: Deploy backup system
+  hosts: all
+  become: true
+  vars_files:
+    - ../inventory/group_vars/all/main.yml
+  roles:
+    - backup
+  tags:
+    - backup_setup
+
+- name: Run on-demand backups
+  hosts: "{{ backup_hosts | default('nfs') }}"
+  become: true
+  vars_files:
+    - ../inventory/group_vars/all/main.yml
+  tasks:
+    - name: Run user data backup
+      command: "{{ backup_script_dir | default('/opt/backup/scripts') }}/backup.sh user_data"
+      register: user_data_backup
+      changed_when: user_data_backup.rc == 0
+      failed_when: user_data_backup.rc != 0 and user_data_backup.rc != 2
+      when: backup_type is not defined or backup_type == 'all' or backup_type == 'user_data'
+      tags:
+        - backup_run
+        - backup_user_data
+
+    - name: Run configuration backup
+      command: "{{ backup_script_dir | default('/opt/backup/scripts') }}/backup.sh configs"
+      register: config_backup
+      changed_when: config_backup.rc == 0
+      failed_when: config_backup.rc != 0 and config_backup.rc != 2
+      when: backup_type is not defined or backup_type == 'all' or backup_type == 'configs'
+      tags:
+        - backup_run
+        - backup_configs
+
+    - name: Run database backup
+      command: "{{ backup_script_dir | default('/opt/backup/scripts') }}/backup.sh slurm_db"
+      register: db_backup
+      changed_when: db_backup.rc == 0
+      failed_when: db_backup.rc != 0 and db_backup.rc != 2
+      when: 
+        - backup_type is not defined or backup_type == 'all' or backup_type == 'slurm_db'
+        - "'slurmdbd' in group_names"
+      tags:
+        - backup_run
+        - backup_database

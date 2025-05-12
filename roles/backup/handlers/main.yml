@@ -1,0 +1,15 @@
+---
+- name: restart nfs server
+  service:
+    name: nfs-server
+    state: restarted
+  when: ansible_os_family == "RedHat"
+
+- name: restart nfs kernel server
+  service:
+    name: nfs-kernel-server
+    state: restarted
+  when: ansible_os_family == "Debian"
+
+- name: reload exports
+  command: exportfs -ra
