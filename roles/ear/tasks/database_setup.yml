@@ -1,0 +1,10 @@
+---
+- name: Crear base de datos EAR
+  shell: |
+    {{ ear_install_path }}/sbin/edb_create -p
+  args:
+    executable: /bin/bash
+  register: db_create_result
+  failed_when: db_create_result.rc != 0 and "already exists" not in db_create_result.stderr
+  changed_when: db_create_result.rc == 0
+  when: inventory_hostname in groups['ear_manager']

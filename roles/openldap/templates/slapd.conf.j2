@@ -21,6 +21,13 @@ modulepath      /usr/lib64/openldap
 moduleload      back_mdb.la
 # moduleload    syncprov.la # Add if replication is needed
 
+# TLS Configuration
+TLSCACertificateFile {{ ldap_tls_cacert_path | default('/etc/pki/tls/certs/ldapserver.crt') }}
+TLSCertificateFile {{ ldap_tls_cert_path | default('/etc/pki/tls/certs/ldapserver.crt') }}
+TLSCertificateKeyFile {{ ldap_tls_key_path | default('/etc/pki/tls/private/ldapserver.key') }}
+TLSVerifyClient {{ ldap_tls_verify_client | default('never') }}
+TLSCipherSuite {{ ldap_tls_cipher_suite | default('HIGH:MEDIUM:+SSLv3') }}
+
 # Main Database definition (mdb)
 database        mdb
 suffix          "{{ ldap_base_dn }}"

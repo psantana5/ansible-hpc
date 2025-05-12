@@ -1,0 +1,15 @@
+---
+- name: Verificar si existe el plugin en el código fuente
+  stat:
+    path: "/tmp/ear-src/src/slurm_plugin/ear.c"
+  register: ear_plugin_src_exists
+
+- name: Compilar el plugin de SLURM
+  shell: |
+    cd /tmp/ear-src/src/slurm_plugin
+    make
+    cp ear.so {{ ear_install_path }}/lib/plugins/
+  args:
+    executable: /bin/bash
+  when: ear_plugin_src_exists.stat.exists and not ear_plugin_exists.stat.exists
+  changed_when: true

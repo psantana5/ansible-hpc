@@ -1,0 +1,13 @@
+---
+- name: Verificar instalación del plugin de SLURM
+  shell: |
+    ls -la {{ ear_install_path }}/lib/plugins/{{ ear_plugin_name }}
+  args:
+    executable: /bin/bash
+  register: plugin_check
+  changed_when: false
+  ignore_errors: yes
+
+- name: Mostrar resultado de la verificación
+  debug:
+    var: plugin_check.stdout_lines

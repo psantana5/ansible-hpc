@@ -1,0 +1,51 @@
+---
+- name: Desplegar Energy Aware Runtime (EAR) en nodo manager
+  hosts: ear_manager
+  become: yes
+  
+  roles:
+    - ear
+
+- name: Desplegar Energy Aware Runtime Daemon (eard) en nodos de cómputo
+  hosts: ear_nodes
+  become: yes
+  
+  roles:
+    - ear
+
+- name: Validar instalación de EAR
+  hosts: ear_manager
+  become: yes
+  
+  tasks:
+    - name: Verificar estado de los daemons EAR
+      shell: |
+        export EAR_ETC={{ ear_etc }}
+        export EAR_INSTALL_PATH={{ ear_install_path }}
+        export EAR_TMP={{ ear_tmp }}
+        {{ ear_install_path }}/bin/econtrol --status
+      args:
+        executable: /bin/bash
+      register: ear_status
+      changed_when: false
+      ignore_errors: yes
+      
+    - name: Mostrar estado de EAR
+      debug:
+        var: ear_status.stdout_lines
+        
+    - name: Verificar reportes a la base de datos
+      shell: |
+        export EAR_ETC={{ ear_etc }}
+        export EAR_INSTALL_PATH={{ ear_install_path }}
+        export EAR_TMP={{ ear_tmp }}
+        {{ ear_install_path }}/bin/ereport -n all
+      args:
+        executable: /bin/bash
+      register: ear_report
+      changed_when: false
+      ignore_errors: yes
+      
+    - name: Mostrar reportes de EAR
+      debug:
+        var: ear_report.stdout_lines

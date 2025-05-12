@@ -1,0 +1,18 @@
+---
+- name: Include installation tasks
+  include_tasks: install.yml
+  tags:
+    - backup
+    - backup_install
+
+- name: Include configuration tasks
+  include_tasks: configure.yml
+  tags:
+    - backup
+    - backup_configure
+
+- name: Include backup tasks
+  include_tasks: backup.yml
+  tags:
+    - backup
+    - backup_run
