@@ -1,0 +1,62 @@
+---
+# Backup configuration
+backup_user: "root"
+backup_group: "root"
+
+# Backup directories
+backup_base_dir: "/var/backups/hpc"
+backup_script_dir: "/opt/backup/scripts"
+backup_log_dir: "/var/log/backup"
+
+# Backup retention
+backup_retention_days: "{{ backup_retention_days | default(7) }}"
+
+# Backup schedule (cron)
+backup_schedule:
+  user_data:
+    hour: "1"
+    minute: "0"
+    weekday: "*"
+  configs:
+    hour: "2"
+    minute: "0"
+    weekday: "*"
+  slurm_db:
+    hour: "3"
+    minute: "0"
+    weekday: "*"
+
+# Paths to backup
+backup_user_home_dirs: true
+backup_user_dirs:
+  - "/home"
+  - "/export/home"
+
+# Configuration directories to backup
+backup_config_dirs:
+  - "/etc/slurm"
+  - "/etc/munge"
+  - "/etc/ssh"
+  - "/etc/openldap"
+  - "/etc/nfs"
+
+# Database backups
+backup_databases:
+  - name: "slurm_acct_db"
+    type: "mysql"
+    user: "slurm"
+    host: "localhost"
+
+# NFS configuration
+backup_nfs_server: "{{ groups['nfs'][0] | default('localhost') }}"
+backup_nfs_export: "/export/backup"
+backup_nfs_mount: "/mnt/backup"
+backup_nfs_options: "rw,sync"  # Changed from "rw,sync,no_root_squash"
+
+# Rsync options
+backup_rsync_options: "-avz --delete"
+
+# Create backup volume in filer
+backup_create_volume: true
+backup_volume_name: "backups"
+backup_volume_size: "500G"

@@ -1,0 +1,26 @@
+---
+- name: Run user data backup
+  command: "{{ backup_script_dir }}/backup.sh user_data"
+  register: user_data_backup
+  changed_when: user_data_backup.rc == 0
+  failed_when: user_data_backup.rc != 0 and user_data_backup.rc != 2
+  when: inventory_hostname == backup_nfs_server
+  tags:
+    - backup_user_data
+
+- name: Run configuration backup
+  command: "{{ backup_script_dir }}/backup.sh configs"
+  register: config_backup
+  changed_when: config_backup.rc == 0
+  failed_when: config_backup.rc != 0 and config_backup.rc != 2
+  tags:
+    - backup_configs
+
+- name: Run database backup
+  command: "{{ backup_script_dir }}/backup.sh slurm_db"
+  register: db_backup
+  changed_when: db_backup.rc == 0
+  failed_when: db_backup.rc != 0 and db_backup.rc != 2
+  when: "'slurmdbd' in group_names"
+  tags:
+    - backup_database

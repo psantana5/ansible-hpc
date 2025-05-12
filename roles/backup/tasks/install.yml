@@ -1,0 +1,43 @@
+---
+- name: Install required packages for Debian-based systems
+  package:
+    name:
+      - rsync
+      - nfs-utils
+      - cron
+      - logrotate
+      - python3
+      - python3-pip
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install required packages for RedHat-based systems
+  package:
+    name:
+      - rsync
+      - nfs-utils
+      - cronie
+      - logrotate
+      - python3
+      - python3-pip
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Create backup directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ backup_user }}"
+    group: "{{ backup_group }}"
+    mode: 0755
+  loop:
+    - "{{ backup_base_dir }}"
+    - "{{ backup_script_dir }}"
+    - "{{ backup_log_dir }}"
+
+- name: Create NFS mount point
+  file:
+    path: "{{ backup_nfs_mount }}"
+    state: directory
+    mode: 0755
+  when: inventory_hostname != backup_nfs_server

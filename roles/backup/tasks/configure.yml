@@ -1,0 +1,83 @@
+---
+# Configure NFS server (only on the NFS server)
+- name: Create backup volume in filer
+  block:
+    - name: Check if backup volume exists
+      shell: "df -h | grep {{ backup_volume_name }}"
+      register: volume_check
+      failed_when: false
+      changed_when: false
+
+    - name: Create backup volume
+      command: "lvcreate -L {{ backup_volume_size }} -n {{ backup_volume_name }} vg_data"
+      when: volume_check.rc != 0
+      register: lvcreate_result
+
+    - name: Format backup volume
+      filesystem:
+        fstype: xfs
+        dev: "/dev/vg_data/{{ backup_volume_name }}"
+      when: lvcreate_result.changed | default(false)
+
+    - name: Mount backup volume
+      mount:
+        path: "{{ backup_nfs_export }}"
+        src: "/dev/vg_data/{{ backup_volume_name }}"
+        fstype: xfs
+        state: mounted
+  when: 
+    - inventory_hostname == backup_nfs_server
+    - backup_create_volume | bool
+
+- name: Configure NFS exports
+  template:
+    src: exports.j2
+    dest: /etc/exports
+  notify:
+    - reload exports
+    - restart nfs server
+    - restart nfs kernel server
+  when: inventory_hostname == backup_nfs_server
+
+- name: Mount NFS backup share
+  mount:
+    path: "{{ backup_nfs_mount }}"
+    src: "{{ backup_nfs_server }}:{{ backup_nfs_export }}"
+    fstype: nfs
+    opts: "{{ backup_nfs_options }}"
+    state: mounted
+  when: inventory_hostname != backup_nfs_server
+
+- name: Create backup script
+  template:
+    src: backup.sh.j2
+    dest: "{{ backup_script_dir }}/backup.sh"
+    owner: "{{ backup_user }}"
+    group: "{{ backup_group }}"
+    mode: 0755
+
+- name: Create backup configuration
+  template:
+    src: backup.conf.j2
+    dest: "{{ backup_script_dir }}/backup.conf"
+    owner: "{{ backup_user }}"
+    group: "{{ backup_group }}"
+    mode: 0644
+
+- name: Set up log rotation
+  template:
+    src: backup-logrotate.j2
+    dest: /etc/logrotate.d/backup
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Set up cron jobs for backups
+  cron:
+    name: "{{ item.key }} backup"
+    job: "{{ backup_script_dir }}/backup.sh {{ item.key }} >> {{ backup_log_dir }}/{{ item.key }}_backup_$(date +\\%Y\\%m\\%d).log 2>&1"
+    hour: "{{ item.value.hour }}"
+    minute: "{{ item.value.minute }}"
+    weekday: "{{ item.value.weekday | default('*') }}"
+    user: "{{ backup_user }}"
+  loop: "{{ backup_schedule | dict2items }}"
