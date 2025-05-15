@@ -117,10 +117,9 @@
     state: started
     enabled: yes
 
-# Add this task to secure the MariaDB installation
 - name: Secure MariaDB installation
   shell: |
-    mysql -e "UPDATE mysql.user SET Password=PASSWORD('1SAfe-password') WHERE User='root';"
+    mysql -e "UPDATE mysql.user SET Password=PASSWORD('your_password') WHERE User='root';"
     mysql -e "DELETE FROM mysql.user WHERE User='';"
     mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
     mysql -e "DROP DATABASE IF EXISTS test;"
