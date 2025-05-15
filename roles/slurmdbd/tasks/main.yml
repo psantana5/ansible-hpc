@@ -89,7 +89,7 @@
     host: localhost
     state: present
     login_user: root
-    login_password: "1SAfe-password"
+    login_password: "your_password"
 
 - name: Create munge key directory
   file:
