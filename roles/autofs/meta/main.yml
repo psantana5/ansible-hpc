@@ -1,0 +1,27 @@
+---
+galaxy_info:
+  role_name: autofs
+  author: Pau Santana
+  description: Role for configuring autofs automatic filesystem mounting
+  company: CientiGO
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+    - name: EL
+      versions:
+        - 7
+        - 8
+        - 9
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+  galaxy_tags:
+    - autofs
+    - nfs
+    - filesystem
+    - storage
+
+dependencies:
+  - role: nfs_client
+    when: nfs_client_role_required | default(true) 

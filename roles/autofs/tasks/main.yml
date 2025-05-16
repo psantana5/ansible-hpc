@@ -1,0 +1,41 @@
+---
+# Install autofs package
+- name: Install autofs package
+  package:
+    name: autofs
+    state: present
+
+# Deploy autofs configuration files
+- name: Deploy auto.master configuration
+  template:
+    src: auto.master.j2
+    dest: /etc/auto.master
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart autofs
+
+- name: Deploy auto.home configuration
+  template:
+    src: auto.home.j2
+    dest: /etc/auto.home
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart autofs
+
+- name: Deploy auto.apps configuration
+  template:
+    src: auto.apps.j2
+    dest: /etc/auto.apps
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart autofs
+
+# Ensure autofs service is running and enabled
+- name: Ensure autofs service is running and enabled
+  systemd:
+    name: autofs
+    state: started
+    enabled: yes 

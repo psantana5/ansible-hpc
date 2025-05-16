@@ -1,0 +1,20 @@
+---
+# NFS server hostname
+nfs_server_host: filer01
+
+# Autofs mount configurations
+autofs_mounts:
+  - name: home
+    path: /home
+    options: "-rw,soft,intr,rsize=32768,wsize=32768"
+    source: "{{ nfs_server_host }}:/home/&"
+  - name: apps
+    path: /apps
+    options: "-ro,soft,intr,rsize=32768,wsize=32768"
+    source: "{{ nfs_server_host }}:/apps/&"
+
+# Service configuration
+autofs_service:
+  name: autofs
+  state: started
+  enabled: yes 
