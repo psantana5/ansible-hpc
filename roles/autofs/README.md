@@ -56,4 +56,4 @@ MIT
 
 ## Author Information
 
-Your Name/Organization 
+Pau Santana 
