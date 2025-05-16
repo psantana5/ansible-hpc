@@ -1,0 +1,493 @@
+% Capítulo 2: Planificación del Proyecto
+\chapter{Planificación del Proyecto}
+\section{Cronograma}
+\subsection{Fases del Proyecto}
+El proyecto se divide en las siguientes fases principales:
+
+\begin{infocaja}
+\textbf{Fase 1: Preparación y Análisis (Semanas 1-2)}
+\begin{itemize}
+    \item Análisis de requisitos y definición de alcance
+    \item Evaluación de infraestructura existente
+    \item Diseño de arquitectura del clúster
+    \item Selección de tecnologías y herramientas
+\end{itemize}
+\end{infocaja}
+
+\begin{infocaja}
+\textbf{Fase 2: Desarrollo de Automatización (Semanas 3-6)}
+\begin{itemize}
+    \item Desarrollo de roles de Ansible
+    \item Implementación de playbooks
+    \item Configuración de integración continua
+    \item Pruebas de automatización
+\end{itemize}
+\end{infocaja}
+
+\begin{infocaja}
+\textbf{Fase 3: Implementación (Semanas 7-10)}
+\begin{itemize}
+    \item Despliegue de infraestructura base
+    \item Configuración de servicios core
+    \item Implementación de seguridad
+    \item Integración de sistemas de monitoreo
+\end{itemize}
+\end{infocaja}
+
+\begin{infocaja}
+\textbf{Fase 4: Pruebas y Optimización (Semanas 11-12)}
+\begin{itemize}
+    \item Pruebas de rendimiento
+    \item Optimización de configuración
+    \item Validación de seguridad
+    \item Documentación técnica
+\end{itemize}
+\end{infocaja}
+
+\section{Asignación de Recursos}
+\subsection{Recursos Humanos}
+\begin{itemize}
+    \item \textbf{Equipo de Desarrollo}
+    \begin{itemize}
+        \item 2 Ingenieros DevOps
+        \item 1 Especialista en HPC
+        \item 1 Administrador de Sistemas
+    \end{itemize}
+    \item \textbf{Equipo de Operaciones}
+    \begin{itemize}
+        \item 1 Ingeniero de Redes
+        \item 1 Especialista en Seguridad
+        \item 1 Técnico de Soporte
+    \end{itemize}
+\end{itemize}
+
+\subsection{Recursos Técnicos}
+\begin{itemize}
+    \item \textbf{Infraestructura de Desarrollo}
+    \begin{itemize}
+        \item Servidor de CI/CD
+        \item Entorno de pruebas
+        \item Herramientas de desarrollo
+    \end{itemize}
+    \item \textbf{Infraestructura de Producción}
+    \begin{itemize}
+        \item Nodos de cómputo
+        \item Servidores de almacenamiento
+        \item Equipos de red
+    \end{itemize}
+\end{itemize}
+
+\section{Gestión de Riesgos}
+\subsection{Identificación de Riesgos}
+\begin{longtable}{|p{4cm}|p{4cm}|p{4cm}|}
+\hline
+\cabeceratabla Riesgo & Impacto & Mitigación \\
+\hline
+Fallo en la automatización & Alto & Pruebas exhaustivas y rollback planificado \\
+\hline
+Problemas de rendimiento & Medio & Benchmarking continuo y optimización \\
+\hline
+Vulnerabilidades de seguridad & Alto & Auditorías regulares y actualizaciones \\
+\hline
+Escasez de recursos & Medio & Planificación de capacidad y escalado \\
+\hline
+\end{longtable}
+
+\section{Aseguramiento de Calidad}
+\subsection{Procesos de QA}
+\begin{itemize}
+    \item \textbf{Pruebas Automatizadas}
+    \begin{itemize}
+        \item Pruebas unitarias de roles Ansible
+        \item Pruebas de integración
+        \item Pruebas de rendimiento
+    \end{itemize}
+    \item \textbf{Revisiones de Código}
+    \begin{itemize}
+        \item Revisión por pares
+        \item Análisis estático de código
+        \item Cumplimiento de estándares
+    \end{itemize}
+\end{itemize}
+
+\section{Plan de Comunicación}
+\subsection{Canales de Comunicación}
+\begin{itemize}
+    \item \textbf{Internos}
+    \begin{itemize}
+        \item Reuniones diarias de equipo
+        \item Documentación técnica
+        \item Sistema de tickets
+    \end{itemize}
+    \item \textbf{Externos}
+    \begin{itemize}
+        \item Informes de progreso
+        \item Documentación de usuario
+        \item Soporte técnico
+    \end{itemize}
+\end{itemize}
+
+% Capítulo 3: Antecedentes Técnicos
+\chapter{Antecedentes Técnicos}
+\section{Computación de Alto Rendimiento (HPC)}
+\subsection{Conceptos Fundamentales}
+La computación de alto rendimiento (HPC) se refiere a la práctica de agregar potencia de cómputo para resolver problemas complejos en ciencia, ingeniería o negocios. Los clústeres HPC modernos típicamente consisten en:
+
+\begin{itemize}
+    \item \textbf{Nodos de Cómputo}: Servidores optimizados para procesamiento paralelo
+    \item \textbf{Nodos de Acceso}: Puntos de entrada para usuarios
+    \item \textbf{Red de Alta Velocidad}: Interconexión de nodos
+    \item \textbf{Sistema de Almacenamiento}: Almacenamiento compartido de alto rendimiento
+    \item \textbf{Gestor de Colas}: Software para programación de trabajos
+\end{itemize}
+
+\section{Ansible}
+\subsection{Fundamentos de Automatización}
+Ansible es una plataforma de automatización de TI que utiliza un lenguaje declarativo para describir la configuración del sistema. Sus características clave incluyen:
+
+\begin{infocaja}
+\textbf{Ventajas de Ansible para HPC}
+\begin{itemize}
+    \item \textbf{Idempotencia}: Las tareas se pueden ejecutar múltiples veces sin efectos secundarios
+    \item \textbf{Agente-less}: No requiere software adicional en los nodos gestionados
+    \item \textbf{YAML}: Sintaxis simple y legible
+    \item \textbf{Modularidad}: Roles y playbooks reutilizables
+\end{itemize}
+\end{infocaja}
+
+\section{Gestor de Cargas de Trabajo (SLURM)}
+\subsection{Arquitectura y Componentes}
+SLURM (Simple Linux Utility for Resource Management) es un gestor de recursos y planificador de trabajos de código abierto. Sus componentes principales son:
+
+\begin{itemize}
+    \item \textbf{slurmctld}: Demonio de control central
+    \item \textbf{slurmd}: Demonio de nodo de cómputo
+    \item \textbf{slurmdbd}: Demonio de base de datos
+    \item \textbf{sacctmgr}: Herramienta de gestión de cuentas
+\end{itemize}
+
+\section{Tecnologías de Almacenamiento}
+\subsection{Sistemas de Archivos Distribuidos}
+\begin{infocaja}
+\textbf{Componentes de Almacenamiento}
+\begin{itemize}
+    \item \textbf{NFS}: Sistema de archivos en red para datos compartidos
+    \item \textbf{Lustre}: Sistema de archivos paralelo para alto rendimiento
+    \item \textbf{GPFS}: Sistema de archivos paralelo de IBM
+    \item \textbf{Ceph}: Sistema de almacenamiento distribuido
+\end{itemize}
+\end{infocaja}
+
+\section{Autenticación y Seguridad}
+\subsection{Infraestructura de Identidad}
+\begin{itemize}
+    \item \textbf{OpenLDAP}
+    \begin{itemize}
+        \item Directorio centralizado de usuarios
+        \item Autenticación unificada
+        \item Gestión de grupos y permisos
+    \end{itemize}
+    \item \textbf{Seguridad}
+    \begin{itemize}
+        \item Firewalls y políticas de red
+        \item Cifrado de datos en tránsito
+        \item Control de acceso basado en roles
+    \end{itemize}
+\end{itemize}
+
+\section{Monitoreo y Métricas}
+\subsection{Stack de Monitoreo}
+\begin{infocaja}
+\textbf{Componentes de Monitoreo}
+\begin{itemize}
+    \item \textbf{Prometheus}: Sistema de monitoreo y alertas
+    \item \textbf{Grafana}: Visualización de métricas
+    \item \textbf{Node Exporter}: Métricas del sistema
+    \item \textbf{Alertmanager}: Gestión de alertas
+\end{itemize}
+\end{infocaja}
+
+% Capítulo 4: Análisis de Costos
+\chapter{Análisis de Costos}
+\section{Costos de Licencias de Software}
+\subsection{Software Propietario vs Open Source}
+\begin{longtable}{|p{4cm}|p{4cm}|p{4cm}|}
+\hline
+\cabeceratabla Componente & Tipo & Costo \\
+\hline
+Sistema Operativo & Open Source & \$0 \\
+\hline
+Ansible & Open Source & \$0 \\
+\hline
+SLURM & Open Source & \$0 \\
+\hline
+Monitoreo & Open Source & \$0 \\
+\hline
+\end{longtable}
+
+\section{Costos de Hardware}
+\subsection{Infraestructura Base}
+\begin{itemize}
+    \item \textbf{Nodos de Cómputo}
+    \begin{itemize}
+        \item 10 nodos de cómputo: \$150,000
+        \item 2 nodos de acceso: \$20,000
+        \item 1 nodo de gestión: \$15,000
+    \end{itemize}
+    \item \textbf{Almacenamiento}
+    \begin{itemize}
+        \item Sistema de almacenamiento compartido: \$80,000
+        \item Sistema de backup: \$30,000
+    \end{itemize}
+    \item \textbf{Red}
+    \begin{itemize}
+        \item Switches de alta velocidad: \$40,000
+        \item Cables y conectores: \$5,000
+    \end{itemize}
+\end{itemize}
+
+\section{Costos de Implementación}
+\subsection{Recursos Humanos}
+\begin{itemize}
+    \item \textbf{Equipo de Desarrollo}
+    \begin{itemize}
+        \item 2 Ingenieros DevOps (3 meses): \$60,000
+        \item 1 Especialista HPC (3 meses): \$45,000
+    \end{itemize}
+    \item \textbf{Equipo de Operaciones}
+    \begin{itemize}
+        \item 1 Ingeniero de Redes (2 meses): \$20,000
+        \item 1 Especialista en Seguridad (2 meses): \$20,000
+    \end{itemize}
+\end{itemize}
+
+\section{Costos Operativos}
+\subsection{Gastos Recurrentes}
+\begin{itemize}
+    \item \textbf{Personal}
+    \begin{itemize}
+        \item Administrador del clúster: \$80,000/año
+        \item Soporte técnico: \$60,000/año
+    \end{itemize}
+    \item \textbf{Infraestructura}
+    \begin{itemize}
+        \item Energía y refrigeración: \$30,000/año
+        \item Mantenimiento: \$20,000/año
+    \end{itemize}
+\end{itemize}
+
+\section{Costo Total de Propiedad (TCO)}
+\subsection{Análisis a 5 Años}
+\begin{infocaja}
+\textbf{Desglose del TCO}
+\begin{itemize}
+    \item \textbf{Costos Iniciales}: \$420,000
+    \item \textbf{Costos Operativos Anuales}: \$190,000
+    \item \textbf{TCO a 5 años}: \$1,370,000
+\end{itemize}
+\end{infocaja}
+
+% Capítulo 5: Implementación Técnica
+\chapter{Implementación Técnica}
+\section{Estructura de Roles de Ansible}
+\subsection{Organización del Código}
+\begin{lstlisting}[language=yaml]
+ansible-hpc/
+├── inventory/
+│   ├── production/
+│   └── staging/
+├── group_vars/
+│   ├── all/
+│   ├── compute/
+│   └── login/
+├── roles/
+│   ├── common/
+│   ├── slurm/
+│   ├── storage/
+│   ├── monitoring/
+│   └── security/
+└── playbooks/
+    ├── site.yml
+    ├── compute.yml
+    └── monitoring.yml
+\end{lstlisting}
+
+\section{Detalles de la Implementación}
+\subsection{Gestión de SLURM}
+\begin{infocaja}
+\textbf{Componentes de SLURM}
+\begin{itemize}
+    \item \textbf{Controlador}
+    \begin{itemize}
+        \item Configuración de slurmctld
+        \item Gestión de cuentas
+        \item Políticas de colas
+    \end{itemize}
+    \item \textbf{Nodos de Cómputo}
+    \begin{itemize}
+        \item Instalación de slurmd
+        \item Configuración de recursos
+        \item Monitoreo de estado
+    \end{itemize}
+\end{itemize}
+\end{infocaja}
+
+\subsection{Gestión de Almacenamiento}
+\begin{itemize}
+    \item \textbf{NFS Server}
+    \begin{itemize}
+        \item Configuración de exportaciones
+        \item Gestión de permisos
+        \item Monitoreo de uso
+    \end{itemize}
+    \item \textbf{NFS Client}
+    \begin{itemize}
+        \item Montajes automáticos
+        \item Gestión de caché
+        \item Monitoreo de rendimiento
+    \end{itemize}
+\end{itemize}
+
+\subsection{Autenticación}
+\begin{infocaja}
+\textbf{Implementación de OpenLDAP}
+\begin{itemize}
+    \item \textbf{Servidor LDAP}
+    \begin{itemize}
+        \item Instalación y configuración
+        \item Certificados SSL
+        \item Replicación
+    \end{itemize}
+    \item \textbf{Clientes}
+    \begin{itemize}
+        \item Configuración de autenticación
+        \item Gestión de grupos
+        \item Políticas de acceso
+    \end{itemize}
+\end{itemize}
+\end{infocaja}
+
+\subsection{Monitoreo}
+\begin{itemize}
+    \item \textbf{Prometheus}
+    \begin{itemize}
+        \item Configuración del servidor
+        \item Reglas de alertas
+        \item Retención de datos
+    \end{itemize}
+    \item \textbf{Grafana}
+    \begin{itemize}
+        \item Dashboards predefinidos
+        \item Alertas visuales
+        \item Exportación de informes
+    \end{itemize}
+\end{itemize}
+
+% Capítulo 6: Mantenimiento del Proyecto
+\chapter{Mantenimiento del Proyecto}
+\section{Pipelines CI/CD}
+\subsection{Automatización de Pruebas}
+\begin{infocaja}
+\textbf{Proceso de CI/CD}
+\begin{itemize}
+    \item \textbf{Integración Continua}
+    \begin{itemize}
+        \item Pruebas de roles Ansible
+        \item Validación de sintaxis
+        \item Pruebas de idempotencia
+    \end{itemize}
+    \item \textbf{Entrega Continua}
+    \begin{itemize}
+        \item Despliegue automatizado
+        \item Verificación de cambios
+        \item Rollback automático
+    \end{itemize}
+\end{itemize}
+\end{infocaja}
+
+\section{Infraestructura de Testing}
+\subsection{Ambientes de Prueba}
+\begin{itemize}
+    \item \textbf{Desarrollo}
+    \begin{itemize}
+        \item Entorno virtualizado
+        \item Pruebas de integración
+        \item Desarrollo de nuevas características
+    \end{itemize}
+    \item \textbf{Staging}
+    \begin{itemize}
+        \item Réplica de producción
+        \item Pruebas de rendimiento
+        \item Validación de cambios
+    \end{itemize}
+\end{itemize}
+
+\section{Documentación}
+\subsection{Tipos de Documentación}
+\begin{itemize}
+    \item \textbf{Técnica}
+    \begin{itemize}
+        \item Arquitectura del sistema
+        \item Procedimientos de operación
+        \item Guías de troubleshooting
+    \end{itemize}
+    \item \textbf{Usuario}
+    \begin{itemize}
+        \item Guías de uso
+        \item Tutoriales
+        \item FAQ
+    \end{itemize}
+\end{itemize}
+
+\section{Soporte y Mantenimiento}
+\subsection{Procedimientos de Soporte}
+\begin{infocaja}
+\textbf{Niveles de Soporte}
+\begin{itemize}
+    \item \textbf{Nivel 1}
+    \begin{itemize}
+        \item Soporte básico de usuario
+        \item Resolución de problemas comunes
+        \item Documentación de incidencias
+    \end{itemize}
+    \item \textbf{Nivel 2}
+    \begin{itemize}
+        \item Soporte técnico avanzado
+        \item Análisis de problemas complejos
+        \item Coordinación con proveedores
+    \end{itemize}
+\end{itemize}
+\end{infocaja}
+
+% Apéndices
+\begin{appendix}
+\chapter{Glosario de Términos}
+\section{Términos Técnicos}
+\begin{itemize}
+    \item \textbf{HPC}: High Performance Computing
+    \item \textbf{SLURM}: Simple Linux Utility for Resource Management
+    \item \textbf{NFS}: Network File System
+    \item \textbf{LDAP}: Lightweight Directory Access Protocol
+    \item \textbf{CI/CD}: Continuous Integration/Continuous Delivery
+\end{itemize}
+
+\chapter{Referencias Técnicas}
+\section{Documentación Oficial}
+\begin{itemize}
+    \item Ansible Documentation: \url{https://docs.ansible.com}
+    \item SLURM Documentation: \url{https://slurm.schedmd.com/documentation.html}
+    \item OpenLDAP Documentation: \url{https://www.openldap.org/doc/}
+    \item Prometheus Documentation: \url{https://prometheus.io/docs/}
+\end{itemize}
+
+\chapter{Documentación Adicional}
+\section{Procedimientos Detallados}
+\begin{itemize}
+    \item Procedimientos de backup y recuperación
+    \item Guías de actualización del sistema
+    \item Procedimientos de seguridad
+    \item Guías de optimización de rendimiento
+\end{itemize}
+\end{appendix}
+
+\end{document} 
