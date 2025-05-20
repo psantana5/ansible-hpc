@@ -5,54 +5,80 @@ on:
     branches: [ main, master ]
     paths:
       - 'roles/**'
+      - '.github/workflows/molecule-tests.yml'
   pull_request:
     branches: [ main, master ]
     paths:
       - 'roles/**'
+      - '.github/workflows/molecule-tests.yml'
   workflow_dispatch:
 
 jobs:
-  molecule:
-    name: Molecule Tests
+  # 1️⃣ Generar dinámicamente la lista de roles
+  generate-matrix:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        role:
-          - autofs
-          - compute
-          - dns
-          - docker
-          - epel
-          - login_node
-          - monitoring
-          - nfs_server
-          - node_exporter
-          - openldap
-          - prometheus
-          - slurmctld
-          - slurmdbd
-      fail-fast: false
-    
+    outputs:
+      roles: ${{ steps.get_roles.outputs.roles }}
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v3
-      
-      - name: Set up Python
+
+      - id: get_roles
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            const fs = require('fs');
+            const roles = fs
+              .readdirSync('roles')
+              .filter(d => fs.statSync(`roles/${d}`).isDirectory());
+            core.setOutput('roles', JSON.stringify(roles));
+
+  # 2️⃣ Job principal de Molecule usando la matriz generada
+  molecule:
+    needs: generate-matrix
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        role:  ${{ fromJson(needs.generate-matrix.outputs.roles) }}
+        distro: [ubuntu-22.04, rocky-8, debian-11, almalinux-9]
+        python: ['3.8', '3.9', '3.10']
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Cache Ansible roles & collections
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.ansible/roles
+            ~/.ansible/collections
+          key: ${{ runner.os }}-ansible-${{ hashFiles('roles/**/molecule/default/requirements.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-ansible-
+
+      - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
-      
+          python-version: ${{ matrix.python }}
+
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install molecule molecule-docker ansible-core pytest pytest-testinfra
-      
-      - name: Run Molecule tests
+
+      - name: Run Molecule for ${{ matrix.role }} on ${{ matrix.distro }}
         run: |
           cd roles/${{ matrix.role }}
-          if [ -d "molecule" ]; then
-            molecule test
-          else
-            echo "No molecule tests found for role ${{ matrix.role }}, skipping."
-          fi
+          molecule test --destroy always --platform-name ${{ matrix.distro }}
         continue-on-error: true
+
+      - name: Upload Molecule logs
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: molecule-${{ matrix.role }}-${{ matrix.distro }}-py${{ matrix.python }}-logs
+          path: roles/${{ matrix.role }}/.molecule/**/molecule.log
