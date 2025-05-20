@@ -1,4 +1,7 @@
 name: Molecule Tests
+permissions:
+  contents: read
+  actions: write
 
 on:
   push:
