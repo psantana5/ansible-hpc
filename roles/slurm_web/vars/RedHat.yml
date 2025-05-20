@@ -1,0 +1,15 @@
+---
+# roles/slurm_web/vars/RedHat.yml
+
+# Package names
+slurmrestd_package: "slurm-slurmrestd"
+slurm_web_packages:
+  - slurm-web-agent
+  - slurm-web-gateway
+
+# Repository configuration
+slurm_web_repo_template: "rackslab.repo.j2"
+slurm_web_repo_path: "/etc/yum.repos.d/rackslab.repo"
+
+# EPEL may be required for dependencies
+epel_required: true

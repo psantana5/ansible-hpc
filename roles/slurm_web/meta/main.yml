@@ -1,0 +1,26 @@
+---
+dependencies: []
+
+galaxy_info:
+  author: ansible-hpc
+  description: Installs and configures Slurm-web interface
+  license: GPL-3.0-or-later
+  min_ansible_version: 2.9
+  platforms:
+    - name: EL
+      versions:
+        - 8
+        - 9
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+  galaxy_tags:
+    - slurm
+    - hpc
+    - web
+    - monitoring

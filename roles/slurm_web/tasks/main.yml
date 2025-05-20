@@ -1,0 +1,106 @@
+---
+# roles/slurm_web/tasks/main.yml
+# Based on https://docs.rackslab.io/slurm-web/install/quickstart.html
+
+- name: Include OS-specific variables
+  include_vars: "{{ ansible_os_family }}.yml"
+
+# Setup slurmrestd
+- name: Install slurmrestd package
+  package:
+    name: "{{ slurmrestd_package }}"
+    state: present
+
+- name: Create slurmrestd service override directory
+  file:
+    path: /etc/systemd/system/slurmrestd.service.d
+    state: directory
+    mode: '0755'
+
+- name: Configure slurmrestd service
+  template:
+    src: slurm-web.conf.j2
+    dest: /etc/systemd/system/slurmrestd.service.d/slurm-web.conf
+    mode: '0644'
+  notify: reload systemd
+
+- name: Enable and start slurmrestd service
+  systemd:
+    name: slurmrestd.service
+    enabled: yes
+    state: started
+    daemon_reload: yes
+
+# Install Slurm-web components
+- name: Install Slurm-web repository key
+  block:
+    - name: Download and install RPM repository keyring (RedHat)
+      get_url:
+        url: https://pkgs.rackslab.io/keyring.asc
+        dest: /etc/pki/rpm-gpg/RPM-GPG-KEY-Rackslab
+        mode: '0644'
+      when: ansible_os_family == "RedHat"
+
+    - name: Download and install APT repository keyring (Debian)
+      shell: |
+        curl -sS https://pkgs.rackslab.io/keyring.asc | gpg --dearmor | tee /usr/share/keyrings/rackslab.gpg > /dev/null
+      args:
+        creates: /usr/share/keyrings/rackslab.gpg
+      when: ansible_os_family == "Debian"
+
+- name: Configure Slurm-web repository
+  template:
+    src: "{{ slurm_web_repo_template }}"
+    dest: "{{ slurm_web_repo_path }}"
+    mode: '0644'
+
+- name: Update package cache (Debian)
+  apt:
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install Slurm-web packages
+  package:
+    name: "{{ slurm_web_packages }}"
+    state: present
+
+# Configure Slurm-web
+- name: Create agent configuration directory
+  file:
+    path: /etc/slurm-web
+    state: directory
+    mode: '0755'
+
+- name: Configure Slurm-web agent
+  template:
+    src: agent.ini.j2
+    dest: /etc/slurm-web/agent.ini
+    mode: '0644'
+  notify: restart slurm-web-agent
+
+- name: Configure Slurm-web gateway
+  template:
+    src: gateway.ini.j2
+    dest: /etc/slurm-web/gateway.ini
+    mode: '0644'
+  notify: restart slurm-web-gateway
+
+- name: Generate JWT signing key
+  shell: /usr/libexec/slurm-web/slurm-web-gen-jwt-key
+  args:
+    creates: /var/lib/slurm-web/jwt.key
+
+- name: Enable and start Slurm-web services
+  systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  loop:
+    - slurm-web-agent.service
+    - slurm-web-gateway.service
+
+- name: Display Slurm-web access information
+  debug:
+    msg: |
+      Slurm-web has been installed and configured.
+      Access the web interface at: http://{{ ansible_fqdn }}:5011

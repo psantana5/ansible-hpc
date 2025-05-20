@@ -1,0 +1,11 @@
+[Service]
+# Unset vendor unit ExecStart to avoid cumulative definition
+ExecStart=
+Environment=
+# Disable slurm user security check
+Environment=SLURMRESTD_SECURITY=disable_user_check
+ExecStart=/usr/sbin/slurmrestd $SLURMRESTD_OPTIONS -a rest_auth/local unix:/run/slurmrestd/slurmrestd.socket
+RuntimeDirectory=slurmrestd
+RuntimeDirectoryMode=0755
+User=slurm
+Group=slurm

@@ -53,11 +53,22 @@ firewall_ports_tcp:
   - 9100 # Node Exporter
   - 9101 # Slurm Exporter
   - 3000 # Grafana
+  - 5011 # Slurm-web Gateway
+  - 5012 # Slurm-web Agent
 
 # ------------------------------------------------------------
 # Repository Configuration
 # ------------------------------------------------------------
 epel_repo_package: "epel-release"
+
+# ------------------------------------------------------------
+# Slurm-web Configuration
+# ------------------------------------------------------------
+# Cluster name to display in the web interface
+slurm_web_cluster_name: "{{ cluster_name | default('cluster') }}"
+# Service configuration
+slurm_web_gateway_port: 5011
+slurm_web_agent_port: 5012
 
 # ------------------------------------------------------------
 # Foreman / Puppet Configuration

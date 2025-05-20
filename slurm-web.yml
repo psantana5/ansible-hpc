@@ -1,0 +1,30 @@
+---
+- name: Deploy Slurm-web Interface
+  vars_files:
+    - inventory/group_vars/all/main.yml
+  hosts:
+    - slurmctld
+  become: yes
+  
+  roles:
+    - slurm_web
+  
+  post_tasks:
+    - name: Verify Slurm-web installation
+      uri:
+        url: "http://localhost:5011"
+        return_content: yes
+      register: slurm_web_response
+      failed_when: false
+      changed_when: false
+    
+    - name: Display Slurm-web access information
+      debug:
+        msg: |
+          Slurm-web has been successfully installed and configured.
+          You can access the web interface at: http://{{ ansible_fqdn }}:5011
+          
+          If you encounter any issues, check the service status with:
+          systemctl status slurm-web-agent.service
+          systemctl status slurm-web-gateway.service
+          systemctl status slurmrestd.service

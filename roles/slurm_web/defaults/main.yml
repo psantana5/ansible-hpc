@@ -1,0 +1,16 @@
+---
+# roles/slurm_web/defaults/main.yml
+
+# Cluster configuration
+slurm_web_cluster_name: "{{ cluster_name | default('cluster') }}"
+
+# Service configuration
+slurm_web_gateway_port: 5011
+slurm_web_agent_port: 5012
+
+# Installation options
+slurm_web_install_epel: true  # Install EPEL repository on RedHat systems if needed
+
+# Advanced configuration
+slurm_web_custom_agent_options: {}
+slurm_web_custom_gateway_options: {}

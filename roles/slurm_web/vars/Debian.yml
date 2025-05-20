@@ -1,0 +1,12 @@
+---
+# roles/slurm_web/vars/Debian.yml
+
+# Package names
+slurmrestd_package: "slurm-slurmrestd"
+slurm_web_packages:
+  - slurm-web-agent
+  - slurm-web-gateway
+
+# Repository configuration
+slurm_web_repo_template: "rackslab.sources.j2"
+slurm_web_repo_path: "/etc/apt/sources.list.d/rackslab.sources"
