@@ -54,6 +54,15 @@ multiproject_projects = {
     },
 }
 
+rtd_config_file = os.environ.get("READTHEDOCS_CONFIG")
+if rtd_config_file and not os.environ.get("PROJECT"):
+    config_name = os.path.basename(rtd_config_file)
+    base, _ = os.path.splitext(config_name)
+    if base.startswith(".readthedocs."):
+        project_name = base[len(".readthedocs."):]
+        if project_name:
+            os.environ["PROJECT"] = project_name
+
 docset = get_project(multiproject_projects)
 
 # Disable custom 404 on dev docs
@@ -161,9 +170,7 @@ html_theme_options = {
     "logo_only": True,
 }
 html_context = {
-    # Fix the "edit on" links.
-    # TODO: remove once we support different rtd config
-    # files per project.
+    # Fix the "edit on" links for each project.
     "conf_py_path": f"/docs/{docset}/",
     "display_github": True,
     "github_user": "readthedocs",
