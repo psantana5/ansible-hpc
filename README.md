@@ -1,4 +1,4 @@
-[![CI Status](https://img.shields.io/github/actions/workflow/status/psantana5/playbooks-slurm/ci-status.yml?label=CI&style=flat-square)](https://github.com/psantana5/playbooks-slurm/actions/workflows/ci-status.yml)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/psantana5/ansible-hpc/ci-status.yml?label=CI&style=flat-square)](https://github.com/psantana5/ansible-hpc/actions/workflows/ci-status.yml)
 
 # HPC Cluster Automation with Ansible
 
@@ -16,37 +16,26 @@ This repository provides a comprehensive, modular Ansible-based automation suite
 
 ## Directory Structure
 ```
-playbooks-slurm/
+ansible-hpc/
 ├── ansible.cfg
+├── docs/
+├── examples/
 ├── inventory/
 │   ├── hosts
 │   └── group_vars/
-│       ├── all/
-│       │   └── main.yml
-│       └── ... (other group/host vars)
-├── roles/
-│   ├── spack/
-│   ├── container_apps/
-│   ├── monitoring/
-│   ├── proxmox_monitoring/
-│   ├── slurmctld/
-│   ├── slurm_power_monitoring/
-│   ├── epel/
-│   ├── docker/
-│   ├── reporting/
-│   └── ... (other roles)
+│       └── ...
 ├── playbooks/
 │   ├── core/
+│   └── monitoring/
+├── roles/
+│   ├── compute/
 │   ├── monitoring/
-│   └── ... (other playbooks)
+│   └── ...
+├── scripts/
+├── templates/
 ├── tests/
 │   ├── component_tests/
-│   ├── integration_tests/
-│   └── ... (test playbooks)
-├── scripts/
-├── docs/
-│   └── monitoring/
-│       └── proxmox_power_monitoring.html
+│   └── integration_tests/
 ├── site.yml
 ├── spack.yml
 └── ... (other files)
